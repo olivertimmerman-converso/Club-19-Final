@@ -68,8 +68,8 @@ cp .env.local.example .env.local
 Edit `.env.local` and add your Clerk secret key:
 
 ```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuY29udmVyc28udWsk
-CLERK_SECRET_KEY=sk_live_YOUR_ACTUAL_SECRET_KEY_HERE
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
+CLERK_SECRET_KEY=your_clerk_secret_key_here
 ```
 
 4. **Run the development server:**
@@ -101,9 +101,9 @@ The following are configured directly in the codebase:
   - alys@sketch24ltd.com
 
 - **Webhooks** (in `lib/constants.ts`):
-  - Audit Log: `https://hook.eu2.make.com/gmbtntgkxq7kagl456vblixfnn7jwgfd`
-  - Xero Invoice: `https://hook.eu2.make.com/6yd7c1j1we7wzujw7vdne6cr6wd8jp9b`
-  - Xero Contacts: `https://hook.eu2.make.com/knai3w9y6zsblc2kc1qu8j33cp4pwlhj`
+  - Audit Log: `https://hook.eu2.make.com/YOUR_AUDIT_WEBHOOK_ID`
+  - Xero Invoice: `https://hook.eu2.make.com/YOUR_XERO_INVOICE_WEBHOOK_ID`
+  - Xero Contacts: `https://hook.eu2.make.com/YOUR_XERO_CONTACTS_WEBHOOK_ID`
 
 ## Authorization
 

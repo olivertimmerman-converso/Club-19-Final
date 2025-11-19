@@ -29,9 +29,9 @@ export const TAX_CODES = {
  * Webhook URLs from prototype
  */
 export const WEBHOOKS = {
-  AUDIT_LOG: "https://hook.eu2.make.com/gmbtntgkxq7kagl456vblixfnn7jwgfd",
-  XERO_INVOICE: "https://hook.eu2.make.com/6yd7c1j1we7wzujw7vdne6cr6wd8jp9b",
-  XERO_CONTACTS: "https://hook.eu2.make.com/knai3w9y6zsblc2kc1qu8j33cp4pwlhj",
+  AUDIT_LOG: "https://hook.eu2.make.com/YOUR_AUDIT_WEBHOOK_ID",
+  XERO_INVOICE: "https://hook.eu2.make.com/YOUR_XERO_INVOICE_WEBHOOK_ID",
+  XERO_CONTACTS: "https://hook.eu2.make.com/YOUR_XERO_CONTACTS_WEBHOOK_ID",
 } as const
 
 /**
