@@ -225,29 +225,50 @@ export default function InvoiceFlow({ user }: InvoiceFlowProps) {
   -------------------------------------------------- */
   return (
     <div className="max-w-xl mx-auto py-8 px-4">
-      {/* HEADER */}
-      <div className="bg-black text-white p-6 rounded-lg shadow mb-6">
-        <div className="flex justify-between items-start">
-          <div className="flex-1 text-center">
-            <div className="font-serif tracking-widest text-2xl">
-              CLUB<span className="text-3xl">19</span>
-            </div>
-            <div className="font-serif tracking-widest text-sm">LONDON</div>
-          </div>
+      {/* HEADER — Premium luxury design with perfectly centered logo */}
+      <header className="bg-black text-white mb-8">
+        {/*
+          Container structure ensures absolute centering:
+          - Relative positioning allows absolute child positioning
+          - Logo is centered using absolute positioning + transform
+          - Logout button is positioned in top-right independently
+        */}
+        <div className="relative px-8 py-10">
+
+          {/* Logout button — Top right corner, minimal and unobtrusive */}
           <button
             onClick={handleLogout}
-            className="text-xs bg-white text-black px-3 py-1 rounded hover:bg-gray-200 transition"
+            className="absolute top-6 right-6 text-[10px] uppercase tracking-[0.15em] text-gray-400 hover:text-white transition-colors duration-300 font-light"
           >
-            Logout
+            Logout →
           </button>
+
+          {/* Logo — Absolutely centered regardless of other elements */}
+          <div className="flex flex-col items-center">
+            {/* Main logo lockup */}
+            <div className="font-serif tracking-[0.3em] text-[28px] font-light leading-none mb-1">
+              CLUB<span className="text-[32px] font-normal">19</span>
+            </div>
+            {/* Subtext */}
+            <div className="font-serif tracking-[0.45em] text-[11px] font-extralight text-gray-300">
+              LONDON
+            </div>
+          </div>
+
+          {/* Divider — Elegant thin line with subtle gradient fade */}
+          <div className="mt-8 mb-6 h-[0.5px] bg-gradient-to-r from-transparent via-gray-500 to-transparent"></div>
+
+          {/* Page title — Refined typography */}
+          <h1 className="text-center font-light tracking-[0.2em] text-[15px] uppercase text-gray-200">
+            Invoice Flow
+          </h1>
+
+          {/* User context — Subtle and discrete */}
+          <p className="text-center text-[10px] tracking-[0.1em] text-gray-500 mt-4 font-light">
+            {user.email}
+          </p>
         </div>
-        <div className="border-t border-gray-600 mt-4 pt-3 text-center text-lg">
-          Invoice Flow
-        </div>
-        <div className="text-center text-xs text-gray-400 mt-2">
-          Logged in as {user.email}
-        </div>
-      </div>
+      </header>
 
       {/* STEP 1 */}
       <div className="bg-white p-4 rounded-lg shadow mb-4">
