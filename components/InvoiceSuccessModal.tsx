@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type InvoiceSuccessModalProps = {
   show: boolean
@@ -27,6 +27,19 @@ export default function InvoiceSuccessModal({
 }: InvoiceSuccessModalProps) {
   const [showTaxDetails, setShowTaxDetails] = useState(false)
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (show) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [show])
+
   if (!show) return null
 
   const handleViewInXero = () => {
@@ -42,20 +55,20 @@ export default function InvoiceSuccessModal({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-60 z-40 animate-fade-in"
+        className="fixed inset-0 bg-black bg-opacity-60 z-40 animate-fade-in backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none overflow-y-auto">
         <div
-          className="bg-white border-2 border-club19-black shadow-2xl max-w-lg w-full pointer-events-auto animate-slide-up"
+          className="bg-white border-2 border-club19-black shadow-2xl max-w-lg w-full pointer-events-auto animate-slide-up relative my-8"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-club19-charcoal hover:text-club19-black transition-colors"
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-club19-charcoal hover:text-club19-black transition-colors z-10"
             aria-label="Close"
           >
             <svg
