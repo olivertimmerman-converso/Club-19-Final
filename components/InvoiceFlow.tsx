@@ -546,18 +546,10 @@ VAT Reclaim: ${result.vatReclaim}`
               <div className="font-medium text-xl">{result.accountCode}</div>
             </div>
 
-            {/* Xero Tax Code */}
+            {/* Tax Description */}
             <div className="bg-white border p-3 rounded shadow-sm">
               <div className="text-xs font-semibold uppercase text-gray-500 mb-1">
-                Xero Tax Code
-              </div>
-              <div className="font-medium">{result.taxType}</div>
-            </div>
-
-            {/* Friendly Tax Description */}
-            <div className="bg-white border p-3 rounded shadow-sm">
-              <div className="text-xs font-semibold uppercase text-gray-500 mb-1">
-                Friendly Tax Description
+                Tax Description
               </div>
               <div className="font-medium">{result.taxLabel}</div>
             </div>
