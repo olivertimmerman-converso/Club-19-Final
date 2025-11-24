@@ -195,6 +195,12 @@ export default function InvoiceFlow({ user }: InvoiceFlowProps) {
         return
       }
 
+      // Build Xero deep link URL when invoiceId is available
+      // Uses Xero's documented deep linking format with organization shortcode
+      const xeroUrl = response.invoiceId
+        ? `https://go.xero.com/organisationlogin/default.aspx?shortcode=!KvvH6&redirecturl=/AccountsReceivable/View.aspx?InvoiceID=${response.invoiceId.trim()}`
+        : response.invoiceUrl
+
       // Build tax summary from result
       const taxSummary = `Tax Type: ${result.taxLabel}
 Account Code: ${result.accountCode}
@@ -209,7 +215,7 @@ VAT Reclaim: ${result.vatReclaim}`
         total: response.total?.toString() || price,
         amountDue: response.amountDue?.toString() || price,
         taxSummary,
-        invoiceUrl: response.invoiceUrl,
+        invoiceUrl: xeroUrl,
       })
 
       setSending(false)
