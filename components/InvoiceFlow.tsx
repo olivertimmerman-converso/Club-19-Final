@@ -689,7 +689,7 @@ VAT Reclaim: ${result.vatReclaim}`
               <input
                 className="w-full p-3 border-2 rounded focus:outline-none focus:border-black"
                 value={itemDescription}
-                placeholder="e.g. 2025 Clutch, Gold Hardware"
+                placeholder="e.g. K25 Black Epsom PHW"
                 onChange={(e) => setItemDescription(e.target.value)}
               />
               {errors.itemDescription && (
