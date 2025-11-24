@@ -189,14 +189,16 @@ export default function InvoiceFlow({ user }: InvoiceFlowProps) {
         }
       )
 
-      // Validate we have an invoice ID
-      if (!response.invoiceId) {
+      // Validate we have an invoice URL
+      if (!response.invoiceUrl) {
         window.location.href = '/invoice/error'
         return
       }
 
-      // Build Xero deep link URL for mobile app compatibility
-      const xeroDeepLink = `https://go.xero.com/organisationlogin/default.aspx?shortcode=!KvvH6&redirecturl=/AccountsReceivable/View.aspx?InvoiceID=${response.invoiceId}`
+      // Build Xero deep link URL for mobile app compatibility (if invoiceId is available)
+      const xeroDeepLink = response.invoiceId
+        ? `https://go.xero.com/organisationlogin/default.aspx?shortcode=!KvvH6&redirecturl=/AccountsReceivable/View.aspx?InvoiceID=${response.invoiceId}`
+        : response.invoiceUrl
 
       // Build tax summary from result
       const taxSummary = `Tax Type: ${result.taxLabel}
