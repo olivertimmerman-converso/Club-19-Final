@@ -109,18 +109,45 @@ export async function sendInvoiceToXero(
     timestamp: new Date().toISOString(),
   }
 
-  const response = await fetch(WEBHOOKS.XERO_INVOICE, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(invoiceData),
-  })
+  // Add 30-second timeout to prevent indefinite waiting
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 30000)
 
-  if (!response.ok) {
-    throw new Error('Xero creation failed')
+  try {
+    const response = await fetch(WEBHOOKS.XERO_INVOICE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(invoiceData),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error')
+      throw new Error(`Xero creation failed (${response.status}): ${errorText}`)
+    }
+
+    const data = await response.json()
+
+    // Validate response structure to prevent crashes from malformed webhook responses
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response format from Xero webhook')
+    }
+
+    // Ensure at least one of the critical URL fields is present
+    if (!data.invoiceUrl && !data.invoiceId) {
+      throw new Error('Webhook response missing invoice URL or ID')
+    }
+
+    return data as XeroInvoiceResponse
+  } catch (err) {
+    clearTimeout(timeoutId)
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Request timed out after 30 seconds. Please check your connection and try again.')
+    }
+    throw err
   }
-
-  const data = await response.json()
-  return data as XeroInvoiceResponse
 }

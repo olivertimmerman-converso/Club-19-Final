@@ -62,8 +62,12 @@ export async function logAuditEvent(
       body: JSON.stringify(auditPayload),
     })
 
-    console.log(`[AUDIT] ${eventType}:`, auditPayload)
+    // Only log in development to avoid exposing sensitive audit data in production
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[AUDIT] ${eventType}:`, auditPayload)
+    }
   } catch (error) {
+    // Keep error logging for debugging production issues
     console.error('Audit logging failed:', error)
   }
 }

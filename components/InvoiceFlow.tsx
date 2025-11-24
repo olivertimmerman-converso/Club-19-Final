@@ -38,6 +38,7 @@ export default function InvoiceFlow({ user }: InvoiceFlowProps) {
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [isSearchActive, setIsSearchActive] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [generalError, setGeneralError] = useState<string>('')
   const [sending, setSending] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [successData, setSuccessData] = useState({
@@ -123,8 +124,11 @@ export default function InvoiceFlow({ user }: InvoiceFlowProps) {
      SEND TO XERO (Make Webhook)
   -------------------------------------------------- */
   const sendToXero = async () => {
+    // Clear any previous general errors
+    setGeneralError('')
+
     if (!result) {
-      alert('Please complete invoice setup first.')
+      setGeneralError('Please complete invoice setup first.')
       return
     }
 
@@ -236,7 +240,7 @@ VAT Reclaim: ${result.vatReclaim}`
         }
       )
 
-      alert('Error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      setGeneralError('Failed to create invoice. ' + (err instanceof Error ? err.message : 'Please try again.'))
       setSending(false)
     }
   }
@@ -335,7 +339,7 @@ VAT Reclaim: ${result.vatReclaim}`
       <div className="bg-white p-4 rounded-lg shadow mb-4">
         <h2 className="font-semibold mb-3">1. Where is the item?</h2>
         <button
-          className={`w-full p-3 border rounded mb-2 ${
+          className={`w-full p-4 border rounded mb-2 ${
             itemLocation === 'uk' ? 'border-black bg-gray-100' : 'border-gray-300'
           }`}
           onClick={() => {
@@ -350,7 +354,7 @@ VAT Reclaim: ${result.vatReclaim}`
           Item is in UK
         </button>
         <button
-          className={`w-full p-3 border rounded ${
+          className={`w-full p-4 border rounded ${
             itemLocation === 'outside' ? 'border-black bg-gray-100' : 'border-gray-300'
           }`}
           onClick={() => {
@@ -371,7 +375,7 @@ VAT Reclaim: ${result.vatReclaim}`
         <div className="bg-white p-4 rounded-lg shadow mb-4 animate-fade-in">
           <h2 className="font-semibold mb-3">2. Where is the client?</h2>
           <button
-            className={`w-full p-3 border rounded mb-2 ${
+            className={`w-full p-4 border rounded mb-2 ${
               clientLocation === 'uk' ? 'border-black bg-gray-100' : 'border-gray-300'
             }`}
             onClick={() => {
@@ -385,7 +389,7 @@ VAT Reclaim: ${result.vatReclaim}`
             Client is in UK
           </button>
           <button
-            className={`w-full p-3 border rounded ${
+            className={`w-full p-4 border rounded ${
               clientLocation === 'outside' ? 'border-black bg-gray-100' : 'border-gray-300'
             }`}
             onClick={() => {
@@ -407,7 +411,7 @@ VAT Reclaim: ${result.vatReclaim}`
           <h2 className="font-semibold mb-3">3. How is the item purchased?</h2>
           <button
             onClick={() => setPurchaseType('retail')}
-            className={`w-full p-3 border rounded mb-2 ${
+            className={`w-full p-4 border rounded mb-2 ${
               purchaseType === 'retail' ? 'border-black bg-gray-100' : 'border-gray-300'
             }`}
           >
@@ -415,7 +419,7 @@ VAT Reclaim: ${result.vatReclaim}`
           </button>
           <button
             onClick={() => setPurchaseType('margin')}
-            className={`w-full p-3 border rounded ${
+            className={`w-full p-4 border rounded ${
               purchaseType === 'margin' ? 'border-black bg-gray-100' : 'border-gray-300'
             }`}
           >
@@ -434,7 +438,7 @@ VAT Reclaim: ${result.vatReclaim}`
               setDirectShip(null)
               setInsuranceLanded(null)
             }}
-            className={`w-full p-3 border rounded mb-2 ${
+            className={`w-full p-4 border rounded mb-2 ${
               shippingOption === 'no' ? 'border-black bg-gray-100' : 'border-gray-300'
             }`}
           >
@@ -446,7 +450,7 @@ VAT Reclaim: ${result.vatReclaim}`
               setDirectShip(null)
               setInsuranceLanded(null)
             }}
-            className={`w-full p-3 border rounded ${
+            className={`w-full p-4 border rounded ${
               shippingOption === 'yes' ? 'border-black bg-gray-100' : 'border-gray-300'
             }`}
           >
@@ -468,7 +472,7 @@ VAT Reclaim: ${result.vatReclaim}`
                 setDirectShip('no')
                 setInsuranceLanded(null)
               }}
-              className={`w-full p-3 border rounded mb-2 ${
+              className={`w-full p-4 border rounded mb-2 ${
                 directShip === 'no' ? 'border-black bg-gray-100' : 'border-gray-300'
               }`}
             >
@@ -479,7 +483,7 @@ VAT Reclaim: ${result.vatReclaim}`
                 setDirectShip('yes')
                 setInsuranceLanded(null)
               }}
-              className={`w-full p-3 border rounded ${
+              className={`w-full p-4 border rounded ${
                 directShip === 'yes' ? 'border-black bg-gray-100' : 'border-gray-300'
               }`}
             >
@@ -499,7 +503,7 @@ VAT Reclaim: ${result.vatReclaim}`
             </h2>
             <button
               onClick={() => setInsuranceLanded('no')}
-              className={`w-full p-3 border rounded mb-2 ${
+              className={`w-full p-4 border rounded mb-2 ${
                 insuranceLanded === 'no' ? 'border-black bg-gray-100' : 'border-gray-300'
               }`}
             >
@@ -507,7 +511,7 @@ VAT Reclaim: ${result.vatReclaim}`
             </button>
             <button
               onClick={() => setInsuranceLanded('yes')}
-              className={`w-full p-3 border rounded ${
+              className={`w-full p-4 border rounded ${
                 insuranceLanded === 'yes' ? 'border-black bg-gray-100' : 'border-gray-300'
               }`}
             >
@@ -749,11 +753,33 @@ VAT Reclaim: ${result.vatReclaim}`
             </div>
           </div>
 
+          {/* General Error Message */}
+          {generalError && (
+            <div className="mt-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+              <div className="flex items-start">
+                <svg
+                  className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-sm text-red-800 font-medium">{generalError}</p>
+              </div>
+            </div>
+          )}
+
           {/* Buttons */}
           <button
             onClick={sendToXero}
             disabled={sending || !isFormValid}
-            className={`w-full mt-4 p-3 rounded font-medium flex justify-center items-center ${
+            className={`w-full mt-4 p-4 rounded font-medium flex justify-center items-center ${
               sending || !isFormValid
                 ? 'bg-gray-400 text-gray-200'
                 : 'bg-green-600 text-white hover:bg-green-700'
@@ -770,7 +796,7 @@ VAT Reclaim: ${result.vatReclaim}`
           </button>
           <button
             onClick={reset}
-            className="w-full mt-2 p-3 rounded font-medium bg-black text-white hover:bg-gray-800"
+            className="w-full mt-2 p-4 rounded font-medium bg-black text-white hover:bg-gray-800"
           >
             Start Over
           </button>
