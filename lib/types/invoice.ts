@@ -123,7 +123,8 @@ export type Trade = {
   // Costs & margins (computed)
   impliedCosts: ImpliedCosts;
   grossMarginGBP?: number; // Sum of all items' gross margins
-  commissionableMarginGBP?: number; // grossMarginGBP - impliedCosts.total
+  estimatedImportExportGBP?: number | null; // Estimated import/export taxes in GBP (optional)
+  commissionableMarginGBP?: number; // grossMarginGBP - impliedCosts.total - estimatedImportExportGBP
 
   // Xero integration (populated after Make.com response)
   invoiceNumber?: string;
@@ -192,6 +193,7 @@ export type WizardState = {
 
   // Step 4: Review
   impliedCosts: ImpliedCosts | null;
+  estimatedImportExportGBP: number | null;
 
   // UI state
   isSubmitting: boolean;

@@ -58,6 +58,7 @@ export function StepSupplierItems() {
     setCurrentBuyCurrency,
     setCurrentFxRate,
     setDeliveryCountry,
+    setEstimatedImportExportGBP,
     addItem,
     removeItem,
   } = useTrade();
@@ -404,6 +405,34 @@ export function StepSupplierItems() {
                     Bank Transfer
                   </option>
                 </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estimated import/export taxes (GBP)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={
+                  state.estimatedImportExportGBP === null
+                    ? ""
+                    : state.estimatedImportExportGBP
+                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setEstimatedImportExportGBP(
+                    value === "" ? null : parseFloat(value),
+                  );
+                }}
+                placeholder="0.00"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Optional. Use for duties/customs when the item crosses borders.
+                Internal only – not shown on the client invoice.
               </div>
             </div>
           </div>

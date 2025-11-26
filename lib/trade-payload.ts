@@ -20,8 +20,9 @@ export function buildTradePayload(args: {
   deliveryCountry: string;
   dueDate: string;
   notes?: string;
+  estimatedImportExportGBP?: number | null;
 }): Trade {
-  const { buyer, items, paymentMethod, deliveryCountry, dueDate, notes } = args;
+  const { buyer, items, paymentMethod, deliveryCountry, dueDate, notes, estimatedImportExportGBP } = args;
 
   // Generate trade ID and timestamp
   const tradeId = crypto.randomUUID();
@@ -44,9 +45,10 @@ export function buildTradePayload(args: {
   }
   grossMarginGBP = parseFloat(grossMarginGBP.toFixed(2));
 
-  // Compute commissionable margin
+  // Compute commissionable margin (subtract implied costs AND import/export)
+  const importExportCost = estimatedImportExportGBP ?? 0;
   const commissionableMarginGBP = parseFloat(
-    (grossMarginGBP - impliedCosts.total).toFixed(2),
+    (grossMarginGBP - impliedCosts.total - importExportCost).toFixed(2),
   );
 
   // Build trade object
@@ -62,6 +64,7 @@ export function buildTradePayload(args: {
     notes,
     impliedCosts,
     grossMarginGBP,
+    estimatedImportExportGBP: estimatedImportExportGBP ?? null,
     commissionableMarginGBP,
   };
 

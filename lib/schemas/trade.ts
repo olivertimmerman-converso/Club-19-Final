@@ -128,6 +128,7 @@ export const TradeSchema = z.object({
   // Costs & margins
   impliedCosts: ImpliedCostsSchema,
   grossMarginGBP: z.number().optional(),
+  estimatedImportExportGBP: z.number().nonnegative().optional().nullable(),
   commissionableMarginGBP: z.number().optional(),
 
   // Xero integration (optional, populated by Make.com response)

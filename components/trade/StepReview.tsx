@@ -40,13 +40,19 @@ export function StepReview() {
         }
       }
       setGrossMarginGBP(parseFloat(gross.toFixed(2)));
-      setCommissionableMarginGBP(parseFloat((gross - costs.total).toFixed(2)));
+
+      // Calculate commissionable margin (subtract implied costs AND import/export)
+      const importExportCost = state.estimatedImportExportGBP ?? 0;
+      setCommissionableMarginGBP(
+        parseFloat((gross - costs.total - importExportCost).toFixed(2)),
+      );
     }
   }, [
     state.items,
     state.currentPaymentMethod,
     state.deliveryCountry,
     state.buyer,
+    state.estimatedImportExportGBP,
   ]);
 
   const handleCreateInvoice = async () => {
@@ -67,6 +73,7 @@ export function StepReview() {
         deliveryCountry: state.deliveryCountry,
         dueDate: state.dueDate,
         notes: state.notes || undefined,
+        estimatedImportExportGBP: state.estimatedImportExportGBP,
       });
 
       // Send to API
@@ -218,12 +225,12 @@ export function StepReview() {
         )}
       </div>
 
-      {/* Items Table */}
-      <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+      {/* Items - Desktop Table */}
+      <div className="hidden md:block border border-gray-300 rounded-lg overflow-hidden bg-white">
         <div className="bg-gray-50 px-4 py-3 border-b border-gray-300">
           <h3 className="font-semibold text-gray-900">Items</h3>
         </div>
-        <div className="overflow-x-auto">
+        <div>
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -308,6 +315,107 @@ export function StepReview() {
         </div>
       </div>
 
+      {/* Items - Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        <div className="flex justify-between items-center">
+          <h3 className="font-semibold text-gray-900">Items</h3>
+          <button
+            type="button"
+            onClick={() => goToStep(1)}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            Edit
+          </button>
+        </div>
+        {state.items.map((item, index) => {
+          const margin =
+            item.buyCurrency === "GBP" && item.sellCurrency === "GBP"
+              ? (item.sellPrice - item.buyPrice) * item.quantity
+              : null;
+          return (
+            <div
+              key={item.id}
+              className="border border-gray-300 rounded-lg p-4 bg-white"
+            >
+              {/* Row 1: Brand · Category */}
+              <div className="flex items-start justify-between mb-2">
+                <div className="font-semibold text-gray-900 text-base">
+                  {item.brand} · {item.category}
+                </div>
+                <div className="text-xs text-gray-500 ml-2">#{index + 1}</div>
+              </div>
+
+              {/* Row 2: Description */}
+              <div className="text-sm text-gray-700 mb-3 line-clamp-2">
+                {item.description}
+              </div>
+
+              {/* Row 3: Qty & Currency */}
+              <div className="flex gap-4 text-xs text-gray-600 mb-3">
+                <div>
+                  <span className="font-medium">Qty:</span> {item.quantity}
+                </div>
+                <div>
+                  <span className="font-medium">Buy:</span> {item.buyCurrency}
+                </div>
+                <div>
+                  <span className="font-medium">Sell:</span> {item.sellCurrency}
+                </div>
+              </div>
+
+              {/* Row 4: Prices & Margin */}
+              <div className="grid grid-cols-3 gap-2 text-sm pt-3 border-t border-gray-200">
+                <div>
+                  <div className="text-xs text-gray-600 mb-0.5">Buy</div>
+                  <div className="font-medium text-gray-900">
+                    {item.buyCurrency} {item.buyPrice.toFixed(2)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-600 mb-0.5">Sell</div>
+                  <div className="font-medium text-gray-900">
+                    {item.sellCurrency} {item.sellPrice.toFixed(2)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-600 mb-0.5">Margin</div>
+                  <div className="font-semibold text-gray-900">
+                    {margin !== null ? `£${margin.toFixed(2)}` : "—"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Totals Card (Mobile) */}
+        <div className="border-2 border-gray-400 rounded-lg p-4 bg-gray-50">
+          <div className="font-semibold text-gray-900 mb-3 text-sm">
+            Totals (GBP)
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-sm">
+            <div>
+              <div className="text-xs text-gray-600 mb-0.5">Total Buy</div>
+              <div className="font-semibold text-gray-900">
+                £{totalBuyGBP.toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-600 mb-0.5">Total Sell</div>
+              <div className="font-semibold text-gray-900">
+                £{totalSellGBP.toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-600 mb-0.5">Gross Margin</div>
+              <div className="font-bold text-gray-900">
+                £{grossMarginGBP.toFixed(2)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Tax Scenario Summary */}
       {state.taxScenario && (
         <div className="border border-blue-300 bg-blue-50 rounded-lg p-4">
@@ -371,6 +479,15 @@ export function StepReview() {
               </span>
             </div>
           )}
+          {state.estimatedImportExportGBP !== null &&
+            state.estimatedImportExportGBP > 0 && (
+              <div className="flex justify-between">
+                <span className="text-purple-700">Import/export taxes:</span>
+                <span className="font-medium text-purple-900 text-right">
+                  −£{state.estimatedImportExportGBP.toFixed(2)}
+                </span>
+              </div>
+            )}
           <div className="border-t-2 border-purple-300 pt-2 mt-2 flex justify-between">
             <span className="font-semibold text-purple-900">
               Commissionable margin (GBP):
@@ -381,8 +498,12 @@ export function StepReview() {
           </div>
         </div>
         <div className="mt-3 text-xs text-purple-700 bg-white border border-purple-200 p-2 rounded">
-          This is the margin available for commission after estimated shipping
-          and card fees, which are already included in the sale price.
+          This is the margin available for commission after estimated shipping,
+          card fees
+          {state.estimatedImportExportGBP !== null &&
+            state.estimatedImportExportGBP > 0 &&
+            ", and import/export taxes"}
+          , which are already included in the sale price.
         </div>
       </div>
 
