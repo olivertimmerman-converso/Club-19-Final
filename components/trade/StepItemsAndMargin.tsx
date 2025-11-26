@@ -46,6 +46,39 @@ export function StepItemsAndMargin() {
 
   const showFxRate = buyCurrency !== sellCurrency;
 
+  // Calculate automated import/export taxes based on tax scenario
+  const { importVAT, duty, totalImportExportTaxes } = useMemo(() => {
+    if (!state.taxScenario || state.items.length === 0) {
+      return { importVAT: 0, duty: 0, totalImportExportTaxes: 0 };
+    }
+
+    // Calculate total buy price in GBP
+    let totalBuyPriceGBP = 0;
+    for (const item of state.items) {
+      if (item.buyCurrency === "GBP") {
+        totalBuyPriceGBP += item.buyPrice * item.quantity;
+      }
+    }
+
+    // Import VAT: 20% if C19 is importer of record (vatReclaim contains "Can")
+    const isC19ImporterOfRecord = state.taxScenario.vatReclaim?.includes("Can") || false;
+    const importVAT = isC19ImporterOfRecord ? totalBuyPriceGBP * 0.20 : 0;
+
+    // Duty: 2% default (can be 0 for certain scenarios like domestic or export)
+    const isDomesticOrExport =
+      state.taxScenario.taxLiability === "None" ||
+      state.taxScenario.accountCode === "200"; // Export sales code
+    const duty = isDomesticOrExport ? 0 : totalBuyPriceGBP * 0.02;
+
+    const total = importVAT + duty;
+
+    return {
+      importVAT: parseFloat(importVAT.toFixed(2)),
+      duty: parseFloat(duty.toFixed(2)),
+      totalImportExportTaxes: parseFloat(total.toFixed(2)),
+    };
+  }, [state.taxScenario, state.items]);
+
   // Calculate margins for display
   const { grossMarginGBP, impliedCosts, commissionableMarginGBP } = useMemo(() => {
     if (state.items.length === 0) {
@@ -67,16 +100,15 @@ export function StepItemsAndMargin() {
       deliveryCountry: state.deliveryCountry,
     });
 
-    // Calculate commissionable margin
-    const importExportCost = state.estimatedImportExportGBP ?? 0;
-    const commissionable = gross - costs.total - importExportCost;
+    // Calculate commissionable margin using automated import/export taxes
+    const commissionable = gross - costs.total - totalImportExportTaxes;
 
     return {
       grossMarginGBP: parseFloat(gross.toFixed(2)),
       impliedCosts: costs,
       commissionableMarginGBP: parseFloat(commissionable.toFixed(2)),
     };
-  }, [state.items, state.currentPaymentMethod, state.deliveryCountry, state.estimatedImportExportGBP]);
+  }, [state.items, state.currentPaymentMethod, state.deliveryCountry, totalImportExportTaxes]);
 
   // Compute tax-aware deal structure suggestion
   // Note: We need to infer itemLocation and clientLocation from supplier and delivery countries
@@ -102,16 +134,21 @@ export function StepItemsAndMargin() {
       clientLocation: clientLocation as "uk" | "outside",
       supplierShipsDirect: false, // Placeholder
       landedDelivery: false, // Placeholder
-      estimatedImportExportGBP: state.estimatedImportExportGBP ?? 0,
+      estimatedImportExportGBP: totalImportExportTaxes,
       grossMarginGBP,
     });
   }, [
     state.currentSupplier,
     state.deliveryCountry,
-    state.estimatedImportExportGBP,
+    totalImportExportTaxes,
     grossMarginGBP,
     state.items.length,
   ]);
+
+  // Auto-sync computed import/export taxes to context
+  React.useEffect(() => {
+    setEstimatedImportExportGBP(totalImportExportTaxes);
+  }, [totalImportExportTaxes, setEstimatedImportExportGBP]);
 
   const handleAddItem = () => {
     if (!state.taxScenario) {
@@ -252,34 +289,45 @@ export function StepItemsAndMargin() {
           ))}
         </div>
 
-        {/* Import/Export Input */}
-        <div className="border border-gray-300 rounded-lg p-4 bg-white">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Estimated import/export taxes (GBP)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={
-              state.estimatedImportExportGBP === null
-                ? ""
-                : state.estimatedImportExportGBP
-            }
-            onChange={(e) => {
-              const value = e.target.value;
-              setEstimatedImportExportGBP(
-                value === "" ? null : parseFloat(value),
-              );
-            }}
-            placeholder="0.00"
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <div className="text-xs text-gray-500 mt-1">
-            Optional. Use for duties/customs when the item crosses borders.
-            Internal only – not shown on the client invoice.
+        {/* Automated Import/Export Taxes Display */}
+        {(importVAT > 0 || duty > 0) && (
+          <div className="border border-blue-300 rounded-lg p-4 bg-blue-50">
+            <h3 className="text-sm font-semibold text-blue-900 mb-2">
+              Estimated Import/Export Taxes
+              <span className="text-xs font-normal text-blue-700 ml-2">
+                (automated, not shown on client invoice)
+              </span>
+            </h3>
+            <div className="space-y-1.5 text-sm">
+              {importVAT > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-blue-700">Import VAT (20%):</span>
+                  <span className="font-medium text-blue-900">
+                    £{importVAT.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              {duty > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-blue-700">Customs duty (2%):</span>
+                  <span className="font-medium text-blue-900">
+                    £{duty.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <div className="border-t border-blue-300 pt-1.5 mt-1.5 flex justify-between">
+                <span className="font-semibold text-blue-900">Total:</span>
+                <span className="font-bold text-blue-900">
+                  £{totalImportExportTaxes.toFixed(2)}
+                </span>
+              </div>
+            </div>
+            <div className="text-xs text-blue-700 mt-2 bg-white/50 p-2 rounded border border-blue-200">
+              Calculated automatically based on your Step 1 tax scenario. This
+              cost reduces your commissionable margin.
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Margin Card */}
         <div className="border-2 border-purple-600 bg-purple-50 rounded-lg p-4">
