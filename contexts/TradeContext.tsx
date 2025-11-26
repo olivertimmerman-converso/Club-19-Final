@@ -23,6 +23,7 @@ type TradeContextType = {
   prevStep: () => void;
   canGoNext: boolean;
   canGoPrev: boolean;
+  canGoToStep: (targetStep: WizardStep) => boolean;
 
   // Tax scenario
   setTaxScenario: (scenario: WizardState["taxScenario"]) => void;
@@ -118,6 +119,37 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
 
   const canGoPrev = state.currentStep > 0;
 
+  // Helper function to check if a specific step is valid
+  const isStepValid = useCallback((step: WizardStep): boolean => {
+    switch (step) {
+      case 0: // Deal & Logistics (tax scenario + supplier)
+        return state.taxScenario !== null && state.currentSupplier !== null;
+      case 1: // Items & Pricing
+        return state.items.length > 0;
+      case 2: // Buyer & Review
+        return state.buyer !== null && state.buyer.name.trim() !== "";
+      default:
+        return false;
+    }
+  }, [state.taxScenario, state.currentSupplier, state.items.length, state.buyer]);
+
+  // Check if user can navigate to a target step
+  const canGoToStep = useCallback((targetStep: WizardStep): boolean => {
+    // Always allow backwards navigation
+    if (targetStep <= state.currentStep) {
+      return true;
+    }
+
+    // For forward navigation, validate all intermediate steps
+    for (let step = 0; step < targetStep; step++) {
+      if (!isStepValid(step as WizardStep)) {
+        return false;
+      }
+    }
+
+    return true;
+  }, [state.currentStep, isStepValid]);
+
   const setTaxScenario = useCallback((scenario: WizardState["taxScenario"]) => {
     setState((prev) => ({ ...prev, taxScenario: scenario }));
   }, []);
@@ -212,6 +244,7 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
     prevStep,
     canGoNext,
     canGoPrev,
+    canGoToStep,
     setTaxScenario,
     setCurrentSupplier,
     setCurrentPaymentMethod,

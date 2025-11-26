@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { useTrade } from "@/contexts/TradeContext";
 import { Club19Logo } from "./Club19Logo";
+import { WizardStep } from "@/lib/types/invoice";
 
 const STEP_LABELS = ["Deal & Logistics", "Items & Pricing", "Buyer & Review"];
 
@@ -13,7 +14,7 @@ type WizardShellProps = {
 };
 
 export function WizardShell({ children }: WizardShellProps) {
-  const { state, canGoNext, canGoPrev, nextStep, prevStep } = useTrade();
+  const { state, canGoNext, canGoPrev, nextStep, prevStep, goToStep, canGoToStep } = useTrade();
 
   // Scroll to top on step change
   useEffect(() => {
@@ -48,20 +49,26 @@ export function WizardShell({ children }: WizardShellProps) {
               const isCompleted = index < state.currentStep;
               const isCurrent = index === state.currentStep;
               const shortLabel = STEP_LABELS_SHORT[index];
+              const canNavigate = canGoToStep(index as WizardStep);
 
               return (
                 <React.Fragment key={label}>
                   {/* Step Circle */}
                   <div className="flex flex-1 flex-col items-center">
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => canNavigate && goToStep(index as WizardStep)}
+                      disabled={!canNavigate}
                       className={`
                         flex h-8 w-8 min-w-[32px] items-center justify-center rounded-full border-2 text-xs font-semibold transition-all sm:h-10 sm:w-10 sm:text-sm
                         ${
                           isCompleted
-                            ? "border-black bg-black text-white"
+                            ? "border-black bg-black text-white cursor-pointer hover:bg-gray-800 hover:border-gray-800"
                             : isCurrent
-                              ? "border-black bg-white text-black shadow-md"
-                              : "border-gray-300 bg-white text-gray-400"
+                              ? "border-black bg-white text-black shadow-md cursor-default"
+                              : canNavigate
+                                ? "border-gray-300 bg-white text-gray-400 cursor-not-allowed opacity-60"
+                                : "border-gray-300 bg-white text-gray-400 cursor-not-allowed opacity-40"
                         }
                       `}
                       aria-label={label}
@@ -82,7 +89,7 @@ export function WizardShell({ children }: WizardShellProps) {
                       ) : (
                         index + 1
                       )}
-                    </div>
+                    </button>
                     <span
                       className={`
                         mt-1.5 text-[10px] font-medium sm:mt-2 sm:text-xs
