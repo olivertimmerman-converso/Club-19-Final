@@ -142,21 +142,23 @@ export function WizardShell({ children }: WizardShellProps) {
 
           {/* Navigation Buttons */}
           <div className="flex flex-col-reverse gap-3 border-t border-gray-200 bg-gray-50/50 px-4 py-4 rounded-b-2xl sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5 lg:px-8">
-            <button
-              type="button"
-              onClick={prevStep}
-              disabled={!canGoPrev}
-              className={`
-                w-full rounded-lg px-5 py-2.5 text-sm font-medium transition-all sm:w-auto
-                ${
-                  canGoPrev
-                    ? "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 shadow-sm active:scale-95"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
-                }
-              `}
-            >
-              Previous
-            </button>
+            {state.currentStep > 0 && (
+              <button
+                type="button"
+                onClick={prevStep}
+                disabled={!canGoPrev}
+                className={`
+                  w-full rounded-lg px-5 py-2.5 text-sm font-medium transition-all sm:w-auto
+                  ${
+                    canGoPrev
+                      ? "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 shadow-sm active:scale-95"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                  }
+                `}
+              >
+                Previous
+              </button>
+            )}
 
             <div className="hidden text-center text-sm font-light text-gray-500 sm:block">
               Step {state.currentStep + 1} of {STEP_LABELS.length}

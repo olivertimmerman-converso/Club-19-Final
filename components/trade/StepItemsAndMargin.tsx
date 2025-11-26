@@ -180,10 +180,10 @@ export function StepItemsAndMargin() {
   };
 
   const handleDifferentSupplier = () => {
-    // Note: This option should ideally not be available in the 3-step flow
-    // since supplier is set in Step 1. But keeping for backwards compatibility.
-    alert("To add items from a different supplier, please go back to Step 1 and update the supplier details.");
-    return;
+    // Reset brand and category (not copying from previous item)
+    setBrand("");
+    setCategory("");
+    setMode("different-supplier");
   };
 
   if (mode === "list" && state.items.length > 0) {
@@ -361,6 +361,13 @@ export function StepItemsAndMargin() {
             >
               + Add another item — same supplier
             </button>
+            <button
+              type="button"
+              onClick={handleDifferentSupplier}
+              className="w-full p-3 border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+            >
+              + Add item — different supplier
+            </button>
           </div>
         )}
 
@@ -450,7 +457,7 @@ export function StepItemsAndMargin() {
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g., Birkin 25 Black Togo GHW"
+              placeholder="e.g., B25 Black Togo GHW"
               required
             />
           </div>

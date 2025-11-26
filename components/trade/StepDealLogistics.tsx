@@ -28,8 +28,8 @@ export function StepDealLogistics() {
   // Supplier & Purchase Info state
   const [supplierName, setSupplierName] = useState("");
   const [supplierCountry, setSupplierCountry] = useState("United Kingdom");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    PaymentMethod.CARD,
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
+    "",
   );
   const [deliveryCountryLocal, setDeliveryCountryLocal] = useState("United Kingdom");
 
@@ -125,9 +125,11 @@ export function StepDealLogistics() {
     }
   }, [supplierName, supplierCountry, purchaseTaxRegime, setCurrentSupplier]);
 
-  // Save payment method to context
+  // Save payment method to context (only if selected)
   useEffect(() => {
-    setCurrentPaymentMethod(paymentMethod);
+    if (paymentMethod) {
+      setCurrentPaymentMethod(paymentMethod as PaymentMethod);
+    }
   }, [paymentMethod, setCurrentPaymentMethod]);
 
   // Save delivery country to context
@@ -398,14 +400,19 @@ export function StepDealLogistics() {
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
           >
+            <option value="">Select payment method...</option>
             <option value={PaymentMethod.CARD}>Card</option>
             <option value={PaymentMethod.BANK_TRANSFER}>Bank Transfer</option>
           </select>
         </div>
       </div>
 
-      {/* Q1: Where is the item? */}
+      {/* Only show subsequent questions once payment method chosen */}
+      {paymentMethod && (
+        <>
+          {/* Q1: Where is the item? */}
       <div className="space-y-3">
         <div>
           <h3 className="font-semibold text-gray-900">1. Where is the item?</h3>
@@ -578,54 +585,15 @@ export function StepDealLogistics() {
         </>
       )}
 
-      {/* Q5: Landed & insured */}
+      {/* Q5: Landed delivery */}
       {directShip && shouldShowShippingQuestions && (
         <div className="space-y-3 animate-fade-in">
           <div>
             <h3 className="font-semibold text-gray-900">
               {itemLocation === "uk" ? "5" : "4"}. Landed delivery?
             </h3>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setDirectShip("no");
-              setInsuranceLanded(null);
-            }}
-            className={`w-full p-3 border rounded-md text-left transition-colors ${
-              directShip === "no"
-                ? "border-blue-600 bg-blue-50 text-blue-900 font-medium"
-                : "border-gray-300 hover:border-gray-400 text-gray-700"
-            }`}
-          >
-            No, via us
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setDirectShip("yes");
-              setInsuranceLanded(null);
-            }}
-            className={`w-full p-3 border rounded-md text-left transition-colors ${
-              directShip === "yes"
-                ? "border-blue-600 bg-blue-50 text-blue-900 font-medium"
-                : "border-gray-300 hover:border-gray-400 text-gray-700"
-            }`}
-          >
-            Yes, direct to client
-          </button>
-        </div>
-      )}
-
-      {/* Q6: Landed & insured */}
-      {directShip && shouldShowShippingQuestions && (
-        <div className="space-y-3 animate-fade-in">
-          <div>
-            <h3 className="font-semibold text-gray-900">
-              {itemLocation === "uk" ? "6" : "5"}. Landed delivery?
-            </h3>
             <p className="text-xs text-gray-500 mt-1">
-              &ldquo;Landed&rdquo; means duties, customs & insurance included
+              &ldquo;Landed&rdquo; means duties, customs & insurance are included in the sale price.
             </p>
           </div>
           <button
@@ -889,6 +857,8 @@ export function StepDealLogistics() {
           <span className="font-medium">Tax scenario set.</span>
           <span className="text-green-600">{successMessage}</span>
         </div>
+      )}
+        </>
       )}
     </div>
   );

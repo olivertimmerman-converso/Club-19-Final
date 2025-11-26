@@ -8,7 +8,7 @@ import { calculateImpliedCosts } from "@/lib/implied-costs";
 import { computeDealStructureSuggestion } from "@/lib/tax-helpers";
 
 export function StepBuyerAndReview() {
-  const { state, setBuyer, setDueDate, setNotes, goToStep, setSubmitting, setError } = useTrade();
+  const { state, setBuyer, setDueDate, setNotes, goToStep, setSubmitting, setError, resetWizard } = useTrade();
 
   // === BUYER SECTION STATE (from StepBuyer) ===
   const [buyerName, setBuyerName] = useState(state.buyer?.name || "");
@@ -20,6 +20,9 @@ export function StepBuyerAndReview() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isSearchActive, setIsSearchActive] = useState(false);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // === RESET MODAL STATE ===
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // === REVIEW SECTION STATE (from StepReview) ===
   const [impliedCosts, setImpliedCosts] = useState({
@@ -162,6 +165,12 @@ export function StepBuyerAndReview() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleConfirmReset = () => {
+    resetWizard();
+    goToStep(0);
+    setShowResetConfirm(false);
   };
 
   // Compute tax-aware deal structure suggestion
@@ -748,7 +757,16 @@ export function StepBuyerAndReview() {
         </div>
 
         {/* CREATE INVOICE BUTTON */}
-        <div className="mt-6">
+        <div className="mt-6 space-y-3">
+          {/* Discard & start new deal button */}
+          <button
+            type="button"
+            onClick={() => setShowResetConfirm(true)}
+            className="text-sm font-normal text-gray-600 hover:text-gray-900 underline transition-colors"
+          >
+            Discard & start new deal
+          </button>
+
           <button
             type="button"
             onClick={handleCreateInvoice}
@@ -780,6 +798,36 @@ export function StepBuyerAndReview() {
             </p>
           )}
         </div>
+
+        {/* Reset Confirmation Modal */}
+        {showResetConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Start a new deal?
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                This will clear all fields for this deal and take you back to the first step. This action can&apos;t be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmReset}
+                  className="flex-1 px-4 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Start again
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
