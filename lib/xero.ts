@@ -11,18 +11,22 @@ export type XeroContact = {
 };
 
 /**
- * Fetch Xero contacts via Make webhook
- * Exact implementation from prototype
+ * Fetch Xero contacts via Next.js API route
+ * Calls Xero API directly (not via Make webhook)
  */
 export async function fetchXeroContacts(query: string): Promise<XeroContact[]> {
   try {
-    const response = await fetch(WEBHOOKS.XERO_CONTACTS, {
-      method: "POST",
+    const response = await fetch(`/api/xero/contacts?query=${encodeURIComponent(query)}`, {
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query }),
     });
+
+    if (!response.ok) {
+      console.error("Xero contacts API error:", response.status, await response.text());
+      return [];
+    }
 
     const data = await response.json();
     return data.contacts || [];
