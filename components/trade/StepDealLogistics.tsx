@@ -37,6 +37,10 @@ export function StepDealLogistics() {
   const [directShip, setDirectShip] = useState<string | null>(null);
   const [insuranceLanded, setInsuranceLanded] = useState<string | null>(null);
 
+  // Touched flags to prevent auto-sync from overriding manual user selections
+  const [itemLocationTouched, setItemLocationTouched] = useState(false);
+  const [clientLocationTouched, setClientLocationTouched] = useState(false);
+
   // Success state
   const [hasShownSuccess, setHasShownSuccess] = useState(false);
   const [successMessage] = useState(
@@ -122,6 +126,40 @@ export function StepDealLogistics() {
   useEffect(() => {
     setDeliveryCountry(deliveryCountryLocal);
   }, [deliveryCountryLocal, setDeliveryCountry]);
+
+  // Auto-sync Q1 and Q2 from supplier/delivery countries (unless manually touched)
+  useEffect(() => {
+    let shouldUpdate = false;
+
+    // Auto-sync Q1 (itemLocation) from supplierCountry
+    if (!itemLocationTouched && supplierCountry) {
+      const derivedItemLocation = supplierCountry === "United Kingdom" ? "uk" : "outside";
+      if (itemLocation !== derivedItemLocation) {
+        setItemLocation(derivedItemLocation);
+        shouldUpdate = true;
+      }
+    }
+
+    // Auto-sync Q2 (clientLocation) from deliveryCountryLocal
+    if (!clientLocationTouched && deliveryCountryLocal) {
+      const derivedClientLocation = deliveryCountryLocal === "United Kingdom" ? "uk" : "outside";
+      if (clientLocation !== derivedClientLocation) {
+        setClientLocation(derivedClientLocation);
+        shouldUpdate = true;
+      }
+    }
+
+    // Note: We don't need to manually call setTaxScenario here because
+    // the existing useEffect (lines 81-102) already watches itemLocation/clientLocation
+    // and updates the tax scenario automatically
+  }, [
+    supplierCountry,
+    deliveryCountryLocal,
+    itemLocationTouched,
+    clientLocationTouched,
+    itemLocation,
+    clientLocation,
+  ]);
 
   // Derive sale type label
   const saleTypeLabel = useMemo(() => {
@@ -287,6 +325,9 @@ export function StepDealLogistics() {
       <div className="space-y-3">
         <div>
           <h3 className="font-semibold text-gray-900">1. Where is the item?</h3>
+          <p className="text-xs text-gray-500 mt-1">
+            Pre-filled from supplier country. Change this if the item is stored somewhere else.
+          </p>
         </div>
         <button
           type="button"
@@ -297,6 +338,7 @@ export function StepDealLogistics() {
           }`}
           onClick={() => {
             setItemLocation("uk");
+            setItemLocationTouched(true);
             setClientLocation(null);
             setPurchaseType(null);
             setShippingOption(null);
@@ -315,6 +357,7 @@ export function StepDealLogistics() {
           }`}
           onClick={() => {
             setItemLocation("outside");
+            setItemLocationTouched(true);
             setClientLocation(null);
             setPurchaseType(null);
             setShippingOption(null);
@@ -333,6 +376,9 @@ export function StepDealLogistics() {
             <h3 className="font-semibold text-gray-900">
               2. Delivery address?
             </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Pre-filled from delivery country. Change the delivery country above if this is wrong.
+            </p>
           </div>
           <button
             type="button"
@@ -343,6 +389,7 @@ export function StepDealLogistics() {
             }`}
             onClick={() => {
               setClientLocation("uk");
+              setClientLocationTouched(true);
               setPurchaseType(null);
               setShippingOption(null);
               setDirectShip(null);
@@ -360,6 +407,7 @@ export function StepDealLogistics() {
             }`}
             onClick={() => {
               setClientLocation("outside");
+              setClientLocationTouched(true);
               setPurchaseType(null);
               setShippingOption(null);
               setDirectShip(null);
