@@ -93,7 +93,6 @@ export default function InvoiceFlow({ user }: InvoiceFlowProps) {
     itemLocation,
     clientLocation,
     purchaseType,
-    shippingOption,
     directShip,
     insuranceLanded,
   );

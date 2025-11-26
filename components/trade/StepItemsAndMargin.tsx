@@ -6,6 +6,10 @@ import { TradeItem } from "@/lib/types/invoice";
 import { BRANDS, CATEGORIES, CURRENCIES } from "@/lib/constants";
 import { v4 as uuidv4 } from "uuid";
 import { calculateImpliedCosts } from "@/lib/implied-costs";
+import {
+  computeDealStructureSuggestion,
+  getAlternativeDescriptionShort,
+} from "@/lib/tax-helpers";
 
 type ItemFormMode =
   | "new-first"
@@ -73,6 +77,41 @@ export function StepItemsAndMargin() {
       commissionableMarginGBP: parseFloat(commissionable.toFixed(2)),
     };
   }, [state.items, state.currentPaymentMethod, state.deliveryCountry, state.estimatedImportExportGBP]);
+
+  // Compute tax-aware deal structure suggestion
+  // Note: We need to infer itemLocation and clientLocation from supplier and delivery countries
+  const dealSuggestion = useMemo(() => {
+    if (!state.currentSupplier || state.items.length === 0) {
+      return {
+        hasBetterAlternative: false,
+        currentDutiesGBP: 0,
+      };
+    }
+
+    const supplierCountry = state.currentSupplier.country;
+    const deliveryCountry = state.deliveryCountry;
+
+    // Infer item and client locations (simplified)
+    const itemLocation = supplierCountry === "United Kingdom" ? "uk" : "outside";
+    const clientLocation = deliveryCountry === "United Kingdom" ? "uk" : "outside";
+
+    return computeDealStructureSuggestion({
+      supplierCountry,
+      deliveryCountry,
+      itemLocation: itemLocation as "uk" | "outside",
+      clientLocation: clientLocation as "uk" | "outside",
+      supplierShipsDirect: false, // Placeholder
+      landedDelivery: false, // Placeholder
+      estimatedImportExportGBP: state.estimatedImportExportGBP ?? 0,
+      grossMarginGBP,
+    });
+  }, [
+    state.currentSupplier,
+    state.deliveryCountry,
+    state.estimatedImportExportGBP,
+    grossMarginGBP,
+    state.items.length,
+  ]);
 
   const handleAddItem = () => {
     if (!state.taxScenario) {
@@ -294,9 +333,22 @@ export function StepItemsAndMargin() {
             card fees
             {state.estimatedImportExportGBP !== null &&
               state.estimatedImportExportGBP > 0 &&
-              ", and import/export taxes"}
-            .
+              " and any import/export duties"}
+            , which are already included in the sale price.
           </div>
+
+          {/* Alternative structure hint */}
+          {dealSuggestion.hasBetterAlternative &&
+            dealSuggestion.marginDeltaGBP &&
+            dealSuggestion.marginDeltaGBP > 500 &&
+            dealSuggestion.alternativeDutiesGBP !== undefined && (
+              <div className="mt-3 text-xs text-purple-600 bg-purple-100 border border-purple-300 p-2 rounded">
+                <span className="font-medium">Alternative structure:</span> If routed{" "}
+                {getAlternativeDescriptionShort(dealSuggestion.alternativeDescription)}, est.
+                duties drop to £{dealSuggestion.alternativeDutiesGBP.toFixed(2)} and deal margin
+                improves by about £{dealSuggestion.marginDeltaGBP.toFixed(2)}.
+              </div>
+            )}
         </div>
 
         {/* Add More Items (max 3) */}

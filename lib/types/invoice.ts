@@ -173,25 +173,25 @@ export type WizardState = {
     vatReclaim: string;
   } | null;
 
-  // Step 1: Supplier & purchase defaults for current item
+  // Step 1: Supplier & purchase defaults for items
   currentSupplier: Supplier | null;
   currentPaymentMethod: PaymentMethod;
   currentBuyCurrency: string;
   currentFxRate: number | null;
   deliveryCountry: string; // Where items will be delivered (for shipping cost estimation)
 
-  // Step 2: Items
+  // Items (Step 1)
   items: TradeItem[];
   editingItemId: string | null; // ID of item being edited, or 'new'
 
-  // Step 3: Buyer
+  // Buyer (Step 2)
   buyer: Buyer | null;
 
-  // Invoice metadata
+  // Invoice metadata (Step 2)
   dueDate: string;
   notes: string;
 
-  // Step 4: Review
+  // Costs & margins (Step 2 - Review)
   impliedCosts: ImpliedCosts | null;
   estimatedImportExportGBP: number | null;
 

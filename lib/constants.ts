@@ -317,7 +317,6 @@ export function getInvoiceResult(
   itemLocation: string | null,
   clientLocation: string | null,
   purchaseType?: string | null,
-  shippingOption?: string | null,
   directShip?: string | null,
   insuranceLanded?: string | null,
 ): InvoiceScenario | null {
@@ -375,11 +374,8 @@ export function getInvoiceResult(
      Item Outside → UK Client
   ----------------------------------------------- */
   if (itemLocation === "outside" && clientLocation === "uk") {
-    // Cannot ship OR cannot direct ship
-    if (
-      shippingOption === "no" ||
-      (shippingOption === "yes" && directShip === "no")
-    ) {
+    // Item does not ship direct (comes via Club 19)
+    if (directShip === "no" || directShip === null) {
       return {
         taxLiability: "Full VAT needs adding to Cost and Sale Price",
         note: "Item needs to come to UK",
@@ -392,8 +388,8 @@ export function getInvoiceResult(
       };
     }
 
-    // Shipping allowed AND direct ship
-    if (shippingOption === "yes" && directShip === "yes" && insuranceLanded) {
+    // Supplier ships direct to UK client
+    if (directShip === "yes" && insuranceLanded) {
       const landed = insuranceLanded === "yes";
       return {
         taxLiability: landed

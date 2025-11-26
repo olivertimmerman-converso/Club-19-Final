@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useTrade } from "@/contexts/TradeContext";
 import { fetchXeroContacts, XeroContact } from "@/lib/xero";
 import { buildTradePayload } from "@/lib/trade-payload";
 import { calculateImpliedCosts } from "@/lib/implied-costs";
+import { computeDealStructureSuggestion } from "@/lib/tax-helpers";
 
 export function StepBuyerAndReview() {
   const { state, setBuyer, setDueDate, setNotes, goToStep, setSubmitting, setError } = useTrade();
@@ -33,6 +34,10 @@ export function StepBuyerAndReview() {
     invoiceUrl: string;
     commissionableMarginGBP: number;
   } | null>(null);
+
+  // === TAX-AWARE GUARDRAIL STATE ===
+  const [showDutiesWarning, setShowDutiesWarning] = useState(false);
+  const [warningDismissed, setWarningDismissed] = useState(false);
 
   // === BUYER SECTION HANDLERS (from StepBuyer) ===
   const handleCustomerInput = async (value: string) => {
@@ -159,6 +164,48 @@ export function StepBuyerAndReview() {
     }
   };
 
+  // Compute tax-aware deal structure suggestion
+  const dealSuggestion = useMemo(() => {
+    if (!state.currentSupplier || state.items.length === 0) {
+      return {
+        hasBetterAlternative: false,
+        currentDutiesGBP: 0,
+        isDutiesUnusuallyHigh: false,
+      };
+    }
+
+    const supplierCountry = state.currentSupplier.country;
+    const deliveryCountry = state.deliveryCountry;
+
+    // Infer item and client locations (simplified)
+    const itemLocation = supplierCountry === "United Kingdom" ? "uk" : "outside";
+    const clientLocation = deliveryCountry === "United Kingdom" ? "uk" : "outside";
+
+    return computeDealStructureSuggestion({
+      supplierCountry,
+      deliveryCountry,
+      itemLocation: itemLocation as "uk" | "outside",
+      clientLocation: clientLocation as "uk" | "outside",
+      supplierShipsDirect: false, // Placeholder
+      landedDelivery: false, // Placeholder
+      estimatedImportExportGBP: state.estimatedImportExportGBP ?? 0,
+      grossMarginGBP,
+    });
+  }, [
+    state.currentSupplier,
+    state.deliveryCountry,
+    state.estimatedImportExportGBP,
+    grossMarginGBP,
+    state.items.length,
+  ]);
+
+  // Show warning on mount if duties are unusually high
+  useEffect(() => {
+    if (!warningDismissed && dealSuggestion.isDutiesUnusuallyHigh) {
+      setShowDutiesWarning(true);
+    }
+  }, [dealSuggestion.isDutiesUnusuallyHigh, warningDismissed]);
+
   // Calculate totals for review section
   const totalSellGBP = state.items
     .filter((item) => item.sellCurrency === "GBP")
@@ -222,6 +269,57 @@ export function StepBuyerAndReview() {
                     />
                   </svg>
                 </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HIGH DUTIES WARNING BANNER */}
+      {showDutiesWarning && !successData && (
+        <div className="border-l-4 border-amber-500 bg-amber-50 p-4 rounded-lg animate-fade-in">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="flex-1">
+              <h4 className="font-semibold text-amber-900 mb-2">
+                Worth a quick double-check
+              </h4>
+              <p className="text-sm text-amber-800 mb-3">
+                Duties on this structure are estimated at £
+                {(state.estimatedImportExportGBP ?? 0).toFixed(2)}, which is unusually high for a
+                deal of this size. If the client has flexibility on delivery route, it may be worth
+                revisiting the logistics to see if a more efficient structure is possible.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    goToStep(0);
+                  }}
+                  className="px-4 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors text-sm"
+                >
+                  Review logistics
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDutiesWarning(false);
+                    setWarningDismissed(true);
+                  }}
+                  className="px-4 py-2 bg-white border border-amber-600 text-amber-900 rounded-md font-medium hover:bg-amber-50 transition-colors text-sm"
+                >
+                  Continue to buyer
+                </button>
               </div>
             </div>
           </div>

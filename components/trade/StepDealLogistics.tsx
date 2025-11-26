@@ -5,6 +5,10 @@ import { useTrade } from "@/contexts/TradeContext";
 import { getInvoiceResult, InvoiceScenario } from "@/lib/constants";
 import { PaymentMethod, TaxRegime } from "@/lib/types/invoice";
 import { CountrySelect } from "@/components/common/CountrySelect";
+import {
+  computeDealStructureSuggestion,
+  getAlternativeDescriptionShort,
+} from "@/lib/tax-helpers";
 
 // Random success messages - pick one when scenario is first set
 const SUCCESS_MESSAGES = [
@@ -33,7 +37,6 @@ export function StepDealLogistics() {
   const [itemLocation, setItemLocation] = useState<string | null>(null);
   const [clientLocation, setClientLocation] = useState<string | null>(null);
   const [purchaseType, setPurchaseType] = useState<string | null>(null);
-  const [shippingOption, setShippingOption] = useState<string | null>(null);
   const [directShip, setDirectShip] = useState<string | null>(null);
   const [insuranceLanded, setInsuranceLanded] = useState<string | null>(null);
 
@@ -50,12 +53,17 @@ export function StepDealLogistics() {
   // Advanced accordion state
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Estimated import/export duties (for tax-aware suggestions)
+  const [estimatedDutiesGBP, setEstimatedDutiesGBP] = useState<number>(0);
+
+  // Gross margin placeholder (will be computed from items in Step 1, placeholder for now)
+  const [grossMarginGBP] = useState<number>(1000); // Default placeholder
+
   // Compute tax result whenever selections change
   const result = getInvoiceResult(
     itemLocation,
     clientLocation,
     purchaseType,
-    shippingOption,
     directShip,
     insuranceLanded,
   );
@@ -180,13 +188,38 @@ export function StepDealLogistics() {
   const vatReclaimStatus = useMemo(() => {
     if (!result) return "";
 
+    // Special case: pure UK domestic
+    const isPureUKDomestic =
+      supplierCountry === "United Kingdom" &&
+      deliveryCountryLocal === "United Kingdom" &&
+      itemLocation === "uk" &&
+      clientLocation === "uk" &&
+      result.accountCode === "425"; // UK retail
+
+    if (isPureUKDomestic) {
+      return "Treated as part of the cost (not reclaimed)";
+    }
+
+    // Import then export scenario
+    const isImportThenExport =
+      supplierCountry !== "United Kingdom" &&
+      itemLocation === "outside" &&
+      directShip === "no" &&
+      clientLocation === "outside" &&
+      deliveryCountryLocal !== "United Kingdom";
+
+    if (isImportThenExport) {
+      return "Full UK import VAT may apply, but is reclaimed when the item is exported (subject to correct documentation)";
+    }
+
+    // Default mapping
     if (result.vatReclaim.toLowerCase().includes("reclaim")) {
       return "Reclaimable";
     } else if (result.vatReclaim.toLowerCase() === "none") {
       return "Not reclaimable";
     }
     return result.vatReclaim;
-  }, [result]);
+  }, [result, supplierCountry, deliveryCountryLocal, itemLocation, clientLocation, directShip]);
 
   // Derive delivery path using shipping answers
   const deliveryPath = useMemo(() => {
@@ -229,33 +262,84 @@ export function StepDealLogistics() {
 
     const notes: string[] = [];
 
-    // Add main tax liability note
-    notes.push(result.taxLiability);
+    // Identify the scenario for scenario-specific notes
+    const isPureUKDomestic =
+      supplierCountry === "United Kingdom" &&
+      deliveryCountryLocal === "United Kingdom" &&
+      itemLocation === "uk" &&
+      clientLocation === "uk" &&
+      result.accountCode === "425"; // UK retail
 
-    // Add shipping/logistics notes
-    if (
-      directShip === "no" ||
-      (shippingOption === "no" && itemLocation === "outside")
-    ) {
-      notes.push("Item needs to come via Club 19 before going to the client");
+    const isImportThenExport =
+      supplierCountry !== "United Kingdom" &&
+      itemLocation === "outside" &&
+      directShip === "no" && // Item comes via Club 19
+      clientLocation === "outside" &&
+      deliveryCountryLocal !== "United Kingdom";
+
+    const isNonUKToNonUKDirect =
+      supplierCountry !== "United Kingdom" &&
+      deliveryCountryLocal !== "United Kingdom" &&
+      itemLocation === "outside" &&
+      clientLocation === "outside" &&
+      directShip === "yes";
+
+    // Scenario-specific notes (max 2-3 bullets)
+    if (isPureUKDomestic) {
+      notes.push("This is a UK-to-UK sale; VAT on the purchase is treated as part of the cost");
+    } else if (isImportThenExport) {
+      notes.push("We may pay full UK VAT when the goods land in the UK under Club 19");
+      notes.push("The export sale is zero-rated / VAT can be reclaimed if properly documented");
+    } else if (isNonUKToNonUKDirect) {
+      notes.push("Item ships directly from supplier to client; Club 19 is not the importer of record");
+      if (insuranceLanded === "no") {
+        notes.push("Because this is not landed delivery, the client may be charged import duties/taxes on receipt – confirm they understand this");
+      }
+    } else {
+      // Default: use original tax liability note
+      notes.push(result.taxLiability);
+
+      // Add shipping/logistics notes for other cases
+      if (directShip === "no" && itemLocation === "outside") {
+        notes.push("Item needs to come via Club 19 before going to the client");
+      }
     }
 
-    if (insuranceLanded === "no" && directShip === "yes") {
-      notes.push("Full VAT may need adding to both cost and sale price");
-    }
-
-    // Add warning note if present
+    // Add warning note if present (from result)
     if (result.note) {
       notes.push(`⚠️ ${result.note}`);
     }
 
     return notes;
-  }, [result, directShip, shippingOption, itemLocation, insuranceLanded]);
+  }, [result, directShip, itemLocation, insuranceLanded, supplierCountry, deliveryCountryLocal, clientLocation]);
 
   // Determine if we should show shipping & logistics questions
   const shouldShowShippingQuestions =
     (itemLocation === "uk" && clientLocation && purchaseType) ||
     (itemLocation === "outside" && clientLocation);
+
+  // Compute tax-aware deal structure suggestion
+  const dealSuggestion = useMemo(() => {
+    return computeDealStructureSuggestion({
+      supplierCountry,
+      deliveryCountry: deliveryCountryLocal,
+      itemLocation: itemLocation as "uk" | "outside" | null,
+      clientLocation: clientLocation as "uk" | "outside" | null,
+      supplierShipsDirect: directShip === "yes",
+      landedDelivery: insuranceLanded === "yes",
+      estimatedImportExportGBP: estimatedDutiesGBP,
+      grossMarginGBP,
+    });
+  }, [
+    supplierCountry,
+    deliveryCountryLocal,
+    itemLocation,
+    clientLocation,
+    directShip,
+    insuranceLanded,
+    estimatedDutiesGBP,
+    grossMarginGBP,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -341,7 +425,6 @@ export function StepDealLogistics() {
             setItemLocationTouched(true);
             setClientLocation(null);
             setPurchaseType(null);
-            setShippingOption(null);
             setDirectShip(null);
             setInsuranceLanded(null);
           }}
@@ -360,7 +443,6 @@ export function StepDealLogistics() {
             setItemLocationTouched(true);
             setClientLocation(null);
             setPurchaseType(null);
-            setShippingOption(null);
             setDirectShip(null);
             setInsuranceLanded(null);
           }}
@@ -391,7 +473,6 @@ export function StepDealLogistics() {
               setClientLocation("uk");
               setClientLocationTouched(true);
               setPurchaseType(null);
-              setShippingOption(null);
               setDirectShip(null);
               setInsuranceLanded(null);
             }}
@@ -409,7 +490,6 @@ export function StepDealLogistics() {
               setClientLocation("outside");
               setClientLocationTouched(true);
               setPurchaseType(null);
-              setShippingOption(null);
               setDirectShip(null);
               setInsuranceLanded(null);
             }}
@@ -459,53 +539,51 @@ export function StepDealLogistics() {
             </h3>
           </div>
 
-          {/* Q4: Client can arrange onward shipping */}
+          {/* Q4: Supplier direct ship */}
           <div className="space-y-3 animate-fade-in">
             <div>
               <h3 className="font-semibold text-gray-900">
-                {itemLocation === "uk" ? "4" : "3"}. Client arranging shipping?
+                {itemLocation === "uk" ? "4" : "3"}. Supplier ships direct?
               </h3>
             </div>
             <button
               type="button"
               onClick={() => {
-                setShippingOption("no");
-                setDirectShip(null);
+                setDirectShip("no");
                 setInsuranceLanded(null);
               }}
               className={`w-full p-3 border rounded-md text-left transition-colors ${
-                shippingOption === "no"
+                directShip === "no"
                   ? "border-blue-600 bg-blue-50 text-blue-900 font-medium"
                   : "border-gray-300 hover:border-gray-400 text-gray-700"
               }`}
             >
-              No
+              No, via us
             </button>
             <button
               type="button"
               onClick={() => {
-                setShippingOption("yes");
-                setDirectShip(null);
+                setDirectShip("yes");
                 setInsuranceLanded(null);
               }}
               className={`w-full p-3 border rounded-md text-left transition-colors ${
-                shippingOption === "yes"
+                directShip === "yes"
                   ? "border-blue-600 bg-blue-50 text-blue-900 font-medium"
                   : "border-gray-300 hover:border-gray-400 text-gray-700"
               }`}
             >
-              Yes
+              Yes, direct to client
             </button>
           </div>
         </>
       )}
 
-      {/* Q5: Supplier direct ship */}
-      {shippingOption && shouldShowShippingQuestions && (
+      {/* Q5: Landed & insured */}
+      {directShip && shouldShowShippingQuestions && (
         <div className="space-y-3 animate-fade-in">
           <div>
             <h3 className="font-semibold text-gray-900">
-              {itemLocation === "uk" ? "5" : "4"}. Supplier ships direct?
+              {itemLocation === "uk" ? "5" : "4"}. Landed delivery?
             </h3>
           </div>
           <button
@@ -574,6 +652,81 @@ export function StepDealLogistics() {
           </button>
         </div>
       )}
+
+      {/* High-tax warning banner */}
+      {result &&
+        dealSuggestion.hasBetterAlternative &&
+        dealSuggestion.alternativeDutiesGBP !== undefined &&
+        dealSuggestion.currentDutiesGBP > 0 &&
+        dealSuggestion.currentDutiesGBP - dealSuggestion.alternativeDutiesGBP >= 500 && (
+          <div className="border-l-4 border-amber-500 bg-amber-50 p-4 rounded-lg animate-fade-in">
+            <div className="flex items-start gap-3">
+              <svg
+                className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <div className="flex-1">
+                <h4 className="font-semibold text-amber-900 mb-1">
+                  Higher tax exposure on this structure
+                </h4>
+                <p className="text-sm text-amber-800 mb-2">
+                  Routing via the UK is likely to trigger UK import VAT (est. £
+                  {dealSuggestion.currentDutiesGBP.toFixed(2)}).
+                </p>
+                <p className="text-sm text-amber-800">
+                  If the client is happy with direct delivery, consider{" "}
+                  <span className="font-medium">
+                    {getAlternativeDescriptionShort(dealSuggestion.alternativeDescription)}
+                  </span>{" "}
+                  to avoid this cost.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+      {/* Best for margin & lower taxes info strip */}
+      {result &&
+        dealSuggestion.hasBetterAlternative &&
+        dealSuggestion.alternativeDescription &&
+        dealSuggestion.alternativeDutiesGBP !== undefined &&
+        !(dealSuggestion.currentDutiesGBP > 0 &&
+          dealSuggestion.currentDutiesGBP - dealSuggestion.alternativeDutiesGBP >= 500) && (
+          <div className="border border-blue-200 bg-blue-50 p-4 rounded-lg animate-fade-in">
+            <div className="flex items-start gap-3">
+              <svg
+                className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <div className="flex-1">
+                <h4 className="font-semibold text-blue-900 mb-1">
+                  Best for margin & lower taxes
+                </h4>
+                <p className="text-sm text-blue-800 mb-1">
+                  {dealSuggestion.alternativeDescription}
+                </p>
+                <p className="text-xs text-blue-700">
+                  Est. import/export: £{dealSuggestion.alternativeDutiesGBP.toFixed(2)} (vs £
+                  {dealSuggestion.currentDutiesGBP.toFixed(2)} if structured this way).
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Summary Card */}
       {result && (
