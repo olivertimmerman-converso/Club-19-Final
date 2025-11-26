@@ -8,39 +8,22 @@ import { StepItemsAndMargin } from "@/components/trade/StepItemsAndMargin";
 import { StepBuyerAndReview } from "@/components/trade/StepBuyerAndReview";
 
 function WizardContent() {
-  const { state, navigationDirection } = useTrade();
-
-  // Helper function to get step classes with direction-aware animation
-  const getStepClasses = (stepIndex: number) => {
-    const isActive = state.currentStep === stepIndex;
-    const baseClasses = "absolute inset-0 transition-all duration-300";
-
-    if (isActive) {
-      return `${baseClasses} opacity-100 translate-x-0 pointer-events-auto`;
-    }
-
-    // Inactive step - slide direction based on navigation
-    const slideClass = navigationDirection === "forward"
-      ? "-translate-x-4"
-      : "translate-x-4";
-
-    return `${baseClasses} opacity-0 ${slideClass} pointer-events-none`;
-  };
+  const { state } = useTrade();
 
   return (
-    <div className="relative w-full">
+    <div className="w-full">
       {/* Step 0: Deal & Logistics */}
-      <div className={getStepClasses(0)}>
+      <div className={state.currentStep === 0 ? "block w-full" : "hidden w-full"}>
         <StepDealLogistics />
       </div>
 
       {/* Step 1: Items & Pricing */}
-      <div className={getStepClasses(1)}>
+      <div className={state.currentStep === 1 ? "block w-full" : "hidden w-full"}>
         <StepItemsAndMargin />
       </div>
 
       {/* Step 2: Buyer & Review */}
-      <div className={getStepClasses(2)}>
+      <div className={state.currentStep === 2 ? "block w-full" : "hidden w-full"}>
         <StepBuyerAndReview />
       </div>
     </div>
