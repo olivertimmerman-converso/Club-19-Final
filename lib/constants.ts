@@ -334,7 +334,7 @@ export function getInvoiceResult(
         accountCode: "425",
         taxType: TAX_20,
         taxLabel: "20% VAT on Income",
-        vatReclaim: "Reclaimable",
+        vatReclaim: "None",
       };
     }
     if (purchaseType === "margin") {
@@ -356,13 +356,13 @@ export function getInvoiceResult(
   if (itemLocation === "uk" && clientLocation === "outside" && purchaseType) {
     if (purchaseType === "retail") {
       return {
-        taxLiability: "Export sale - VAT reclaimable from UK purchase",
+        taxLiability: "Export sale - VAT locked in UK retail purchase",
         brandTheme: "CN Export Sales",
         amountsAre: "Exclusive",
         accountCode: "423",
         taxType: TAX_ZERO,
         taxLabel: "Zero Rated Income 0%",
-        vatReclaim: "Reclaimable",
+        vatReclaim: "None",
       };
     }
     if (purchaseType === "margin") {
