@@ -30,11 +30,12 @@ type TradeContextType = {
   // Tax scenario
   setTaxScenario: (scenario: WizardState["taxScenario"]) => void;
 
+  // Current item (Steps 0-1)
+  setCurrentItem: (item: WizardState["currentItem"]) => void;
+
   // Supplier & purchase defaults
   setCurrentSupplier: (supplier: Supplier) => void;
   setCurrentPaymentMethod: (method: PaymentMethod) => void;
-  setCurrentBuyCurrency: (currency: string) => void;
-  setCurrentFxRate: (rate: number | null) => void;
   setDeliveryCountry: (country: string) => void;
 
   // Logistics data
@@ -75,10 +76,9 @@ const TradeContext = createContext<TradeContextType | undefined>(undefined);
 const createInitialState = (): WizardState => ({
   currentStep: 0,
   taxScenario: null,
+  currentItem: null,
   currentSupplier: null,
   currentPaymentMethod: PaymentMethod.CARD,
-  currentBuyCurrency: "GBP",
-  currentFxRate: null,
   deliveryCountry: "UK", // Default to UK
   itemLocation: null,
   clientLocation: null,
@@ -128,11 +128,25 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
 
   const canGoNext = (() => {
     switch (state.currentStep) {
-      case 0: // Deal & Logistics (tax scenario + supplier)
-        return state.taxScenario !== null && state.currentSupplier !== null;
-      case 1: // Items & Pricing
-        return state.items.length > 0;
-      case 2: // Buyer & Review
+      case 0: // Item Details
+        return state.currentItem !== null &&
+               state.currentItem.brand !== "" &&
+               state.currentItem.category !== "" &&
+               state.currentItem.description !== "" &&
+               state.currentItem.quantity > 0;
+      case 1: // Pricing
+        return state.currentItem !== null &&
+               state.currentItem.buyPrice !== undefined &&
+               state.currentItem.buyPrice > 0 &&
+               state.currentItem.sellPrice !== undefined &&
+               state.currentItem.sellPrice > 0;
+      case 2: // Supplier & Buyer
+        return state.currentSupplier !== null &&
+               state.buyer !== null &&
+               state.deliveryCountry !== "";
+      case 3: // Logistics & Tax
+        return state.taxScenario !== null;
+      case 4: // Review & Create
         return false; // No next from final step
       default:
         return false;
@@ -144,16 +158,30 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
   // Helper function to check if a specific step is valid
   const isStepValid = useCallback((step: WizardStep): boolean => {
     switch (step) {
-      case 0: // Deal & Logistics (tax scenario + supplier)
-        return state.taxScenario !== null && state.currentSupplier !== null;
-      case 1: // Items & Pricing
-        return state.items.length > 0;
-      case 2: // Buyer & Review
+      case 0: // Item Details
+        return state.currentItem !== null &&
+               state.currentItem.brand !== "" &&
+               state.currentItem.category !== "" &&
+               state.currentItem.description !== "" &&
+               state.currentItem.quantity > 0;
+      case 1: // Pricing
+        return state.currentItem !== null &&
+               state.currentItem.buyPrice !== undefined &&
+               state.currentItem.buyPrice > 0 &&
+               state.currentItem.sellPrice !== undefined &&
+               state.currentItem.sellPrice > 0;
+      case 2: // Supplier & Buyer
+        return state.currentSupplier !== null &&
+               state.buyer !== null &&
+               state.deliveryCountry !== "";
+      case 3: // Logistics & Tax
+        return state.taxScenario !== null;
+      case 4: // Review & Create
         return state.buyer !== null && state.buyer.name.trim() !== "";
       default:
         return false;
     }
-  }, [state.taxScenario, state.currentSupplier, state.items.length, state.buyer]);
+  }, [state.currentItem, state.currentSupplier, state.buyer, state.deliveryCountry, state.taxScenario]);
 
   // Check if user can navigate to a target step
   const canGoToStep = useCallback((targetStep: WizardStep): boolean => {
@@ -176,20 +204,16 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, taxScenario: scenario }));
   }, []);
 
+  const setCurrentItem = useCallback((item: WizardState["currentItem"]) => {
+    setState((prev) => ({ ...prev, currentItem: item }));
+  }, []);
+
   const setCurrentSupplier = useCallback((supplier: Supplier) => {
     setState((prev) => ({ ...prev, currentSupplier: supplier }));
   }, []);
 
   const setCurrentPaymentMethod = useCallback((method: PaymentMethod) => {
     setState((prev) => ({ ...prev, currentPaymentMethod: method }));
-  }, []);
-
-  const setCurrentBuyCurrency = useCallback((currency: string) => {
-    setState((prev) => ({ ...prev, currentBuyCurrency: currency }));
-  }, []);
-
-  const setCurrentFxRate = useCallback((rate: number | null) => {
-    setState((prev) => ({ ...prev, currentFxRate: rate }));
   }, []);
 
   const setDeliveryCountry = useCallback((country: string) => {
@@ -292,10 +316,9 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
     canGoPrev,
     canGoToStep,
     setTaxScenario,
+    setCurrentItem,
     setCurrentSupplier,
     setCurrentPaymentMethod,
-    setCurrentBuyCurrency,
-    setCurrentFxRate,
     setDeliveryCountry,
     setItemLocation,
     setClientLocation,

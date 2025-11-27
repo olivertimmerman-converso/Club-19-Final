@@ -3,28 +3,40 @@
 import React from "react";
 import { TradeProvider, useTrade } from "@/contexts/TradeContext";
 import { WizardShell } from "@/components/trade/WizardShell";
-import { StepDealLogistics } from "@/components/trade/StepDealLogistics";
-import { StepItemsAndMargin } from "@/components/trade/StepItemsAndMargin";
-import { StepBuyerAndReview } from "@/components/trade/StepBuyerAndReview";
+import { StepItemDetails } from "@/components/trade/StepItemDetails";
+import { StepPricing } from "@/components/trade/StepPricing";
+import { StepSupplierBuyer } from "@/components/trade/StepSupplierBuyer";
+import { StepLogisticsTax } from "@/components/trade/StepLogisticsTax";
+import { StepReview } from "@/components/trade/StepReview";
 
 function WizardContent() {
   const { state, resetKey } = useTrade();
 
   return (
     <div className="w-full" key={resetKey}>
-      {/* Step 0: Deal & Logistics */}
+      {/* Step 0: Item Details */}
       <div className={state.currentStep === 0 ? "block w-full" : "hidden w-full"}>
-        <StepDealLogistics />
+        <StepItemDetails />
       </div>
 
-      {/* Step 1: Items & Pricing */}
+      {/* Step 1: Pricing */}
       <div className={state.currentStep === 1 ? "block w-full" : "hidden w-full"}>
-        <StepItemsAndMargin />
+        <StepPricing />
       </div>
 
-      {/* Step 2: Buyer & Review */}
+      {/* Step 2: Supplier & Buyer */}
       <div className={state.currentStep === 2 ? "block w-full" : "hidden w-full"}>
-        <StepBuyerAndReview />
+        <StepSupplierBuyer />
+      </div>
+
+      {/* Step 3: Logistics & Tax */}
+      <div className={state.currentStep === 3 ? "block w-full" : "hidden w-full"}>
+        <StepLogisticsTax />
+      </div>
+
+      {/* Step 4: Review & Create */}
+      <div className={state.currentStep === 4 ? "block w-full" : "hidden w-full"}>
+        <StepReview />
       </div>
     </div>
   );

@@ -5,9 +5,9 @@ import { useTrade } from "@/contexts/TradeContext";
 import { Club19Logo } from "./Club19Logo";
 import { WizardStep } from "@/lib/types/invoice";
 
-const STEP_LABELS = ["Deal & Logistics", "Items & Pricing", "Buyer & Review"];
+const STEP_LABELS = ["Item Details", "Pricing", "Supplier & Buyer", "Logistics & Tax", "Review & Create"];
 
-const STEP_LABELS_SHORT = ["Deal", "Items", "Review"];
+const STEP_LABELS_SHORT = ["Item", "Price", "Parties", "Tax", "Review"];
 
 type WizardShellProps = {
   children: React.ReactNode;

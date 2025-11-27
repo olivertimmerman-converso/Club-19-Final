@@ -156,7 +156,7 @@ export type MakeResponse = {
 // WIZARD STATE
 // ============================================================================
 
-export type WizardStep = 0 | 1 | 2; // Deal & Logistics -> Items & Pricing -> Buyer & Review
+export type WizardStep = 0 | 1 | 2 | 3 | 4; // Item Details -> Pricing -> Supplier & Buyer -> Logistics & Tax -> Review & Create
 
 export type WizardState = {
   currentStep: WizardStep;
@@ -173,11 +173,19 @@ export type WizardState = {
     vatReclaim: string;
   } | null;
 
-  // Step 1: Supplier & purchase defaults for items
+  // Current item being created (Steps 0-1)
+  currentItem: {
+    brand: string;
+    category: string;
+    description: string;
+    quantity: number;
+    buyPrice?: number;
+    sellPrice?: number;
+  } | null;
+
+  // Supplier & purchase defaults
   currentSupplier: Supplier | null;
   currentPaymentMethod: PaymentMethod;
-  currentBuyCurrency: string;
-  currentFxRate: number | null;
   deliveryCountry: string; // Where items will be delivered (for shipping cost estimation)
 
   // Logistics data (Step 0)
