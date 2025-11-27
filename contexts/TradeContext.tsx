@@ -142,8 +142,12 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
                state.currentItem.sellPrice > 0;
       case 2: // Supplier & Buyer
         return state.currentSupplier !== null &&
+               state.currentSupplier.name.trim() !== "" &&
+               state.currentSupplier.country.trim() !== "" &&
+               state.currentPaymentMethod !== null &&
                state.buyer !== null &&
-               state.deliveryCountry !== "";
+               state.buyer.name.trim() !== "" &&
+               state.deliveryCountry.trim() !== "";
       case 3: // Logistics & Tax
         return state.taxScenario !== null;
       case 4: // Review & Create
@@ -172,8 +176,12 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
                state.currentItem.sellPrice > 0;
       case 2: // Supplier & Buyer
         return state.currentSupplier !== null &&
+               state.currentSupplier.name.trim() !== "" &&
+               state.currentSupplier.country.trim() !== "" &&
+               state.currentPaymentMethod !== null &&
                state.buyer !== null &&
-               state.deliveryCountry !== "";
+               state.buyer.name.trim() !== "" &&
+               state.deliveryCountry.trim() !== "";
       case 3: // Logistics & Tax
         return state.taxScenario !== null;
       case 4: // Review & Create
@@ -181,7 +189,7 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
       default:
         return false;
     }
-  }, [state.currentItem, state.currentSupplier, state.buyer, state.deliveryCountry, state.taxScenario]);
+  }, [state.currentItem, state.currentSupplier, state.buyer, state.deliveryCountry, state.currentPaymentMethod, state.taxScenario]);
 
   // Check if user can navigate to a target step
   const canGoToStep = useCallback((targetStep: WizardStep): boolean => {
