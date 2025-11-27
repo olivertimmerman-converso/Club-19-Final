@@ -137,6 +137,14 @@ export function StepDealLogistics() {
     setDeliveryCountry(deliveryCountryLocal);
   }, [deliveryCountryLocal, setDeliveryCountry]);
 
+  // Clear insuranceLanded when UK→UK (domestic trade doesn't need landed delivery)
+  useEffect(() => {
+    const isUKToUK = supplierCountry === "United Kingdom" && deliveryCountryLocal === "United Kingdom";
+    if (isUKToUK && insuranceLanded !== null) {
+      setInsuranceLanded(null);
+    }
+  }, [supplierCountry, deliveryCountryLocal, insuranceLanded]);
+
   // Auto-sync Q1 and Q2 from supplier/delivery countries (unless manually touched)
   useEffect(() => {
     let shouldUpdate = false;
@@ -586,7 +594,8 @@ export function StepDealLogistics() {
       )}
 
       {/* Q5: Landed delivery */}
-      {directShip && shouldShowShippingQuestions && (
+      {directShip && shouldShowShippingQuestions &&
+       !(supplierCountry === "United Kingdom" && deliveryCountryLocal === "United Kingdom") && (
         <div className="space-y-3 animate-fade-in">
           <div>
             <h3 className="font-semibold text-gray-900">
