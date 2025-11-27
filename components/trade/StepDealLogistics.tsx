@@ -17,6 +17,33 @@ const SUCCESS_MESSAGES = [
   "Tax settings saved for this deal.",
 ];
 
+// Brand options
+const BRAND_OPTIONS = [
+  "Hermès",
+  "Chanel",
+  "Louis Vuitton",
+  "Dior",
+  "Goyard",
+  "Cartier",
+  "Rolex",
+  "Saint Laurent",
+  "Celine",
+  "Balenciaga",
+  "Other",
+];
+
+// Category options
+const CATEGORY_OPTIONS = [
+  "Handbag",
+  "SLG",
+  "Shoes",
+  "Accessories",
+  "Jewelry",
+  "Ready-to-Wear",
+  "Watch",
+  "Other",
+];
+
 // Separator component (simple border replacement for shadcn/ui Separator)
 function Separator() {
   return <div className="border-t border-gray-200 my-6" />;
@@ -34,7 +61,9 @@ export function StepDealLogistics() {
   // SECTION A: ITEM DETAILS STATE
   // ============================================================================
   const [brand, setBrand] = useState("");
+  const [brandOther, setBrandOther] = useState(""); // For "Other" option
   const [category, setCategory] = useState("");
+  const [categoryOther, setCategoryOther] = useState(""); // For "Other" option
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState<number>(1);
   const [buyPrice, setBuyPrice] = useState<string>("");
@@ -86,13 +115,19 @@ export function StepDealLogistics() {
 
   // Section B (Logistics) reveals when item details are complete
   const showLogisticsSection = useMemo(() => {
+    // Get effective brand (use brandOther if brand is "Other")
+    const effectiveBrand = brand === "Other" ? brandOther.trim() : brand.trim();
+    // Get effective category (use categoryOther if category is "Other")
+    const effectiveCategory = category === "Other" ? categoryOther.trim() : category.trim();
+
     return !!(
-      brand.trim() &&
+      effectiveBrand &&
+      effectiveCategory &&
       description.trim() &&
       buyPrice && parseFloat(buyPrice) > 0 &&
       sellPrice && parseFloat(sellPrice) > 0
     );
-  }, [brand, description, buyPrice, sellPrice]);
+  }, [brand, brandOther, category, categoryOther, description, buyPrice, sellPrice]);
 
   // Section C (Supplier) reveals when logistics is complete
   const showSupplierSection = useMemo(() => {
@@ -147,6 +182,22 @@ export function StepDealLogistics() {
       // Don't clear supplierCountry as it's needed for logistics auto-sync
     }
   }, [showSupplierSection]);
+
+  // Reset logistics and tax scenario when brand or category changes
+  // This ensures tax calculations are re-done with the new product context
+  useEffect(() => {
+    // Only reset if we already have logistics filled in
+    if (itemLocation || clientLocation || purchaseType || directShip || insuranceLanded) {
+      setItemLocation(null);
+      setClientLocation(null);
+      setPurchaseType(null);
+      setDirectShip(null);
+      setInsuranceLanded(null);
+      setItemLocationTouched(false);
+      setClientLocationTouched(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brand, category]); // Only watch brand and category, not the "Other" fields or logistics state
 
   // ============================================================================
   // TAX CALCULATION
@@ -462,32 +513,72 @@ export function StepDealLogistics() {
         <h3 className="font-semibold text-blue-900">Item Details</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Brand *
             </label>
-            <input
-              type="text"
+            <select
               value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. Hermès"
+              onChange={(e) => {
+                setBrand(e.target.value);
+                if (e.target.value !== "Other") {
+                  setBrandOther(""); // Clear "Other" field if switching away
+                }
+              }}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               required
-            />
+            >
+              <option value="">Select brand...</option>
+              {BRAND_OPTIONS.map((brandOption) => (
+                <option key={brandOption} value={brandOption}>
+                  {brandOption}
+                </option>
+              ))}
+            </select>
+            {brand === "Other" && (
+              <input
+                type="text"
+                value={brandOther}
+                onChange={(e) => setBrandOther(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
+                placeholder="Specify brand..."
+                required
+              />
+            )}
           </div>
 
-          <div>
+          <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Category *
             </label>
-            <input
-              type="text"
+            <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. Handbag"
+              onChange={(e) => {
+                setCategory(e.target.value);
+                if (e.target.value !== "Other") {
+                  setCategoryOther(""); // Clear "Other" field if switching away
+                }
+              }}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               required
-            />
+            >
+              <option value="">Select category...</option>
+              {CATEGORY_OPTIONS.map((categoryOption) => (
+                <option key={categoryOption} value={categoryOption}>
+                  {categoryOption}
+                </option>
+              ))}
+            </select>
+            {category === "Other" && (
+              <input
+                type="text"
+                value={categoryOther}
+                onChange={(e) => setCategoryOther(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
+                placeholder="Specify category..."
+                required
+              />
+            )}
           </div>
         </div>
 
