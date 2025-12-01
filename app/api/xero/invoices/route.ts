@@ -258,27 +258,23 @@ export async function POST(request: NextRequest) {
       console.warn("[XERO INVOICE] Could not fetch user details for shopper name:", error);
     }
 
-    // Build and send sale payload (don't await - let it run in background)
-    if (payload.supplierName && payload.buyPrice !== undefined) {
-      const salePayload = buildSalePayload({
-        invoiceNumber: invoice.InvoiceNumber,
-        invoiceDate: new Date(),
-        shopperName: shopperName,
-        buyerName: response.contactName,
-        supplierName: payload.supplierName,
-        saleAmount: response.total,
-        buyPrice: payload.buyPrice,
-        cardFees: payload.cardFees,
-        shippingCost: payload.shippingCost,
-        brandTheme: payload.brandingThemeId || "Standard",
-        notes: payload.notes,
-      });
+    // Build and send sale payload - ALWAYS sync to Make.com
+    const salePayload = buildSalePayload({
+      invoiceNumber: invoice.InvoiceNumber,
+      invoiceDate: new Date(),
+      shopperName: shopperName,
+      buyerName: response.contactName,
+      supplierName: payload.supplierName || "",
+      saleAmount: response.total,
+      buyPrice: payload.buyPrice ?? 0,
+      cardFees: payload.cardFees ?? 0,
+      shippingCost: payload.shippingCost ?? 0,
+      brandTheme: payload.brandingThemeId || "Standard",
+      notes: payload.notes || "",
+    });
 
-      // Sync to Make.com (await to ensure delivery before response)
-      await syncSaleToMake(salePayload);
-    } else {
-      console.log("[XERO INVOICE] Skipping Make.com sync - missing supplier/buyPrice data");
-    }
+    // Sync to Make.com (await ensures delivery)
+    await syncSaleToMake(salePayload);
 
     return NextResponse.json(response);
   } catch (error: any) {
