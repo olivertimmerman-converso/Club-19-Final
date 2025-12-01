@@ -38,6 +38,7 @@ const MAKE_WEBHOOK_URL = "https://hook.eu2.make.com/o4z51g88wep546r1bkx7wo7ck224
  *   saleAmount: 15000,
  *   directCosts: 12000,
  *   currency: "GBP",
+ *   notes: "",
  * });
  * ```
  */
@@ -93,11 +94,11 @@ export async function syncSaleToMake(payload: SalePayload): Promise<void> {
 /**
  * Build sale payload from invoice data
  *
- * Helper function to construct a SalePayload from invoice creation data.
- * This ensures consistent payload structure across the application.
+ * Constructs a SalePayload with EXACTLY 9 fields for Make.com/Airtable.
+ * No additional fields should be added to maintain clean integration.
  *
  * @param params - Invoice and sale data
- * @returns SalePayload ready to send to Make.com
+ * @returns SalePayload with 9 fields only
  *
  * @example
  * ```typescript
@@ -110,6 +111,7 @@ export async function syncSaleToMake(payload: SalePayload): Promise<void> {
  *   saleAmount: 15000,
  *   buyPrice: 12000,
  *   cardFees: 300,
+ *   shippingCost: 0,
  *   notes: "Luxury handbag deal",
  * });
  * ```
@@ -117,31 +119,26 @@ export async function syncSaleToMake(payload: SalePayload): Promise<void> {
 export function buildSalePayload(params: {
   invoiceNumber: string;
   invoiceDate: Date;
-  shopperName: string; // The sales person/introducer
-  buyerName: string; // The customer
-  supplierName: string; // Where the item was sourced
-  saleAmount: number; // Total invoice amount (inc VAT)
-  buyPrice: number; // Supplier cost
-  cardFees?: number; // Card processing fees
-  shippingCost?: number; // Shipping cost
-  notes?: string;
-  introducerName?: string; // Optional introducer
+  shopperName: string;
+  buyerName: string;
+  supplierName: string;
+  saleAmount: number;
+  buyPrice: number;
+  cardFees: number;
+  shippingCost: number;
+  notes: string;
 }): SalePayload {
   // Calculate direct costs (supplier cost + card fees + shipping)
-  const directCosts =
-    params.buyPrice + (params.cardFees || 0) + (params.shippingCost || 0);
+  const directCosts = params.buyPrice + params.cardFees + params.shippingCost;
 
   return {
     saleReference: params.invoiceNumber,
-    saleDate: params.invoiceDate.toISOString().split("T")[0], // YYYY-MM-DD
+    saleDate: params.invoiceDate.toISOString().split("T")[0],
     shopperName: params.shopperName,
     buyerName: params.buyerName,
     supplierName: params.supplierName,
-    introducerName: params.introducerName,
     saleAmount: params.saleAmount,
-    saleAmountExVat: undefined, // Let Airtable calculate if needed
     directCosts: directCosts,
-    commissionBand: undefined, // Let Airtable calculate
     currency: "GBP",
     notes: params.notes,
   };

@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
       console.warn("[XERO INVOICE] Could not fetch user details for shopper name:", error);
     }
 
-    // Build and send sale payload - ALWAYS sync to Make.com
+    // Build and send sale payload - ALWAYS sync to Make.com (9 fields only)
     const salePayload = buildSalePayload({
       invoiceNumber: invoice.InvoiceNumber,
       invoiceDate: new Date(),
