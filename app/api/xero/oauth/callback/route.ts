@@ -78,7 +78,9 @@ export async function GET(request: NextRequest) {
     console.log(`[XERO CALLBACK] ✓ Authorization code received (length: ${code.length})`);
 
     // 3. Validate environment configuration
+    // NOTE: OAuth 2.0 spec allows client_id to be public - this is intentional
     const clientId = process.env.NEXT_PUBLIC_XERO_CLIENT_ID;
+    // client_secret is server-only and never exposed to client
     const clientSecret = process.env.XERO_CLIENT_SECRET;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 

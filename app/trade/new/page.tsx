@@ -2,6 +2,7 @@
 
 import React from "react";
 import { TradeProvider, useTrade } from "@/contexts/TradeContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { WizardShell } from "@/components/trade/WizardShell";
 import { StepItemDetails } from "@/components/trade/StepItemDetails";
 import { StepPricing } from "@/components/trade/StepPricing";
@@ -44,10 +45,12 @@ function WizardContent() {
 
 export default function NewTradePage() {
   return (
-    <TradeProvider>
-      <WizardShell>
-        <WizardContent />
-      </WizardShell>
-    </TradeProvider>
+    <ErrorBoundary>
+      <TradeProvider>
+        <WizardShell>
+          <WizardContent />
+        </WizardShell>
+      </TradeProvider>
+    </ErrorBoundary>
   );
 }

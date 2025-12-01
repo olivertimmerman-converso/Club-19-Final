@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 
 const inter = Inter({
@@ -46,7 +47,9 @@ export default function RootLayout({
     >
       <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
         <body className={inter.className}>
-          <div className="min-h-screen bg-white">{children}</div>
+          <ErrorBoundary>
+            <div className="min-h-screen bg-white">{children}</div>
+          </ErrorBoundary>
         </body>
       </html>
     </ClerkProvider>

@@ -56,6 +56,7 @@ export function StepSupplierBuyer() {
   const [isSupplierSearchActive, setIsSupplierSearchActive] = useState(false);
   const [supplierNoResults, setSupplierNoResults] = useState(false);
   const supplierDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const supplierAbortController = useRef<AbortController | null>(null);
 
   // === BUYER STATE (Xero search) ===
   const [buyerName, setBuyerName] = useState(state.buyer?.name || "");
@@ -65,6 +66,7 @@ export function StepSupplierBuyer() {
   const [buyerSelectedIndex, setBuyerSelectedIndex] = useState(-1);
   const [isBuyerSearchActive, setIsBuyerSearchActive] = useState(false);
   const buyerDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const buyerAbortController = useRef<AbortController | null>(null);
 
   // === SHARED XERO STATE ===
   const [xeroError, setXeroError] = useState<string | null>(null);
@@ -158,7 +160,14 @@ export function StepSupplierBuyer() {
 
     if (value.length >= 2) {
       supplierDebounceTimer.current = setTimeout(async () => {
+        // Cancel previous request
+        if (supplierAbortController.current) {
+          supplierAbortController.current.abort();
+        }
+
+        supplierAbortController.current = new AbortController();
         setLoadingSuppliers(true);
+
         try {
           const results = await fetchXeroSuppliers(value);
           setSupplierDropdownResults(results);
@@ -170,6 +179,12 @@ export function StepSupplierBuyer() {
             console.log(`[SUPPLIER SEARCH] No suppliers found for "${value}" (strict mode)`);
           }
         } catch (error: any) {
+          // Ignore AbortError - it just means we cancelled the request
+          if (error.name === 'AbortError') {
+            console.log('[SUPPLIER SEARCH] Request cancelled');
+            return;
+          }
+
           console.error("[SUPPLIER SEARCH] Xero supplier search failed:", error);
           setSupplierDropdownResults([]);
           setSupplierNoResults(false);
@@ -208,12 +223,25 @@ export function StepSupplierBuyer() {
 
     if (value.length >= 2) {
       buyerDebounceTimer.current = setTimeout(async () => {
+        // Cancel previous request
+        if (buyerAbortController.current) {
+          buyerAbortController.current.abort();
+        }
+
+        buyerAbortController.current = new AbortController();
         setLoadingBuyers(true);
+
         try {
           const results = await fetchXeroBuyers(value);
           setBuyerDropdownResults(results);
           setXeroError(null); // Clear error on successful search
         } catch (error: any) {
+          // Ignore AbortError - it just means we cancelled the request
+          if (error.name === 'AbortError') {
+            console.log('[BUYER SEARCH] Request cancelled');
+            return;
+          }
+
           console.error("[BUYER SEARCH] Xero buyer search failed:", error);
           setBuyerDropdownResults([]);
           // Only show error if it's a connection issue

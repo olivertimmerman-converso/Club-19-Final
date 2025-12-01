@@ -28,6 +28,25 @@ interface CacheEntry {
 const themesCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
+// Periodic cache cleanup to prevent memory leaks
+// Runs every 10 minutes to remove expired entries
+setInterval(() => {
+  const now = Date.now();
+  let removedCount = 0;
+
+  for (const [userId, entry] of themesCache.entries()) {
+    if (now - entry.fetchedAt > CACHE_TTL_MS) {
+      themesCache.delete(userId);
+      removedCount++;
+      console.log(`[XERO BRANDING CLEANUP] Removed expired cache for user: ${userId}`);
+    }
+  }
+
+  if (removedCount > 0) {
+    console.log(`[XERO BRANDING CLEANUP] ✓ Cleaned up ${removedCount} expired cache entries`);
+  }
+}, CACHE_TTL_MS);
+
 /**
  * Fetch all branding themes from Xero
  *

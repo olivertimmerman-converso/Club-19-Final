@@ -59,8 +59,27 @@ export function StepPricing() {
             <input
               type="number"
               step="0.01"
+              min="0"
+              max="10000000"
               value={buyPrice}
-              onChange={(e) => setBuyPrice(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                const numValue = parseFloat(value);
+
+                // Allow empty string for clearing the field
+                if (value === '') {
+                  setBuyPrice('');
+                  return;
+                }
+
+                // Prevent negative numbers
+                if (numValue < 0) return;
+
+                // Prevent extremely large numbers
+                if (numValue > 10000000) return;
+
+                setBuyPrice(value);
+              }}
               placeholder="0.00"
               className="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
               required
@@ -85,8 +104,27 @@ export function StepPricing() {
             <input
               type="number"
               step="0.01"
+              min="0"
+              max="10000000"
               value={sellPrice}
-              onChange={(e) => setSellPrice(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                const numValue = parseFloat(value);
+
+                // Allow empty string for clearing the field
+                if (value === '') {
+                  setSellPrice('');
+                  return;
+                }
+
+                // Prevent negative numbers
+                if (numValue < 0) return;
+
+                // Prevent extremely large numbers
+                if (numValue > 10000000) return;
+
+                setSellPrice(value);
+              }}
               placeholder="0.00"
               className="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
