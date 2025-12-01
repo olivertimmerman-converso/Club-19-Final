@@ -2,6 +2,7 @@
 
 import React, { Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 
 /**
@@ -23,77 +24,104 @@ function SuccessContent() {
   }).format(parseFloat(total));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        {/* Success Card */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Header with gradient */}
-          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-8 py-12 text-center">
-            {/* Large checkmark icon */}
-            <div className="mx-auto w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6">
+    <div className="min-h-screen bg-[#F7F3FF] py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto">
+        {/* Main Success Card - Clean White Premium Design */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          {/* Top Section - Logo & Success Icon */}
+          <div className="px-8 pt-12 pb-8 text-center">
+            {/* Club 19 Logo */}
+            <div className="mb-8 flex justify-center">
+              <Image
+                src="/club19-wordmark.png"
+                alt="Club 19 London"
+                width={200}
+                height={80}
+                priority
+                className="object-contain"
+              />
+            </div>
+
+            {/* Success Icon - Small Green Check */}
+            <div className="mx-auto w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6">
               <svg
-                className="w-16 h-16 text-green-500"
+                className="w-10 h-10 text-green-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={3}
+                  strokeWidth={2.5}
                   d="M5 13l4 4L19 7"
                 />
               </svg>
             </div>
 
-            <h1 className="text-4xl font-bold text-white mb-2">Invoice Created Successfully!</h1>
-            <p className="text-purple-100 text-lg">
-              Your Xero invoice has been generated and is ready to view
+            {/* Title - Elegant Serif */}
+            <h1 className="text-3xl font-serif font-bold text-black mb-3">
+              Invoice Created Successfully
+            </h1>
+
+            {/* Subtitle */}
+            <p className="text-gray-600 text-base">
+              Your invoice has been generated in Xero and is ready to view.
             </p>
           </div>
 
-          {/* Invoice Details */}
-          <div className="px-8 py-8 space-y-6">
-            {/* Invoice Number */}
-            <div className="border-l-4 border-purple-600 bg-purple-50 px-6 py-4 rounded-r-lg">
-              <p className="text-sm font-medium text-purple-900 mb-1">Invoice Number</p>
-              <p className="text-3xl font-bold text-purple-600">{invoiceNumber}</p>
-            </div>
-
-            {/* Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Buyer */}
-              <div className="bg-gray-50 px-6 py-4 rounded-lg">
-                <p className="text-sm font-medium text-gray-600 mb-2">Buyer</p>
-                <p className="text-xl font-semibold text-gray-900">{contactName}</p>
+          {/* Invoice Details Card - Premium Receipt Style */}
+          <div className="px-8 pb-8">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+              {/* Invoice Number - Featured */}
+              <div className="pb-4 border-b border-gray-100">
+                <p className="text-sm font-medium text-gray-500 mb-2">Invoice Number</p>
+                <p className="text-2xl font-serif font-bold text-black">{invoiceNumber}</p>
               </div>
 
-              {/* Total Amount */}
-              <div className="bg-gray-50 px-6 py-4 rounded-lg">
-                <p className="text-sm font-medium text-gray-600 mb-2">Total Amount</p>
-                <p className="text-xl font-semibold text-gray-900">{formattedAmount}</p>
-              </div>
-            </div>
+              {/* Details Grid - 2 columns on desktop */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                {/* Buyer */}
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Buyer</p>
+                  <p className="text-base font-semibold text-black">{contactName}</p>
+                </div>
 
-            {/* Invoice ID (for reference) */}
-            <div className="bg-gray-50 px-6 py-4 rounded-lg">
-              <p className="text-sm font-medium text-gray-600 mb-2">Invoice ID</p>
-              <p className="text-sm text-gray-700 font-mono">{invoiceId}</p>
+                {/* Total Amount */}
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Total Amount</p>
+                  <p className="text-base font-semibold text-black">{formattedAmount}</p>
+                </div>
+              </div>
+
+              {/* Invoice ID - Full Width */}
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-sm font-medium text-gray-500 mb-1">Invoice ID</p>
+                <p className="text-xs text-gray-600 font-mono break-all">{invoiceId}</p>
+              </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="px-8 pb-8 space-y-4">
-            {/* Primary: View in Xero */}
+          <div className="px-8 pb-8 space-y-3">
+            {/* Primary: View in Xero - Purple Gradient */}
             {invoiceUrl && (
               <a
                 href={invoiceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-center font-semibold py-4 px-6 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+                aria-label="View invoice in Xero (opens in new tab)"
+                className="block w-full rounded-xl bg-gradient-to-r from-purple-600 to-purple-400 text-white py-3 text-center font-medium shadow-md hover:opacity-90 transition-opacity"
               >
                 <span className="flex items-center justify-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -106,58 +134,22 @@ function SuccessContent() {
               </a>
             )}
 
-            {/* Secondary Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Create Another Invoice */}
-              <Link
-                href="/trade/new"
-                className="block bg-white border-2 border-purple-600 text-purple-600 text-center font-semibold py-3 px-6 rounded-lg hover:bg-purple-50 transition-all"
-              >
-                Create Another Invoice
-              </Link>
-
-              {/* Back to Dashboard */}
-              <Link
-                href="/"
-                className="block bg-white border-2 border-gray-300 text-gray-700 text-center font-semibold py-3 px-6 rounded-lg hover:bg-gray-50 transition-all"
-              >
-                Back to Dashboard
-              </Link>
-            </div>
+            {/* Secondary: Create Another Invoice - Outlined */}
+            <Link
+              href="/trade/new"
+              aria-label="Create another invoice"
+              className="block w-full border border-purple-300 text-purple-600 rounded-xl py-3 bg-white hover:bg-purple-50 transition-colors text-center font-medium"
+            >
+              Create Another Invoice
+            </Link>
           </div>
 
-          {/* Footer Note */}
-          <div className="bg-gray-50 px-8 py-4 border-t border-gray-200">
-            <p className="text-sm text-gray-600 text-center">
+          {/* Footer - Muted Guidance */}
+          <div className="px-8 pb-6">
+            <p className="text-xs text-gray-500 text-center leading-relaxed">
               This invoice has been created in your Xero account. You can edit, send, or manage it
               directly in Xero.
             </p>
-          </div>
-        </div>
-
-        {/* Additional Info Card */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg px-6 py-4">
-          <div className="flex gap-3">
-            <svg
-              className="w-6 h-6 text-blue-600 flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-blue-900 mb-1">Next Steps</p>
-              <p className="text-sm text-blue-800">
-                Review the invoice in Xero, add any additional details if needed, and send it to
-                your client. The invoice number is automatically generated by Xero.
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -166,9 +158,10 @@ function SuccessContent() {
 }
 
 /**
- * Trade Success Page
+ * Trade Success Page - Club 19 London Premium Design
  *
  * Displays confirmation after successful Xero invoice creation
+ * with luxury brand receipt-style UI.
  *
  * Query params:
  * - invoiceId: Xero invoice ID
@@ -182,7 +175,7 @@ export default function TradeSuccessPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center">
+        <div className="min-h-screen bg-[#F7F3FF] flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading invoice details...</p>
