@@ -93,6 +93,28 @@ export function StepSupplierBuyer() {
       setShowXeroSuccess(false);
       window.history.replaceState({}, "", window.location.pathname);
     }
+
+    // Proactively check if Xero is connected when component mounts
+    const checkXeroConnection = async () => {
+      try {
+        const response = await fetch("/api/xero/status");
+        const data = await response.json();
+
+        if (!data.connected) {
+          console.log("[BUYER SEARCH] Xero not connected, showing banner");
+          setXeroError("Please connect your Xero account to search contacts");
+        } else {
+          console.log("[BUYER SEARCH] Xero already connected");
+        }
+      } catch (error) {
+        console.error("[BUYER SEARCH] Failed to check Xero connection:", error);
+      }
+    };
+
+    // Only check connection if we didn't just come back from OAuth
+    if (!xeroConnected && !xeroErrorParam) {
+      checkXeroConnection();
+    }
   }, []);
 
   // === SUPPLIER HANDLERS ===
