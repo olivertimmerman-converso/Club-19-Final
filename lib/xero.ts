@@ -231,6 +231,7 @@ export async function createXeroInvoice(
     Contact: {
       ContactID: payload.buyerContactId,
     },
+    DueDate: new Date().toISOString().split("T")[0], // YYYY-MM-DD format (UTC today)
     LineAmountTypes: payload.lineAmountType, // "Inclusive" | "Exclusive" | "NoTax"
     LineItems: [
       {
@@ -245,6 +246,7 @@ export async function createXeroInvoice(
     ...(payload.brandingThemeId && { BrandingThemeID: payload.brandingThemeId }),
   };
 
+  console.log("[XERO API] Using due date:", xeroPayload.DueDate);
   console.log("[XERO API] Payload sent to Xero:", JSON.stringify(xeroPayload, null, 2));
 
   // Call Xero API
