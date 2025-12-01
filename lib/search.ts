@@ -249,11 +249,98 @@ export function searchBuyers(query: string, contacts: ExtendedContact[], limit =
 }
 
 /**
- * Filter and rank supplier contacts
+ * Simplified fast scoring for supplier search
+ * NO Levenshtein distance, NO fuzzy matching, NO typo correction
+ *
+ * Suppliers are mostly brand names (Harrods, Selfridges, Chanel)
+ * where exact/starts/contains matching is sufficient and much faster.
+ *
+ * Returns 0-100 score based on match quality
+ */
+function scoreSupplierField(query: string, fieldValue: string | undefined): number {
+  if (!fieldValue || !query) return 0;
+
+  const normalizedQuery = query.toLowerCase().trim();
+  const normalizedField = fieldValue.toLowerCase().trim();
+
+  if (normalizedField.length === 0) return 0;
+
+  // Exact match - highest score
+  if (normalizedField === normalizedQuery) {
+    return 100;
+  }
+
+  // Starts with query - very high score
+  if (normalizedField.startsWith(normalizedQuery)) {
+    return 90;
+  }
+
+  // Contains query as substring - high score
+  if (normalizedField.includes(normalizedQuery)) {
+    // Bonus if it's a word boundary match
+    const wordBoundaryMatch = new RegExp(`\\b${normalizedQuery}`, "i").test(normalizedField);
+    return wordBoundaryMatch ? 80 : 70;
+  }
+
+  return 0;
+}
+
+/**
+ * Fast simplified supplier search
+ *
+ * PERFORMANCE OPTIMIZED:
+ * - Pre-filters to isSupplier === true FIRST (leverages pre-classification)
+ * - Uses simplified scoring (no Levenshtein)
+ * - Searches only name, email, accountNumber (no contact persons)
+ * - Target: <80ms after cache warm
+ *
  * Returns top N supplier results (strict classification)
  */
 export function searchSuppliers(query: string, contacts: ExtendedContact[], limit = 15): ScoredResult[] {
-  const allResults = searchContacts(query, contacts);
-  const supplierResults = allResults.filter((result) => isSupplier(result.contact));
-  return supplierResults.slice(0, limit);
+  if (!query || query.trim().length < 2) {
+    return [];
+  }
+
+  // Pre-filter to suppliers only FIRST (uses pre-computed flags)
+  const supplierContacts = contacts.filter((contact) => contact.isSupplier);
+
+  const results: ScoredResult[] = [];
+
+  for (const contact of supplierContacts) {
+    let bestScore = 0;
+    let matchedField = "";
+
+    // Score against primary fields only (no contact persons for suppliers)
+    const nameScore = scoreSupplierField(query, contact.name);
+    if (nameScore > bestScore) {
+      bestScore = nameScore;
+      matchedField = "name";
+    }
+
+    const emailScore = scoreSupplierField(query, contact.email);
+    if (emailScore > bestScore) {
+      bestScore = emailScore;
+      matchedField = "email";
+    }
+
+    const accountNumberScore = scoreSupplierField(query, contact.accountNumber);
+    if (accountNumberScore > bestScore) {
+      bestScore = accountNumberScore;
+      matchedField = "accountNumber";
+    }
+
+    // Only include meaningful matches (threshold: 70 - exact/starts/contains only)
+    if (bestScore >= 70) {
+      results.push({
+        contact,
+        score: bestScore,
+        matchedField,
+      });
+    }
+  }
+
+  // Sort by score descending
+  results.sort((a, b) => b.score - a.score);
+
+  return results.slice(0, limit);
 }

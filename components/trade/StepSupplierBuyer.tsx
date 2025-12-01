@@ -327,45 +327,107 @@ export function StepSupplierBuyer() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Supplier Name <span className="text-red-600">*</span>
           </label>
-          <input
-            type="text"
-            value={supplierName}
-            onChange={(e) => handleSupplierInput(e.target.value)}
-            placeholder="Search Xero suppliers..."
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            required
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={supplierName}
+              onChange={(e) => handleSupplierInput(e.target.value)}
+              placeholder="Search Xero suppliers..."
+              className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              required
+            />
+            {/* Loading Spinner inside input */}
+            {loadingSuppliers && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg
+                  className="animate-spin h-5 w-5 text-purple-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              </div>
+            )}
+          </div>
           <p className="text-xs text-gray-600 mt-1">
             Search for existing Xero supplier or enter new name
           </p>
 
-          {/* Xero Supplier Search Dropdown */}
-          {isSupplierSearchActive && supplierDropdownResults.length > 0 && (
+          {/* "Searching suppliers..." message */}
+          {loadingSuppliers && isSupplierSearchActive && (
+            <div className="mt-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-md">
+              <p className="text-sm text-purple-700 flex items-center gap-2">
+                <svg
+                  className="animate-spin h-4 w-4 text-purple-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Searching suppliers…
+              </p>
+            </div>
+          )}
+
+          {/* Xero Supplier Search Dropdown with Skeleton Loader */}
+          {isSupplierSearchActive && !loadingSuppliers && supplierDropdownResults.length > 0 && (
             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-              {loadingSuppliers ? (
-                <div className="px-3 py-2 text-sm text-gray-500">
-                  Searching Xero suppliers...
-                </div>
-              ) : (
-                supplierDropdownResults.map((contact, idx) => (
-                  <div
-                    key={contact.contactId || idx}
-                    onClick={() => selectSupplier(contact)}
-                    className={`px-3 py-2 cursor-pointer hover:bg-purple-100 ${
-                      idx === supplierSelectedIndex ? "bg-purple-100" : ""
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-gray-900">
-                      {contact.name}
-                    </div>
-                    {contact.email && (
-                      <div className="text-xs text-gray-500">
-                        {contact.email}
-                      </div>
-                    )}
+              {supplierDropdownResults.map((contact, idx) => (
+                <div
+                  key={contact.contactId || idx}
+                  onClick={() => selectSupplier(contact)}
+                  className={`px-3 py-2 cursor-pointer hover:bg-purple-100 ${
+                    idx === supplierSelectedIndex ? "bg-purple-100" : ""
+                  }`}
+                >
+                  <div className="text-sm font-medium text-gray-900">
+                    {contact.name}
                   </div>
-                ))
-              )}
+                  {contact.email && (
+                    <div className="text-xs text-gray-500">
+                      {contact.email}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Skeleton Loader Dropdown (shown while loading) */}
+          {loadingSuppliers && isSupplierSearchActive && supplierName.length >= 2 && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="px-3 py-2 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded mb-2" style={{ width: `${60 + i * 10}%` }}></div>
+                  <div className="h-3 bg-gray-100 rounded" style={{ width: `${40 + i * 5}%` }}></div>
+                </div>
+              ))}
             </div>
           )}
 

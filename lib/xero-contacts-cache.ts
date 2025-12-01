@@ -49,6 +49,9 @@ const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
  * Normalize Xero API contact to ExtendedContact format
+ *
+ * PERFORMANCE OPTIMIZATION: Pre-classifies contacts as buyer/supplier at cache warm time
+ * This ensures classification is computed once, not on every search.
  */
 function normalizeContact(xeroContact: XeroContactFromAPI): ExtendedContact {
   const contactPersons: ContactPerson[] =
@@ -58,14 +61,22 @@ function normalizeContact(xeroContact: XeroContactFromAPI): ExtendedContact {
       email: person.EmailAddress,
     })) || [];
 
+  // Pre-compute buyer classification
+  const isBuyer = xeroContact.IsCustomer ||
+                  (xeroContact.Sales?.DefaultAccountCode != null && xeroContact.Sales?.DefaultAccountCode !== "");
+
+  // Pre-compute supplier classification
+  const isSupplier = xeroContact.IsSupplier ||
+                     (xeroContact.Purchases?.DefaultAccountCode != null && xeroContact.Purchases?.DefaultAccountCode !== "");
+
   return {
     contactId: xeroContact.ContactID,
     name: xeroContact.Name,
     email: xeroContact.EmailAddress,
     accountNumber: xeroContact.AccountNumber,
     reference: xeroContact.ContactNumber,
-    isCustomer: xeroContact.IsCustomer,
-    isSupplier: xeroContact.IsSupplier,
+    isCustomer: isBuyer,  // Pre-classified
+    isSupplier: isSupplier,  // Pre-classified
     defaultPurchaseCode: xeroContact.Purchases?.DefaultAccountCode,
     defaultSalesCode: xeroContact.Sales?.DefaultAccountCode,
     contactPersons: contactPersons.length > 0 ? contactPersons : undefined,

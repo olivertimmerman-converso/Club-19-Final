@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     let allContacts;
     try {
       allContacts = await getAllXeroContacts(userId);
-      console.log(`[XERO SUPPLIER SEARCH] Loaded ${allContacts.length} total contacts from cache`);
+      console.log(`[XERO SUPPLIER SEARCH] Loaded ${allContacts.length} cached contacts (pre-classified)`);
     } catch (error: any) {
       console.error("[XERO SUPPLIER SEARCH] ❌ Failed to fetch contacts:", error.message);
 
@@ -92,13 +92,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 4. Perform Make-style fuzzy search with STRICT supplier classification
+    // 4. Perform fast simplified supplier search with STRICT classification
     const searchStartTime = Date.now();
+
+    // Count supplier subset for logging
+    const supplierSubset = allContacts.filter((c) => c.isSupplier);
+    console.log(`[XERO SUPPLIER SEARCH] Supplier subset: ${supplierSubset.length} contacts (pre-classified)`);
+
     const results = searchSuppliers(query, allContacts, 15);
     const searchDuration = Date.now() - searchStartTime;
 
-    console.log(`[XERO SUPPLIER SEARCH] Fuzzy search completed in ${searchDuration}ms`);
-    console.log(`[XERO SUPPLIER SEARCH] Supplier-classified results: ${results.length}`);
+    console.log(`[XERO SUPPLIER SEARCH] Simple match scoring applied (exact/starts/contains)`);
+    console.log(`[XERO SUPPLIER SEARCH] Search completed in ${searchDuration}ms`);
+    console.log(`[XERO SUPPLIER SEARCH] Returning ${results.length} supplier contacts`);
 
     // 5. Log detailed match information
     if (results.length > 0) {
