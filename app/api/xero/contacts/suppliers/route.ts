@@ -85,21 +85,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 4. Build Xero API URL with SUPPLIERS filter
-    // Filter for suppliers: IsSupplier==true (simplified - OR clauses not supported reliably)
-    const sanitizedQuery = query.replace(/"/g, '\\"');
+    // 4. Build Xero API URL with SUPPLIERS filter - DUAL MODE SEARCH
+    // Sanitize query for safe use in Xero filter
+    const sanitizedQuery = query.replace(/"/g, '\\"').replace(/\\/g, '\\\\');
     const nameFilter = `Name.Contains("${sanitizedQuery}")`;
-    const supplierFilter = 'IsSupplier==true';
-    const whereClause = `${nameFilter} AND ${supplierFilter}`;
-    const encodedWhere = encodeURIComponent(whereClause);
-    const xeroUrl = `https://api.xero.com/api.xro/2.0/Contacts?where=${encodedWhere}`;
 
-    console.log(`[XERO SUPPLIERS] Filter: ${whereClause}`);
-    console.log(`[XERO SUPPLIERS] Full URL: ${xeroUrl}`);
+    // FIRST ATTEMPT: Try IsSupplier==true filter
+    let whereClause = `${nameFilter} AND IsSupplier==true`;
+    let encodedWhere = encodeURIComponent(whereClause);
+    let xeroUrl = `https://api.xero.com/api.xro/2.0/Contacts?where=${encodedWhere}`;
 
-    // 5. Call Xero API
-    console.log("[XERO SUPPLIERS] Calling Xero API...");
-    const response = await fetch(xeroUrl, {
+    console.log(`[XERO SUPPLIERS] First attempt with filter: ${whereClause}`);
+
+    // 5. Call Xero API (first attempt)
+    console.log("[XERO SUPPLIERS] Calling Xero API (IsSupplier filter)...");
+    let response = await fetch(xeroUrl, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    console.log(`[XERO SUPPLIERS] Xero API response status: ${response.status}`);
+    console.log(`[XERO SUPPLIERS] First attempt response status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -137,10 +137,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
-
-    // 6. Transform Xero contacts to normalized format
-    const contacts: NormalizedContact[] = (data.Contacts || []).map((contact: XeroContact) => ({
+    let data = await response.json();
+    let contacts: NormalizedContact[] = (data.Contacts || []).map((contact: XeroContact) => ({
       contactId: contact.ContactID,
       name: contact.Name,
       email: contact.EmailAddress || undefined,
@@ -148,8 +146,67 @@ export async function GET(request: NextRequest) {
       isSupplier: contact.IsSupplier,
     }));
 
+    console.log(`[XERO SUPPLIERS] First attempt found ${contacts.length} contacts`);
+
+    // FALLBACK: If zero results, try without IsSupplier filter
+    if (contacts.length === 0) {
+      console.log("[XERO SUPPLIERS] Zero results, trying fallback without IsSupplier filter...");
+      whereClause = nameFilter;
+      encodedWhere = encodeURIComponent(whereClause);
+      xeroUrl = `https://api.xero.com/api.xro/2.0/Contacts?where=${encodedWhere}`;
+
+      console.log(`[XERO SUPPLIERS] Fallback filter: ${whereClause}`);
+
+      response = await fetch(xeroUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Xero-tenant-id": tenantId,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log(`[XERO SUPPLIERS] Fallback response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[XERO SUPPLIERS] ❌ Fallback Xero API error:", {
+          status: response.status,
+          error: errorText,
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          return NextResponse.json(
+            {
+              error: "Xero authentication failed",
+              message: "Please reconnect your Xero account",
+              action: "reconnect_xero",
+            },
+            { status: 401 }
+          );
+        }
+
+        return NextResponse.json(
+          { error: "Xero API error", details: errorText },
+          { status: response.status }
+        );
+      }
+
+      data = await response.json();
+      contacts = (data.Contacts || []).map((contact: XeroContact) => ({
+        contactId: contact.ContactID,
+        name: contact.Name,
+        email: contact.EmailAddress || undefined,
+        isCustomer: contact.IsCustomer,
+        isSupplier: contact.IsSupplier,
+      }));
+
+      console.log(`[XERO SUPPLIERS] Fallback found ${contacts.length} contacts`);
+    }
+
     const duration = Date.now() - startTime;
-    console.log(`[XERO SUPPLIERS] ✓✓✓ Found ${contacts.length} supplier contacts in ${duration}ms`);
+    console.log(`[XERO SUPPLIERS] ✓✓✓ Returning ${contacts.length} supplier contacts in ${duration}ms`);
 
     return NextResponse.json({ contacts });
   } catch (error: any) {
