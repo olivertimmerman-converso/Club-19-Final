@@ -20,11 +20,19 @@ interface CreateInvoicePayload {
   brandingThemeId?: string;
   currency: string;
   lineAmountType: string; // "Inclusive" | "Exclusive" | "NoTax"
-  // Additional fields for Make.com sync
+
+  // Additional fields for Make.com sync (19-field payload)
   supplierName?: string;
+  brand?: string;
+  category?: string;
+  itemTitle?: string;
+  quantity?: number;
   buyPrice?: number;
   cardFees?: number;
   shippingCost?: number;
+  impliedShipping?: number;
+  grossMargin?: number;
+  commissionableMargin?: number;
   notes?: string;
 }
 
@@ -258,17 +266,34 @@ export async function POST(request: NextRequest) {
       console.warn("[XERO INVOICE] Could not fetch user details for shopper name:", error);
     }
 
-    // Build and send sale payload - ALWAYS sync to Make.com (9 fields only)
+    // Build and send sale payload - ALWAYS sync to Make.com (19 fields)
     const salePayload = buildSalePayload({
       invoiceNumber: invoice.InvoiceNumber,
       invoiceDate: new Date(),
       shopperName: shopperName,
       buyerName: response.contactName,
       supplierName: payload.supplierName || "",
+
+      // Item metadata
+      brand: payload.brand || "",
+      category: payload.category || "",
+      itemTitle: payload.itemTitle || payload.description || "",
+      quantity: payload.quantity ?? 1,
+
+      // Financials
       saleAmount: response.total,
       buyPrice: payload.buyPrice ?? 0,
       cardFees: payload.cardFees ?? 0,
       shippingCost: payload.shippingCost ?? 0,
+
+      // Economics
+      impliedShipping: payload.impliedShipping ?? 0,
+      grossMargin: payload.grossMargin ?? 0,
+      commissionableMargin: payload.commissionableMargin ?? 0,
+
+      // Misc
+      currency: payload.currency || "GBP",
+      brandingTheme: payload.brandingThemeId || "Standard",
       notes: payload.notes || "",
     });
 

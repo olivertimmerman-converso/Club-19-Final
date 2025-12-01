@@ -94,11 +94,11 @@ export async function syncSaleToMake(payload: SalePayload): Promise<void> {
 /**
  * Build sale payload from invoice data
  *
- * Constructs a SalePayload with EXACTLY 9 fields for Make.com/Airtable.
- * No additional fields should be added to maintain clean integration.
+ * Constructs a SalePayload with EXACTLY 19 fields for Make.com/Airtable.
+ * Includes comprehensive deal data for commission calculation.
  *
- * @param params - Invoice and sale data
- * @returns SalePayload with 9 fields only
+ * @param data - Invoice and sale data
+ * @returns SalePayload with 19 fields
  *
  * @example
  * ```typescript
@@ -108,38 +108,86 @@ export async function syncSaleToMake(payload: SalePayload): Promise<void> {
  *   shopperName: "Sophie Williams",
  *   buyerName: "John Smith",
  *   supplierName: "Harrods",
+ *   brand: "Chanel",
+ *   category: "Handbags",
+ *   itemTitle: "Classic Flap Bag",
+ *   quantity: 1,
  *   saleAmount: 15000,
  *   buyPrice: 12000,
  *   cardFees: 300,
- *   shippingCost: 0,
+ *   shippingCost: 100,
+ *   impliedShipping: 100,
+ *   grossMargin: 3000,
+ *   commissionableMargin: 2600,
+ *   currency: "GBP",
+ *   brandingTheme: "Standard",
  *   notes: "Luxury handbag deal",
  * });
  * ```
  */
-export function buildSalePayload(params: {
+export function buildSalePayload(data: {
   invoiceNumber: string;
   invoiceDate: Date;
   shopperName: string;
   buyerName: string;
   supplierName: string;
+
+  // Item data from StepReview
+  brand: string;
+  category: string;
+  itemTitle: string;
+  quantity: number;
+
+  // Financials
   saleAmount: number;
   buyPrice: number;
   cardFees: number;
   shippingCost: number;
-  notes: string;
+
+  // Economics passed from UI
+  impliedShipping: number;
+  grossMargin: number;
+  commissionableMargin: number;
+
+  // Misc
+  currency: string;
+  brandingTheme: string;
+  notes?: string;
 }): SalePayload {
   // Calculate direct costs (supplier cost + card fees + shipping)
-  const directCosts = params.buyPrice + params.cardFees + params.shippingCost;
+  const directCosts = data.buyPrice + data.cardFees + data.shippingCost;
 
   return {
-    saleReference: params.invoiceNumber,
-    saleDate: params.invoiceDate.toISOString().split("T")[0],
-    shopperName: params.shopperName,
-    buyerName: params.buyerName,
-    supplierName: params.supplierName,
-    saleAmount: params.saleAmount,
+    // Core identifiers
+    saleReference: data.invoiceNumber,
+    saleDate: data.invoiceDate.toISOString().split("T")[0],
+
+    // People
+    shopperName: data.shopperName,
+    buyerName: data.buyerName,
+    supplierName: data.supplierName,
+
+    // Item metadata
+    brand: data.brand,
+    category: data.category,
+    itemTitle: data.itemTitle,
+    quantity: data.quantity,
+
+    // Financials
+    saleAmount: data.saleAmount,
+    buyPrice: data.buyPrice,
+    cardFees: data.cardFees,
+    shippingCost: data.shippingCost,
     directCosts: directCosts,
-    currency: "GBP",
-    notes: params.notes,
+
+    // Economics
+    impliedShipping: data.impliedShipping,
+    grossMargin: data.grossMargin,
+    commissionableMargin: data.commissionableMargin,
+
+    // Xero & misc
+    currency: data.currency,
+    brandingTheme: data.brandingTheme,
+    notes: data.notes || "",
   };
 }

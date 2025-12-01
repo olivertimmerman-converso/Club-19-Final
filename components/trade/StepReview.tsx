@@ -134,7 +134,7 @@ export function StepReview() {
       // Get tax scenario from first item (all items should have same tax scenario)
       const firstItem = state.items[0];
 
-      // Create invoice payload for native Xero API (with Make.com sync fields)
+      // Create invoice payload for native Xero API (with Make.com sync fields - 19 fields)
       const invoicePayload = {
         buyerContactId: state.buyer.xeroContactId,
         description: itemDescriptions,
@@ -144,11 +144,19 @@ export function StepReview() {
         brandingThemeId: firstItem.brandTheme || undefined,
         currency: "GBP",
         lineAmountType: firstItem.lineAmountTypes,
-        // Additional fields for Make.com sync
+
+        // Additional fields for Make.com sync (19-field payload)
         supplierName: firstItem.supplier?.name,
+        brand: firstItem.brand,
+        category: firstItem.category,
+        itemTitle: firstItem.description,
+        quantity: state.items.reduce((sum, item) => sum + item.quantity, 0),
         buyPrice: totalBuyGBP,
         cardFees: impliedCosts.cardFees,
         shippingCost: impliedCosts.shipping,
+        impliedShipping: impliedCosts.shipping,
+        grossMargin: grossMarginGBP,
+        commissionableMargin: commissionableMarginGBP,
         notes: state.notes || undefined,
       };
 
