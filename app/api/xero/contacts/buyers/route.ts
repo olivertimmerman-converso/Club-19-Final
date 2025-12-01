@@ -36,10 +36,12 @@ interface NormalizedContact {
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
+  console.log("[XERO BUYERS] === API Route Started ===");
 
   try {
     // 1. Authenticate user
     const { userId } = await auth();
+    console.log(`[XERO BUYERS] User ID: ${userId || "NOT AUTHENTICATED"}`);
 
     if (!userId) {
       console.error("[XERO BUYERS] ❌ Unauthorized request");
@@ -52,8 +54,10 @@ export async function GET(request: NextRequest) {
     // 2. Get search query
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("query");
+    console.log(`[XERO BUYERS] Query parameter: "${query}"`);
 
     if (!query || query.length < 2) {
+      console.log(`[XERO BUYERS] Query too short (${query?.length || 0} chars), returning empty`);
       return NextResponse.json({ contacts: [] });
     }
 
@@ -64,6 +68,7 @@ export async function GET(request: NextRequest) {
     let tenantId: string;
 
     try {
+      console.log("[XERO BUYERS] Fetching valid tokens...");
       const tokens = await getValidTokens(userId);
       accessToken = tokens.accessToken;
       tenantId = tokens.tenantId;
@@ -81,17 +86,19 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Build Xero API URL with BUYERS filter
-    // Filter for customers: IsCustomer==true OR Sales.DefaultLineAmountType exists
+    // Filter for customers: IsCustomer==true (simplified - OR clauses not supported reliably)
     const sanitizedQuery = query.replace(/"/g, '\\"');
     const nameFilter = `Name.Contains("${sanitizedQuery}")`;
-    const customerFilter = '(IsCustomer==true OR Sales.DefaultLineAmountType!="")';
+    const customerFilter = 'IsCustomer==true';
     const whereClause = `${nameFilter} AND ${customerFilter}`;
     const encodedWhere = encodeURIComponent(whereClause);
     const xeroUrl = `https://api.xero.com/api.xro/2.0/Contacts?where=${encodedWhere}`;
 
-    console.log(`[XERO BUYERS] Calling Xero API with filter: ${whereClause}`);
+    console.log(`[XERO BUYERS] Filter: ${whereClause}`);
+    console.log(`[XERO BUYERS] Full URL: ${xeroUrl}`);
 
     // 5. Call Xero API
+    console.log("[XERO BUYERS] Calling Xero API...");
     const response = await fetch(xeroUrl, {
       method: "GET",
       headers: {
@@ -101,6 +108,8 @@ export async function GET(request: NextRequest) {
         "Content-Type": "application/json",
       },
     });
+
+    console.log(`[XERO BUYERS] Xero API response status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
