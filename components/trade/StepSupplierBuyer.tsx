@@ -54,6 +54,7 @@ export function StepSupplierBuyer() {
   const [supplierDropdownResults, setSupplierDropdownResults] = useState<NormalizedContact[]>([]);
   const [supplierSelectedIndex, setSupplierSelectedIndex] = useState(-1);
   const [isSupplierSearchActive, setIsSupplierSearchActive] = useState(false);
+  const [supplierNoResults, setSupplierNoResults] = useState(false);
   const supplierDebounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   // === BUYER STATE (Xero search) ===
@@ -151,6 +152,7 @@ export function StepSupplierBuyer() {
     setSupplierSelectedIndex(-1);
     setIsSupplierSearchActive(true);
     setSupplierXeroContactId(""); // Clear xeroContactId when typing
+    setSupplierNoResults(false); // Reset no results flag
 
     if (supplierDebounceTimer.current) clearTimeout(supplierDebounceTimer.current);
 
@@ -161,9 +163,16 @@ export function StepSupplierBuyer() {
           const results = await fetchXeroSuppliers(value);
           setSupplierDropdownResults(results);
           setXeroError(null); // Clear error on successful search
+
+          // Show "no results" message if empty (strict mode - suppliers only)
+          if (results.length === 0) {
+            setSupplierNoResults(true);
+            console.log(`[SUPPLIER SEARCH] No suppliers found for "${value}" (strict mode)`);
+          }
         } catch (error: any) {
           console.error("[SUPPLIER SEARCH] Xero supplier search failed:", error);
           setSupplierDropdownResults([]);
+          setSupplierNoResults(false);
           // Only show error if it's a connection issue
           if (error.message && error.message.includes("Xero not connected")) {
             setXeroError(error.message);
@@ -175,6 +184,7 @@ export function StepSupplierBuyer() {
     } else {
       setSupplierDropdownResults([]);
       setIsSupplierSearchActive(false);
+      setSupplierNoResults(false);
     }
   };
 
@@ -184,6 +194,7 @@ export function StepSupplierBuyer() {
     setSupplierDropdownResults([]);
     setSupplierSelectedIndex(-1);
     setIsSupplierSearchActive(false);
+    setSupplierNoResults(false);
   };
 
   // === BUYER HANDLERS (Xero integration) ===
@@ -355,6 +366,18 @@ export function StepSupplierBuyer() {
                   </div>
                 ))
               )}
+            </div>
+          )}
+
+          {/* No Supplier Results Message */}
+          {supplierNoResults && !loadingSuppliers && (
+            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-800">
+                <strong>No supplier found in Xero matching this name.</strong>
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                Please add this supplier in Xero if they are new, or check the spelling.
+              </p>
             </div>
           )}
         </div>
