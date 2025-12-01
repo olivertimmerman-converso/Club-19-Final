@@ -32,7 +32,8 @@ interface NormalizedContact {
  * Search Xero contacts that are SUPPLIERS only
  * Query param: ?query=searchterm
  *
- * Filter: IsSupplier==true OR Purchases.DefaultLineAmountType!=""
+ * Filter: Name.Contains("query") AND Purchases.DefaultAccountCode!=""
+ * (Option A: Detects genuine suppliers with purchase transactions)
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
@@ -85,18 +86,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 4. Build Xero API URL with SUPPLIERS filter - STRICT MODE ONLY
+    // 4. Build Xero API URL with SUPPLIERS filter - STRICT MODE (Option A)
     // Sanitize query for safe use in Xero filter
     const sanitizedQuery = query.replace(/"/g, '\\"').replace(/\\/g, '\\\\');
-    const whereClause = `IsSupplier==true AND Name.Contains("${sanitizedQuery}")`;
+    // Option A: Use Purchases.DefaultAccountCode to detect genuine suppliers
+    // This includes vendors like Harrods with "Spend Money" transactions
+    const whereClause = `Name.Contains("${sanitizedQuery}") AND Purchases.DefaultAccountCode!=""`;
     const encodedWhere = encodeURIComponent(whereClause);
     const xeroUrl = `https://api.xero.com/api.xro/2.0/Contacts?where=${encodedWhere}`;
 
-    console.log(`[XERO SUPPLIERS] Strict filter: ${whereClause}`);
+    console.log(`[XERO SUPPLIERS] Using Option A strict filter: ${whereClause}`);
     console.log(`[XERO SUPPLIERS] Xero URL: ${xeroUrl}`);
 
     // 5. Call Xero API (strict mode - no fallback)
-    console.log("[XERO SUPPLIERS] Calling Xero API with strict IsSupplier==true filter...");
+    console.log("[XERO SUPPLIERS] Calling Xero API with strict Purchases.DefaultAccountCode filter...");
     const response = await fetch(xeroUrl, {
       method: "GET",
       headers: {
@@ -143,6 +146,8 @@ export async function GET(request: NextRequest) {
       isCustomer: contact.IsCustomer,
       isSupplier: contact.IsSupplier,
     }));
+
+    console.log(`[XERO SUPPLIERS] Strict supplier results: ${contacts.length}`);
 
     const duration = Date.now() - startTime;
 
