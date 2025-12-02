@@ -1,0 +1,6 @@
+{
+  "databaseUrl": "https://Oliver-Timmerman-s-workspace-d3730u.eu-central-1.xata.sh/db/Club19SalesOS",
+  "codegen": {
+    "output": "src/xata.ts"
+  }
+}

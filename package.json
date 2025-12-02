@@ -12,6 +12,7 @@
   "dependencies": {
     "@clerk/nextjs": "^5.0.0",
     "@types/uuid": "^10.0.0",
+    "@xata.io/client": "^0.30.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "lucide-react": "^0.378.0",
@@ -25,6 +26,7 @@
     "@types/node": "^20.12.7",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
+    "@xata.io/cli": "^0.16.12",
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.3",

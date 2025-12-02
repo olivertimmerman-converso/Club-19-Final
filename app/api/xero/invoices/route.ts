@@ -4,6 +4,7 @@ import { getValidTokens } from "@/lib/xero-auth";
 import { createXeroInvoice } from "@/lib/xero";
 import { getBrandingThemeId } from "@/lib/xero-branding-themes";
 import { syncSaleToMake, buildSalePayload } from "@/lib/make-sync";
+import { syncInvoiceAndAppDataToXata } from "@/lib/xata-sales";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -299,6 +300,62 @@ export async function POST(request: NextRequest) {
 
     // Sync to Make.com (await ensures delivery)
     await syncSaleToMake(salePayload);
+
+    // Sync to Xata database (non-fatal)
+    try {
+      // Get user email for shopper
+      const user = await clerkClient().users.getUser(userId);
+      const shopperEmail = user.primaryEmailAddress?.emailAddress || undefined;
+
+      await syncInvoiceAndAppDataToXata({
+        xeroInvoice: {
+          InvoiceNumber: invoice.InvoiceNumber,
+          Date: invoice.DateString || new Date().toISOString().split("T")[0],
+          InvoiceID: invoice.InvoiceID,
+          Status: invoice.Status,
+          Total: invoice.Total,
+          BrandingThemeID: resolvedBrandingThemeId,
+          CurrencyCode: invoice.CurrencyCode,
+          Contact: {
+            Name: invoice.Contact?.Name || response.contactName,
+            ContactID: invoice.Contact?.ContactID || payload.buyerContactId,
+            EmailAddress: undefined, // Not available in XeroInvoice type
+          },
+        },
+
+        formData: {
+          // Absolutely required
+          shopperName,
+          shopperEmail,
+
+          // Supplier
+          supplierName: payload.supplierName || "",
+          supplierXeroId: undefined, // Not available in current payload
+
+          // Introducer (optional)
+          introducerName: undefined, // Not available in current payload
+          introducerCommission: undefined,
+
+          // Item metadata
+          brand: payload.brand,
+          category: payload.category,
+          itemTitle: payload.itemTitle || payload.description,
+          quantity: payload.quantity,
+
+          // Financials
+          buyPrice: payload.buyPrice || 0,
+          cardFees: payload.cardFees || 0,
+          shippingCost: payload.shippingCost || 0,
+
+          // Notes
+          internalNotes: payload.notes || "",
+        },
+      });
+
+      console.log("[XATA] ✓ Sale synced to Xata database");
+    } catch (err) {
+      console.error("[XATA] ⚠️ Sync failed (non-critical):", err);
+    }
 
     return NextResponse.json(response);
   } catch (error: any) {
