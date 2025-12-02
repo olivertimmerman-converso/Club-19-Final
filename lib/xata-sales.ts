@@ -357,7 +357,7 @@ export async function createSaleFromAppPayload(
   console.log(`[XATA SALES] ✅ Sale created: ${sale.id}`);
 
   // D) RETURN THE CREATED SALE RECORD
-  return sale;
+  return sale as SalesRecord;
 }
 
 // ============================================================================
@@ -485,10 +485,10 @@ export async function syncInvoiceAndAppDataToXata(params: {
  * Get all sales for a specific shopper
  */
 export async function getSalesByShopperId(shopperId: string): Promise<SalesRecord[]> {
-  return await xata()
+  return (await xata()
     .db.Sales.filter({ "shopper.id": shopperId })
     .sort("sale_date", "desc")
-    .getMany();
+    .getMany()) as SalesRecord[];
 }
 
 /**
