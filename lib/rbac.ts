@@ -19,64 +19,44 @@ export interface RoleConfig {
 
 export const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
   shopper: {
-    allowedRoutes: ['/dashboard', '/deals', '/commissions'],
-    homepage: '/dashboard',
+    allowedRoutes: ['/staff/shopper/dashboard', '/staff/shopper/sales'],
+    homepage: '/staff/shopper/dashboard',
     label: 'Shopper',
   },
   admin: {
     allowedRoutes: [
-      '/dashboard',
-      '/deals',
-      '/commissions',
-      '/admin/dashboard',
-      '/admin/deals',
-      '/admin/shoppers',
-      '/admin/buyers',
-      '/admin/suppliers',
-      '/admin/commission',
-      '/admin/errors',
-      '/admin/month-end',
+      '/staff/admin/dashboard',
+      '/staff/admin/sales',
+      '/staff/admin/analytics',
+      '/staff/admin/errors',
     ],
-    homepage: '/admin/dashboard',
+    homepage: '/staff/admin/dashboard',
     label: 'Administrator',
   },
   finance: {
     allowedRoutes: [
-      '/finance/dashboard',
-      '/finance/commissions',
-      '/finance/exports',
-      '/finance/invoices',
-      '/finance/checks',
+      '/staff/finance/dashboard',
+      '/staff/finance/commissions',
+      '/staff/finance/overdue',
     ],
-    readOnlyRoutes: ['/admin/deals'],
-    homepage: '/finance/dashboard',
+    readOnlyRoutes: ['/staff/admin/sales'],
+    homepage: '/staff/finance/dashboard',
     label: 'Finance',
   },
   superadmin: {
     allowedRoutes: [
-      '/dashboard',
-      '/deals',
-      '/commissions',
-      '/admin/dashboard',
-      '/admin/deals',
-      '/admin/shoppers',
-      '/admin/buyers',
-      '/admin/suppliers',
-      '/admin/commission',
-      '/admin/errors',
-      '/admin/month-end',
-      '/finance/dashboard',
-      '/finance/commissions',
-      '/finance/exports',
-      '/finance/invoices',
-      '/finance/checks',
-      '/system/logs',
-      '/system/schema',
-      '/system/sync',
-      '/system/test-sale',
-      '/system/settings',
+      '/staff/shopper/dashboard',
+      '/staff/shopper/sales',
+      '/staff/admin/dashboard',
+      '/staff/admin/sales',
+      '/staff/admin/analytics',
+      '/staff/admin/errors',
+      '/staff/finance/dashboard',
+      '/staff/finance/commissions',
+      '/staff/finance/overdue',
+      '/staff/superadmin/tools',
     ],
-    homepage: '/admin/dashboard',
+    homepage: '/staff/admin/dashboard',
     label: 'Super Administrator',
   },
 };
@@ -142,78 +122,57 @@ export function getNavigationItems(role: UserRole): NavItem[] {
   const items: NavItem[] = [];
 
   // Shopper navigation
-  if (canAccess('/dashboard', role)) {
+  if (canAccess('/staff/shopper/dashboard', role)) {
     items.push({
       label: 'Dashboard',
-      href: '/dashboard',
+      href: '/staff/shopper/dashboard',
       icon: 'LayoutDashboard',
     });
   }
 
-  if (canAccess('/deals', role)) {
+  if (canAccess('/staff/shopper/sales', role)) {
     items.push({
-      label: 'My Deals',
-      href: '/deals',
+      label: 'My Sales',
+      href: '/staff/shopper/sales',
       icon: 'Briefcase',
     });
   }
 
-  if (canAccess('/commissions', role)) {
-    items.push({
-      label: 'Commissions',
-      href: '/commissions',
-      icon: 'DollarSign',
-    });
-  }
-
   // Admin navigation
-  if (canAccess('/admin/dashboard', role)) {
+  if (canAccess('/staff/admin/dashboard', role)) {
     items.push({
       label: 'Admin',
-      href: '/admin/dashboard',
+      href: '/staff/admin/dashboard',
       icon: 'Shield',
       children: [
-        { label: 'Dashboard', href: '/admin/dashboard' },
-        { label: 'All Deals', href: '/admin/deals' },
-        { label: 'Shoppers', href: '/admin/shoppers' },
-        { label: 'Buyers', href: '/admin/buyers' },
-        { label: 'Suppliers', href: '/admin/suppliers' },
-        { label: 'Commission', href: '/admin/commission' },
-        { label: 'Errors', href: '/admin/errors' },
-        { label: 'Month End', href: '/admin/month-end' },
+        { label: 'Dashboard', href: '/staff/admin/dashboard' },
+        { label: 'All Sales', href: '/staff/admin/sales' },
+        { label: 'Analytics', href: '/staff/admin/analytics' },
+        { label: 'Errors', href: '/staff/admin/errors' },
       ],
     });
   }
 
   // Finance navigation
-  if (canAccess('/finance/dashboard', role)) {
+  if (canAccess('/staff/finance/dashboard', role)) {
     items.push({
       label: 'Finance',
-      href: '/finance/dashboard',
+      href: '/staff/finance/dashboard',
       icon: 'Calculator',
       children: [
-        { label: 'Dashboard', href: '/finance/dashboard' },
-        { label: 'Commissions', href: '/finance/commissions' },
-        { label: 'Exports', href: '/finance/exports' },
-        { label: 'Invoices', href: '/finance/invoices' },
-        { label: 'Checks', href: '/finance/checks' },
+        { label: 'Dashboard', href: '/staff/finance/dashboard' },
+        { label: 'Commissions', href: '/staff/finance/commissions' },
+        { label: 'Overdue', href: '/staff/finance/overdue' },
       ],
     });
   }
 
-  // System navigation (superadmin only)
-  if (canAccess('/system/logs', role)) {
+  // Superadmin tools
+  if (canAccess('/staff/superadmin/tools', role)) {
     items.push({
       label: 'System',
-      href: '/system/logs',
+      href: '/staff/superadmin/tools',
       icon: 'Settings',
-      children: [
-        { label: 'Logs', href: '/system/logs' },
-        { label: 'Schema', href: '/system/schema' },
-        { label: 'Sync Inspector', href: '/system/sync' },
-        { label: 'Test Sale', href: '/system/test-sale' },
-        { label: 'Settings', href: '/system/settings' },
-      ],
     });
   }
 

@@ -149,6 +149,7 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
                state.currentPaymentMethod !== null &&
                state.buyer !== null &&
                state.buyer.name.trim() !== "" &&
+               state.buyer.buyer_type !== undefined &&
                state.deliveryCountry.trim() !== "";
       case 3: // Logistics & Tax
         return state.taxScenario !== null;
@@ -183,6 +184,7 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
                state.currentPaymentMethod !== null &&
                state.buyer !== null &&
                state.buyer.name.trim() !== "" &&
+               state.buyer.buyer_type !== undefined &&
                state.deliveryCountry.trim() !== "";
       case 3: // Logistics & Tax
         return state.taxScenario !== null;

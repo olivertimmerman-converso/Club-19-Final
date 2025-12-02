@@ -17,7 +17,7 @@ import type {
 import { calculateCommission } from "./commission-engine";
 import { transitionSaleStatus } from "./deal-lifecycle";
 import { validateSaleInput, formatValidationErrors } from "./validation";
-import { ERROR_TYPES, ERROR_TRIGGERED_BY } from "./error-types";
+import { ERROR_TYPES, ERROR_TRIGGERED_BY, ERROR_GROUPS } from "./error-types";
 import {
   sanitizeString,
   sanitizeNotes,
@@ -215,11 +215,16 @@ export interface CreateSalePayload {
   buyerName: string;
   buyerEmail?: string;
   buyerXeroId?: string;
+  buyerType?: string; // "b2b" | "end_client" (for analytics and commission rules)
   supplierName: string;
   supplierEmail?: string;
   supplierXeroId?: string;
   introducerName?: string;
   introducerCommission?: number;
+
+  // Authenticity tracking (Story 2)
+  authenticity_status?: string; // "verified" | "pending" | "not_verified"
+  supplier_receipt_attached?: boolean;
 
   // Item metadata
   brand?: string;
@@ -241,6 +246,7 @@ export interface CreateSalePayload {
   xero_invoice_url?: string;
   invoice_status?: string;
   invoice_paid_date?: Date;
+  invoice_due_date?: Date; // Story 4 - extracted from Xero invoice
 
   // Commission overrides
   admin_override_commission_percent?: number;
@@ -435,19 +441,102 @@ export async function createSaleFromAppPayload(
     commission_lock_date: undefined,
     commission_paid_date: undefined,
 
+    // Buyer type (for analytics)
+    buyer_type: sanitizedPayload.buyerType || "",
+
+    // Authenticity tracking (Story 2)
+    authenticity_status: sanitizedPayload.authenticity_status || "not_verified",
+    supplier_receipt_attached: sanitizedPayload.supplier_receipt_attached || false,
+
+    // Denormalized entity names (Story 3) - for reporting and analytics
+    buyer_name: buyer.name,
+    supplier_name: supplier.name,
+    shopper_name: shopper.name,
+    introducer_name: introducer?.name || "",
+
+    // Invoice due date (Story 4)
+    invoice_due_date: sanitizedPayload.invoice_due_date,
+
     // Notes
     internal_notes: sanitizedPayload.internal_notes || "",
   });
 
   console.log(`[XATA SALES] ✅ Sale created: ${sale.id}`);
 
-  // E) LOG COMMISSION ERRORS TO ERRORS TABLE
+  // E) ECONOMICS SANITY WARNINGS (Story 5)
+  // Check for suspicious margin patterns based on buyer type
+  if (sanitizedPayload.buyerType && economics.commissionable_margin > 0) {
+    const marginPercent = (economics.commissionable_margin / sanitizedPayload.sale_amount_inc_vat) * 100;
+
+    // End client sales with < 5% margin
+    if (sanitizedPayload.buyerType === "end_client" && marginPercent < 5) {
+      try {
+        await xata().db.Errors.create({
+          sale: sale.id,
+          error_type: ERROR_TYPES.VALIDATION,
+          error_group: ERROR_GROUPS.ECONOMICS_SANITY,
+          severity: "medium",
+          source: "economics-sanity-check",
+          message: [`Low margin alert: End client sale with only ${marginPercent.toFixed(2)}% margin (£${economics.commissionable_margin.toFixed(2)})`],
+          metadata: {
+            saleId: sale.id,
+            buyerType: sanitizedPayload.buyerType,
+            marginPercent: marginPercent,
+            commissionableMargin: economics.commissionable_margin,
+            saleAmount: sanitizedPayload.sale_amount_inc_vat,
+          },
+          triggered_by: ERROR_TRIGGERED_BY.VALIDATION,
+          timestamp: new Date(),
+          resolved: false,
+          resolved_by: null,
+          resolved_at: null,
+          resolved_notes: null,
+        });
+        console.log(`[XATA SALES] ⚠️ Economics sanity warning logged: End client low margin`);
+      } catch (err) {
+        console.error(`[XATA SALES] ❌ Failed to log economics warning:`, err);
+      }
+    }
+
+    // B2B sales with > 50% margin
+    if (sanitizedPayload.buyerType === "b2b" && marginPercent > 50) {
+      try {
+        await xata().db.Errors.create({
+          sale: sale.id,
+          error_type: ERROR_TYPES.VALIDATION,
+          error_group: ERROR_GROUPS.ECONOMICS_SANITY,
+          severity: "medium",
+          source: "economics-sanity-check",
+          message: [`High margin alert: B2B sale with ${marginPercent.toFixed(2)}% margin (£${economics.commissionable_margin.toFixed(2)}) - verify pricing`],
+          metadata: {
+            saleId: sale.id,
+            buyerType: sanitizedPayload.buyerType,
+            marginPercent: marginPercent,
+            commissionableMargin: economics.commissionable_margin,
+            saleAmount: sanitizedPayload.sale_amount_inc_vat,
+          },
+          triggered_by: ERROR_TRIGGERED_BY.VALIDATION,
+          timestamp: new Date(),
+          resolved: false,
+          resolved_by: null,
+          resolved_at: null,
+          resolved_notes: null,
+        });
+        console.log(`[XATA SALES] ⚠️ Economics sanity warning logged: B2B high margin`);
+      } catch (err) {
+        console.error(`[XATA SALES] ❌ Failed to log economics warning:`, err);
+      }
+    }
+  }
+
+  // F) LOG COMMISSION ERRORS TO ERRORS TABLE
   if (hasCommissionErrors) {
     try {
       const errorMessage = commissionResult.errors.join("; ");
       await xata().db.Errors.create({
         sale: sale.id,
         error_type: ERROR_TYPES.COMMISSION,
+        error_group: ERROR_GROUPS.COMMISSION_CALC,
         severity: "high",
         source: "commission-engine",
         message: [errorMessage],
@@ -473,7 +562,7 @@ export async function createSaleFromAppPayload(
     }
   }
 
-  // F) LOG VALIDATION ERRORS TO ERRORS TABLE
+  // G) LOG VALIDATION ERRORS TO ERRORS TABLE
   const hasValidationErrors = validation.errors.length > 0;
   if (hasValidationErrors) {
     try {
@@ -489,6 +578,7 @@ export async function createSaleFromAppPayload(
       await xata().db.Errors.create({
         sale: sale.id,
         error_type: ERROR_TYPES.VALIDATION,
+        error_group: ERROR_GROUPS.DATA_VALIDATION,
         severity: "high",
         source: "validation",
         message: [validationErrorMessage],

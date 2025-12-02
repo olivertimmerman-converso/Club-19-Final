@@ -84,16 +84,10 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
 
-  // Check RBAC permissions for Sales OS routes
-  const isSalesOSRoute =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/deals") ||
-    pathname.startsWith("/commissions") ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/finance") ||
-    pathname.startsWith("/system");
+  // Check RBAC permissions for Staff routes
+  const isStaffRoute = pathname.startsWith("/staff");
 
-  if (isSalesOSRoute && !canAccess(pathname, role)) {
+  if (isStaffRoute && !canAccess(pathname, role)) {
     return NextResponse.redirect(new URL(ACCESS_DENIED, req.url));
   }
 

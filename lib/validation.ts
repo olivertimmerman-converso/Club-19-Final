@@ -226,6 +226,34 @@ export function validateSaleInput(input: CreateSalePayload): ValidationResult {
   }
 
   // =========================================================================
+  // 7) BUYER TYPE VALIDATION (Story 1)
+  // =========================================================================
+
+  if (!input.buyerType || input.buyerType.trim() === "") {
+    warnings.push("Buyer type (B2B/End Client) not specified - analytics and reporting may be affected");
+  }
+
+  // =========================================================================
+  // 8) AUTHENTICITY VALIDATION (Story 2)
+  // =========================================================================
+
+  if (!input.authenticity_status || input.authenticity_status.trim() === "") {
+    warnings.push("Authenticity status not specified - defaults to 'not_verified'");
+  }
+
+  if (!input.supplier_receipt_attached) {
+    warnings.push("Supplier receipt not attached - authenticity verification may be delayed");
+  }
+
+  // =========================================================================
+  // 9) INVOICE DUE DATE VALIDATION (Story 4)
+  // =========================================================================
+
+  if (!input.invoice_due_date) {
+    warnings.push("Invoice due date not specified - payment tracking may be affected");
+  }
+
+  // =========================================================================
   // VALIDATION COMPLETE
   // =========================================================================
 

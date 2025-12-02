@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTrade } from "@/contexts/TradeContext";
 import { fetchXeroBuyers, fetchXeroSuppliers, NormalizedContact } from "@/lib/xero";
-import { PaymentMethod, TaxRegime } from "@/lib/types/invoice";
+import { PaymentMethod, TaxRegime, BuyerType } from "@/lib/types/invoice";
 import { COUNTRIES, POPULAR_COUNTRIES } from "@/lib/constants";
 
 // Helper to determine tax regime from country
@@ -61,6 +61,7 @@ export function StepSupplierBuyer() {
   // === BUYER STATE (Xero search) ===
   const [buyerName, setBuyerName] = useState(state.buyer?.name || "");
   const [xeroContactId, setXeroContactId] = useState(state.buyer?.xeroContactId || "");
+  const [buyerType, setBuyerType] = useState<BuyerType | "">(state.buyer?.buyer_type || "");
   const [loadingBuyers, setLoadingBuyers] = useState(false);
   const [buyerDropdownResults, setBuyerDropdownResults] = useState<NormalizedContact[]>([]);
   const [buyerSelectedIndex, setBuyerSelectedIndex] = useState(-1);
@@ -295,9 +296,10 @@ export function StepSupplierBuyer() {
       setBuyer({
         name: buyerName,
         xeroContactId: xeroContactId || undefined,
+        buyer_type: buyerType || undefined,
       });
     }
-  }, [buyerName, xeroContactId, setBuyer]);
+  }, [buyerName, xeroContactId, buyerType, setBuyer]);
 
   // === DELIVERY COUNTRY HANDLERS ===
   useEffect(() => {
@@ -620,6 +622,43 @@ export function StepSupplierBuyer() {
             </p>
           </div>
         )}
+
+        {/* Buyer Type */}
+        <div className="pt-2">
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Buyer Type <span className="text-red-600">*</span>
+          </label>
+
+          <div className="flex gap-4">
+
+            {/* B2B Card */}
+            <div
+              onClick={() => setBuyerType("b2b")}
+              className={`cursor-pointer rounded-xl border px-4 py-3 w-1/2 text-center transition-all
+                ${buyerType === "b2b"
+                  ? "bg-black text-yellow-300 border-black shadow-lg"
+                  : "bg-white text-gray-700 border-gray-300 hover:border-black"}
+              `}
+            >
+              <p className="font-semibold">B2B Buyer</p>
+              <p className="text-xs text-gray-500 mt-1">Wholesale / Retailer</p>
+            </div>
+
+            {/* End Client Card */}
+            <div
+              onClick={() => setBuyerType("end_client")}
+              className={`cursor-pointer rounded-xl border px-4 py-3 w-1/2 text-center transition-all
+                ${buyerType === "end_client"
+                  ? "bg-black text-yellow-300 border-black shadow-lg"
+                  : "bg-white text-gray-700 border-gray-300 hover:border-black"}
+              `}
+            >
+              <p className="font-semibold">End Client</p>
+              <p className="text-xs text-gray-500 mt-1">Private client / final buyer</p>
+            </div>
+
+          </div>
+        </div>
       </div>
 
       {/* Delivery Country Card - Blue */}

@@ -71,6 +71,7 @@ export const TradeItemSchema = z.object({
 export const BuyerSchema = z.object({
   name: z.string().min(1, "Buyer name is required"),
   xeroContactId: z.string().optional(),
+  buyer_type: z.enum(["b2b", "end_client"]).optional(),
 });
 
 // ============================================================================

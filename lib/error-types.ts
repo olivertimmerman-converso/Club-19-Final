@@ -48,3 +48,20 @@ export const ERROR_TRIGGERED_BY = {
 
 export type ErrorTriggeredBy =
   (typeof ERROR_TRIGGERED_BY)[keyof typeof ERROR_TRIGGERED_BY];
+
+/**
+ * Error groups for categorization and filtering (Story 6)
+ * Helps organize errors by business domain for easier triage
+ */
+export const ERROR_GROUPS = {
+  SALE_CREATION: "sale_creation", // Errors during initial sale creation
+  DATA_VALIDATION: "data_validation", // Input validation failures
+  COMMISSION_CALC: "commission_calc", // Commission calculation issues
+  ECONOMICS_SANITY: "economics_sanity", // Margin/pricing warnings
+  PAYMENT_LIFECYCLE: "payment_lifecycle", // Invoice status transitions
+  XERO_INTEGRATION: "xero_integration", // Xero API sync issues
+  AUTHENTICITY: "authenticity", // Authenticity verification issues
+  SYSTEM_ERROR: "system_error", // Unexpected system errors
+} as const;
+
+export type ErrorGroup = (typeof ERROR_GROUPS)[keyof typeof ERROR_GROUPS];
