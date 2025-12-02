@@ -14,6 +14,10 @@ import type {
   CommissionBandsRecord,
   SalesRecord,
 } from "@/src/xata";
+import { calculateCommission } from "./commission-engine";
+import { transitionSaleStatus } from "./deal-lifecycle";
+import { validateSaleInput, formatValidationErrors } from "./validation";
+import { ERROR_TYPES, ERROR_TRIGGERED_BY } from "./error-types";
 
 // ============================================================================
 // CLIENT SINGLETON
@@ -240,6 +244,10 @@ export interface CreateSalePayload {
   invoice_status?: string;
   invoice_paid_date?: Date;
 
+  // Commission overrides
+  admin_override_commission_percent?: number;
+  admin_override_notes?: string;
+
   // Notes
   internal_notes?: string;
 }
@@ -276,6 +284,10 @@ export async function createSaleFromAppPayload(
     console.log(`[XATA SALES] ✓ Introducer: ${introducer.name} (${introducer.id})`);
   }
 
+  // VALIDATION) RUN VALIDATION CHECKS
+  console.log("[XATA SALES] Running validation checks...");
+  const validation = validateSaleInput(payload);
+
   // B) COMPUTE ECONOMICS
   console.log("[XATA SALES] Computing economics...");
 
@@ -301,7 +313,42 @@ export async function createSaleFromAppPayload(
     );
   }
 
-  // C) INSERT INTO XATA SALES TABLE
+  // C) CALCULATE COMMISSION
+  console.log("[XATA SALES] Calculating commission...");
+
+  const commissionResult = await calculateCommission({
+    commissionable_margin: economics.commissionable_margin,
+    introducer: introducer && introducer.commission_percent != null ? {
+      commission_percent: introducer.commission_percent,
+    } : null,
+    commission_band: commissionBand && commissionBand.commission_percent != null ? {
+      commission_percent: commissionBand.commission_percent,
+    } : null,
+    admin_override_commission_percent: payload.admin_override_commission_percent ?? null,
+    admin_override_notes: payload.admin_override_notes ?? null,
+  });
+
+  console.log(
+    `[XATA SALES] ✓ Commission amount: £${commissionResult.commission_amount}`
+  );
+  console.log(
+    `[XATA SALES] ✓ Shopper commission: £${commissionResult.commission_split_shopper}`
+  );
+  if (commissionResult.commission_split_introducer > 0) {
+    console.log(
+      `[XATA SALES] ✓ Introducer commission: £${commissionResult.commission_split_introducer}`
+    );
+  }
+
+  // Check for commission calculation errors
+  const hasCommissionErrors = commissionResult.errors.length > 0;
+  if (hasCommissionErrors) {
+    console.error(
+      `[XATA SALES] ⚠️ Commission errors: ${commissionResult.errors.join("; ")}`
+    );
+  }
+
+  // D) INSERT INTO XATA SALES TABLE
   console.log("[XATA SALES] Creating sale record...");
 
   const sale = await xata().db.Sales.create({
@@ -335,6 +382,21 @@ export async function createSaleFromAppPayload(
     gross_margin: economics.gross_margin,
     commissionable_margin: economics.commissionable_margin,
 
+    // Commission (from Commission Engine V1)
+    commission_amount: commissionResult.commission_amount,
+    commission_split_introducer: commissionResult.commission_split_introducer,
+    commission_split_shopper: commissionResult.commission_split_shopper,
+    introducer_share_percent: commissionResult.introducer_share_percent,
+    admin_override_commission_percent: commissionResult.admin_override_commission_percent,
+    admin_override_notes: commissionResult.admin_override_notes,
+
+    // Status (default to "invoiced" for new sales)
+    status: "invoiced",
+
+    // Error tracking
+    error_flag: hasCommissionErrors,
+    error_message: hasCommissionErrors ? commissionResult.errors : undefined,
+
     // Xero metadata
     currency: payload.currency || "GBP",
     branding_theme: payload.branding_theme || "",
@@ -356,7 +418,84 @@ export async function createSaleFromAppPayload(
 
   console.log(`[XATA SALES] ✅ Sale created: ${sale.id}`);
 
-  // D) RETURN THE CREATED SALE RECORD
+  // E) LOG COMMISSION ERRORS TO ERRORS TABLE
+  if (hasCommissionErrors) {
+    try {
+      const errorMessage = commissionResult.errors.join("; ");
+      await xata().db.Errors.create({
+        sale: sale.id,
+        error_type: ERROR_TYPES.COMMISSION,
+        severity: "high",
+        source: "commission-engine",
+        message: [errorMessage],
+        metadata: {
+          saleId: sale.id,
+          commissionErrors: commissionResult.errors,
+          payload: {
+            sale_reference: payload.sale_reference,
+            brand: payload.brand,
+            category: payload.category,
+          },
+        },
+        triggered_by: ERROR_TRIGGERED_BY.COMMISSION_ENGINE,
+        timestamp: new Date(),
+        resolved: false,
+        resolved_by: null,
+        resolved_at: null,
+        resolved_notes: null,
+      });
+      console.log(`[XATA SALES] ⚠️ Commission error logged to Errors table`);
+    } catch (err) {
+      console.error(`[XATA SALES] ❌ Failed to log commission error:`, err);
+    }
+  }
+
+  // F) LOG VALIDATION ERRORS TO ERRORS TABLE
+  const hasValidationErrors = validation.errors.length > 0;
+  if (hasValidationErrors) {
+    try {
+      const validationErrorMessage = formatValidationErrors(validation);
+
+      // Update sale with error flag and message
+      await xata().db.Sales.update(sale.id, {
+        error_flag: true,
+        error_message: [validationErrorMessage],
+      });
+
+      // Log to Errors table
+      await xata().db.Errors.create({
+        sale: sale.id,
+        error_type: ERROR_TYPES.VALIDATION,
+        severity: "high",
+        source: "validation",
+        message: [validationErrorMessage],
+        metadata: {
+          saleId: sale.id,
+          validationErrors: validation.errors,
+          validationWarnings: validation.warnings,
+          payload: {
+            sale_reference: payload.sale_reference,
+            brand: payload.brand,
+            category: payload.category,
+            buyerName: payload.buyerName,
+            supplierName: payload.supplierName,
+          },
+        },
+        triggered_by: ERROR_TRIGGERED_BY.VALIDATION,
+        timestamp: new Date(),
+        resolved: false,
+        resolved_by: null,
+        resolved_at: null,
+        resolved_notes: null,
+      });
+
+      console.log(`[XATA SALES] ⚠️ Validation errors logged to Errors table`);
+    } catch (err) {
+      console.error(`[XATA SALES] ❌ Failed to log validation errors:`, err);
+    }
+  }
+
+  // G) RETURN THE CREATED SALE RECORD
   return sale as SalesRecord;
 }
 
@@ -528,4 +667,88 @@ export async function lockCommissionsUpToDate(date: Date): Promise<number> {
   }
 
   return count;
+}
+
+// ============================================================================
+// XERO PAYMENT SYNC HELPERS (Story D)
+// ============================================================================
+
+/**
+ * Find a sale by Xero invoice number
+ *
+ * @param invoiceNumber - Xero invoice number
+ * @returns Sale record or null if not found
+ */
+export async function findSaleByInvoiceNumber(
+  invoiceNumber: string
+): Promise<SalesRecord | null> {
+  console.log(`[XATA SALES] Looking up sale by invoice number: ${invoiceNumber}`);
+
+  const sale = await xata()
+    .db.Sales.filter({ xero_invoice_number: invoiceNumber })
+    .getFirst();
+
+  if (sale) {
+    console.log(`[XATA SALES] ✓ Found sale: ${sale.id}`);
+  } else {
+    console.warn(`[XATA SALES] ⚠️ No sale found for invoice: ${invoiceNumber}`);
+  }
+
+  return sale as SalesRecord | null;
+}
+
+/**
+ * Update sale payment status from Xero invoice data
+ *
+ * This function transitions a sale from "invoiced" to "paid" status
+ * using the deal lifecycle engine.
+ *
+ * @param saleId - Sale record ID
+ * @param invoice - Xero invoice data with payment information
+ * @returns Transition result
+ */
+export async function updateSalePaymentStatusFromXero(
+  saleId: string,
+  invoice: { Status?: string; AmountDue?: number; PaidDate?: string }
+): Promise<{ success: boolean; error?: string }> {
+  console.log(
+    `[XATA SALES] Updating payment status for sale ${saleId} from Xero invoice`
+  );
+
+  // Validate invoice is paid
+  const isPaid =
+    invoice.Status === "PAID" ||
+    (invoice.AmountDue !== undefined && invoice.AmountDue === 0);
+
+  if (!isPaid) {
+    const error = `Invoice not marked as paid (Status: ${invoice.Status}, AmountDue: ${invoice.AmountDue})`;
+    console.warn(`[XATA SALES] ⚠️ ${error}`);
+    return { success: false, error };
+  }
+
+  // Parse payment date
+  let xeroPaymentDate: Date | undefined;
+  if (invoice.PaidDate) {
+    try {
+      xeroPaymentDate = new Date(invoice.PaidDate);
+    } catch (err) {
+      console.warn(`[XATA SALES] ⚠️ Invalid PaidDate format: ${invoice.PaidDate}`);
+    }
+  }
+
+  // Use deal lifecycle engine to transition status
+  const result = await transitionSaleStatus({
+    saleId,
+    currentStatus: "invoiced",
+    nextStatus: "paid",
+    xeroPaymentDate,
+  });
+
+  if (result.success) {
+    console.log(`[XATA SALES] ✅ Sale ${saleId} transitioned to "paid"`);
+  } else {
+    console.error(`[XATA SALES] ❌ Failed to transition sale: ${result.error}`);
+  }
+
+  return result;
 }

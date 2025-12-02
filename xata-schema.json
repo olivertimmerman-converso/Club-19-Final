@@ -1,0 +1,82 @@
+{
+  "tables": [
+    {
+      "name": "Shoppers",
+      "columns": [
+        { "name": "name", "type": "string" },
+        { "name": "email", "type": "string" },
+        { "name": "commission_scheme", "type": "text" },
+        { "name": "active", "type": "bool" }
+      ]
+    },
+    {
+      "name": "Buyers",
+      "columns": [
+        { "name": "name", "type": "string" },
+        { "name": "email", "type": "string" },
+        { "name": "xero_contact_id", "type": "string" }
+      ]
+    },
+    {
+      "name": "Suppliers",
+      "columns": [
+        { "name": "name", "type": "string" },
+        { "name": "email", "type": "string" },
+        { "name": "xero_contact_id", "type": "string" }
+      ]
+    },
+    {
+      "name": "Introducers",
+      "columns": [
+        { "name": "name", "type": "string" },
+        { "name": "commission_percent", "type": "float" }
+      ]
+    },
+    {
+      "name": "CommissionBands",
+      "columns": [
+        { "name": "band_type", "type": "string" },
+        { "name": "min_threshold", "type": "float" },
+        { "name": "max_threshold", "type": "float" },
+        { "name": "commission_percent", "type": "float" }
+      ]
+    },
+    {
+      "name": "Sales",
+      "columns": [
+        { "name": "sale_reference", "type": "string" },
+        { "name": "sale_date", "type": "datetime" },
+        { "name": "shopper", "type": "link", "link": { "table": "Shoppers" } },
+        { "name": "buyer", "type": "link", "link": { "table": "Buyers" } },
+        { "name": "supplier", "type": "link", "link": { "table": "Suppliers" } },
+        { "name": "introducer", "type": "link", "link": { "table": "Introducers" } },
+        { "name": "brand", "type": "string" },
+        { "name": "category", "type": "string" },
+        { "name": "item_title", "type": "string" },
+        { "name": "quantity", "type": "int" },
+        { "name": "sale_amount_inc_vat", "type": "float" },
+        { "name": "sale_amount_ex_vat", "type": "float" },
+        { "name": "buy_price", "type": "float" },
+        { "name": "card_fees", "type": "float" },
+        { "name": "shipping_cost", "type": "float" },
+        { "name": "direct_costs", "type": "float" },
+        { "name": "implied_shipping", "type": "float" },
+        { "name": "gross_margin", "type": "float" },
+        { "name": "commissionable_margin", "type": "float" },
+        { "name": "currency", "type": "string" },
+        { "name": "branding_theme", "type": "string" },
+        { "name": "xero_invoice_number", "type": "string" },
+        { "name": "xero_invoice_id", "type": "string" },
+        { "name": "xero_invoice_url", "type": "string" },
+        { "name": "invoice_status", "type": "string" },
+        { "name": "invoice_paid_date", "type": "datetime" },
+        { "name": "commission_locked", "type": "bool" },
+        { "name": "commission_paid", "type": "bool" },
+        { "name": "commission_lock_date", "type": "datetime" },
+        { "name": "commission_paid_date", "type": "datetime" },
+        { "name": "commission_band", "type": "link", "link": { "table": "CommissionBands" } },
+        { "name": "internal_notes", "type": "text" }
+      ]
+    }
+  ]
+}

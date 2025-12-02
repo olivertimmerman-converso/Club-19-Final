@@ -92,6 +92,34 @@ const tables = [
       { name: "implied_shipping", type: "float" },
       { name: "gross_margin", type: "float" },
       { name: "commissionable_margin", type: "float" },
+      { name: "status", type: "text" },
+      { name: "error_flag", type: "bool" },
+      { name: "error_message", type: "multiple" },
+      { name: "commission_amount", type: "float" },
+      { name: "commission_split_introducer", type: "float" },
+      { name: "commission_split_shopper", type: "float" },
+      { name: "introducer_share_percent", type: "float" },
+      { name: "admin_override_commission_percent", type: "float" },
+      { name: "admin_override_notes", type: "multiple" },
+      { name: "xero_payment_date", type: "datetime" },
+    ],
+    revLinks: [{ column: "sale", table: "Errors" }],
+  },
+  {
+    name: "Errors",
+    columns: [
+      { name: "sale", type: "link", link: { table: "Sales" } },
+      { name: "error_type", type: "text" },
+      { name: "severity", type: "text" },
+      { name: "source", type: "text" },
+      { name: "message", type: "multiple" },
+      { name: "metadata", type: "json" },
+      { name: "triggered_by", type: "text" },
+      { name: "timestamp", type: "datetime" },
+      { name: "resolved", type: "bool" },
+      { name: "resolved_by", type: "text" },
+      { name: "resolved_at", type: "datetime" },
+      { name: "resolved_notes", type: "text" },
     ],
   },
 ] as const;
@@ -117,6 +145,9 @@ export type CommissionBandsRecord = CommissionBands & XataRecord;
 export type Sales = InferredTypes["Sales"];
 export type SalesRecord = Sales & XataRecord;
 
+export type Errors = InferredTypes["Errors"];
+export type ErrorsRecord = Errors & XataRecord;
+
 export type DatabaseSchema = {
   Shoppers: ShoppersRecord;
   Buyers: BuyersRecord;
@@ -124,6 +155,7 @@ export type DatabaseSchema = {
   Introducers: IntroducersRecord;
   CommissionBands: CommissionBandsRecord;
   Sales: SalesRecord;
+  Errors: ErrorsRecord;
 };
 
 const DatabaseClient = buildClient();
