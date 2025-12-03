@@ -1,0 +1,1922 @@
+[
+  {
+    "id": "ae8b4550-50a1-48c0-ba7d-e5ed2af9566a",
+    "supplier_clean": "Galaxy VIC",
+    "raw_variants": [
+      "Galaxy VIC"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 4
+  },
+  {
+    "id": "672f55b3-ee1c-4363-a5bf-844328516179",
+    "supplier_clean": "Stock (Internal)",
+    "raw_variants": [
+      "STOCK"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-07",
+    "last_seen": "2025-10-01",
+    "trade_count": 7
+  },
+  {
+    "id": "54720e4e-ec3d-4116-98c1-38c6f310c675",
+    "supplier_clean": "Phuong",
+    "raw_variants": [
+      "Phuong"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "b07fc6a9-3215-4ba4-a35d-159e2c2be1fb",
+    "supplier_clean": "Chanel Bond",
+    "raw_variants": [
+      "Chanel Bond"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "a1509770-b41c-4f28-bc93-6ca1dd25d116",
+    "supplier_clean": "Chanel Sloane",
+    "raw_variants": [
+      "Chanel Sloane"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "af46962d-4be5-4a59-9353-883ff9d5a296",
+    "supplier_clean": "STOCK/",
+    "raw_variants": [
+      "STOCK/"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "d22e578a-a43a-4b6b-809c-91bfdcf9a195",
+    "supplier_clean": "Cherry",
+    "raw_variants": [
+      "Cherry"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "f1a9155f-a7d9-477a-9a13-9da7895b9a1d",
+    "supplier_clean": "Crystal",
+    "raw_variants": [
+      "Crystal"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2
+  },
+  {
+    "id": "3c0073da-4444-4de3-8f4f-d97a3dddb6dd",
+    "supplier_clean": "LHS luxury",
+    "raw_variants": [
+      "LHS luxury"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "1ade89dc-543c-49fe-9edf-2b382e378e52",
+    "supplier_clean": "Maastic",
+    "raw_variants": [
+      "Maastic"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "de0d5ad0-5c98-4829-9f76-aa5efb744701",
+    "supplier_clean": "Mercure",
+    "raw_variants": [
+      "Mercure"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "dacf99ca-783d-4a44-b003-46a2662075b7",
+    "supplier_clean": "Fenny",
+    "raw_variants": [
+      "Fenny"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "417a5929-5bd2-4939-be7d-c1215c0ddf38",
+    "supplier_clean": "VIC",
+    "raw_variants": [
+      "VIC"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "be040bc6-23bf-4817-8d67-9cfee60c3b3b",
+    "supplier_clean": "Naj",
+    "raw_variants": [
+      "Naj"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "04800aa6-ef2b-4261-b517-1b91891b3986",
+    "supplier_clean": "shop with CC",
+    "raw_variants": [
+      "shop with CC"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "2e23103d-612c-4939-97dc-4718d98fc832",
+    "supplier_clean": "MIA LUXURY",
+    "raw_variants": [
+      "MIA LUXURY"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2
+  },
+  {
+    "id": "9652b401-b81f-4b8e-ac7b-b6321bb402d1",
+    "supplier_clean": "EMPIRE",
+    "raw_variants": [
+      "EMPIRE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "8be3f65b-23e8-49e3-bfed-f295373d7a6c",
+    "supplier_clean": "Carlotta",
+    "raw_variants": [
+      "Carlotta"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "c7ac0d7a-fca5-47f7-9757-016a0861e9b3",
+    "supplier_clean": "VIC GALAXY",
+    "raw_variants": [
+      "VIC GALAXY"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "40b8e1d6-ff5b-43bc-8519-f9506cb323de",
+    "supplier_clean": "Shirley",
+    "raw_variants": [
+      "Shirley"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "c1629427-f937-4de8-8e01-2f8c9312a7a0",
+    "supplier_clean": "Chanel bond",
+    "raw_variants": [
+      "Chanel bond"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "c2d5aa42-456b-4a27-bf5d-1fedd6100bba",
+    "supplier_clean": "Selfridges",
+    "raw_variants": [
+      "Selfridges"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 3
+  },
+  {
+    "id": "60a46f96-fc40-4013-acb2-e881b819314c",
+    "supplier_clean": "Vic GAlaxy",
+    "raw_variants": [
+      "Vic GAlaxy"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "c8de54d5-ff71-420b-9540-b95efdef8036",
+    "supplier_clean": "Sandra lebanon",
+    "raw_variants": [
+      "Sandra lebanon"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "3e47ea3a-ba39-4447-b530-3e78d1ff0bf6",
+    "supplier_clean": "Unknown",
+    "raw_variants": [
+      "Unknown"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-04-04",
+    "last_seen": "2025-10-01",
+    "trade_count": 63
+  },
+  {
+    "id": "fd0abb01-73d9-4dc4-9152-96d5f17f9b90",
+    "supplier_clean": "CLAUDIA",
+    "raw_variants": [
+      "CLAUDIA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2
+  },
+  {
+    "id": "4de0164e-3d4b-4879-a2fb-ebc4149c8df9",
+    "supplier_clean": "KIM",
+    "raw_variants": [
+      "KIM"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "1fcff5a4-76ca-4fdd-9cc7-507bbc1c1bd9",
+    "supplier_clean": "TARA",
+    "raw_variants": [
+      "TARA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "49613978-baca-4b84-a28a-f05676364c20",
+    "supplier_clean": "HARRODS",
+    "raw_variants": [
+      "HARRODS"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "56b4a5c7-9d7e-4b18-8a97-401b01c951ec",
+    "supplier_clean": "CRYSTAL",
+    "raw_variants": [
+      "CRYSTAL"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-17",
+    "last_seen": "2025-06-23",
+    "trade_count": 12
+  },
+  {
+    "id": "c701ea46-0086-4e6a-8b01-7c1271c1144e",
+    "supplier_clean": "ARIEL",
+    "raw_variants": [
+      "ARIEL"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2
+  },
+  {
+    "id": "4b91c7d3-ff83-4d64-8cb0-00fb95430537",
+    "supplier_clean": "EDUARDO",
+    "raw_variants": [
+      "EDUARDO"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 3
+  },
+  {
+    "id": "a74c4709-bf82-4d0f-9464-b2bb55f2f72b",
+    "supplier_clean": "PRIME - MAYA",
+    "raw_variants": [
+      "PRIME - MAYA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "6526a46e-2e62-4929-8699-0f4ca0fb794d",
+    "supplier_clean": "BOND ST",
+    "raw_variants": [
+      "BOND ST"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-04-03",
+    "last_seen": "2025-04-03",
+    "trade_count": 2
+  },
+  {
+    "id": "e08efd30-a091-4dbb-b34d-fc3bd3699ab0",
+    "supplier_clean": "CRYSTSL",
+    "raw_variants": [
+      "CRYSTSL"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "df9ac0b1-3d02-43f3-8adb-30550a9d9fd1",
+    "supplier_clean": "ASTYLA",
+    "raw_variants": [
+      "ASTYLA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-03-05",
+    "last_seen": "2025-10-01",
+    "trade_count": 3
+  },
+  {
+    "id": "e003c216-65dd-4533-a7d2-6c6373dbc16e",
+    "supplier_clean": "LEANDRO",
+    "raw_variants": [
+      "LEANDRO"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "7ef565e5-287f-41a9-996c-84605d917c25",
+    "supplier_clean": "BV BOND",
+    "raw_variants": [
+      "BV BOND"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "427695c5-3dcb-4d74-9052-91ceff975377",
+    "supplier_clean": "ARAYA",
+    "raw_variants": [
+      "ARAYA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2
+  },
+  {
+    "id": "26d6dfc8-40aa-4dd6-b7fb-923e40ab4c69",
+    "supplier_clean": "BAG A ALUX",
+    "raw_variants": [
+      "BAG A ALUX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "89b01de1-e1af-496f-b0f5-2479d2cb03e8",
+    "supplier_clean": "SUPPLIER",
+    "raw_variants": [
+      "SUPPLIER"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1
+  },
+  {
+    "id": "f6eee049-b3c8-474f-a36e-8c499cc120e5",
+    "supplier_clean": "YALI",
+    "raw_variants": [
+      "YALI"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-18",
+    "last_seen": "2025-05-07",
+    "trade_count": 3
+  },
+  {
+    "id": "a039887e-cc4c-4ce0-aa56-7ade11b23536",
+    "supplier_clean": "Elle",
+    "raw_variants": [
+      "Elle"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 4
+  },
+  {
+    "id": "bd14b1e2-5ade-4ca9-b56f-01e13eed4619",
+    "supplier_clean": "Bags by Appointment",
+    "raw_variants": [
+      "Bags by Appointment"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 3
+  },
+  {
+    "id": "34ab8c79-aec7-4398-b11a-dad26b4cfb3d",
+    "supplier_clean": "AINHARA",
+    "raw_variants": [
+      "AINHARA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-04-22",
+    "last_seen": "2025-04-22",
+    "trade_count": 1
+  },
+  {
+    "id": "cd0ce0c9-2c11-4304-adac-5e7b32049d63",
+    "supplier_clean": "ANTONIO",
+    "raw_variants": [
+      "ANTONIO"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-13",
+    "last_seen": "2025-06-18",
+    "trade_count": 2
+  },
+  {
+    "id": "bbb6d312-e044-41d1-97da-a0caa18d1d41",
+    "supplier_clean": "CELINE BOND - AMEX",
+    "raw_variants": [
+      "CELINE BOND - AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-12",
+    "last_seen": "2025-05-12",
+    "trade_count": 1
+  },
+  {
+    "id": "c5afcc7a-df6c-4999-a740-75d35593f776",
+    "supplier_clean": "SELFRIDGES AMEX",
+    "raw_variants": [
+      "SELFRIDGES AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-04",
+    "last_seen": "2025-10-01",
+    "trade_count": 5
+  },
+  {
+    "id": "70251d0b-23fc-466b-ab7d-74792086219d",
+    "supplier_clean": "Private label",
+    "raw_variants": [
+      "Private label"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "19cc7313-8735-4e02-bbae-b9df0dc92945",
+    "supplier_clean": "21 srl",
+    "raw_variants": [
+      "21 srl"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1
+  },
+  {
+    "id": "e0e30608-6a4c-4270-85e8-e8b8eb61b5cb",
+    "supplier_clean": "ARIAL",
+    "raw_variants": [
+      "ARIAL"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "46597dd9-28d8-401f-b6f8-c1ec8553cd7f",
+    "supplier_clean": "BAB",
+    "raw_variants": [
+      "BAB"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-06-13",
+    "last_seen": "2025-06-13",
+    "trade_count": 1
+  },
+  {
+    "id": "1ca09b8e-2e7e-43e5-802c-1989949d204d",
+    "supplier_clean": "KRIS SELF",
+    "raw_variants": [
+      "KRIS SELF"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-04-30",
+    "last_seen": "2025-04-30",
+    "trade_count": 1
+  },
+  {
+    "id": "bf3c93ad-3edf-4cb6-b114-187e27c00568",
+    "supplier_clean": "LIZA",
+    "raw_variants": [
+      "LIZA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-13",
+    "last_seen": "2025-05-20",
+    "trade_count": 3
+  },
+  {
+    "id": "dedffa1a-47ca-45aa-a8c5-0ec16bb48e4d",
+    "supplier_clean": "Madani Lasfar",
+    "raw_variants": [
+      "Madani Lasfar"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "b0b7e9da-7e3c-4ade-874c-bb1a6688c6c2",
+    "supplier_clean": "Alaia - Bond Street",
+    "raw_variants": [
+      "Alaia - Bond Street"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 2
+  },
+  {
+    "id": "b7ba0aca-1b18-49ea-94cf-1dd9750ab4c4",
+    "supplier_clean": "selfridges",
+    "raw_variants": [
+      "selfridges"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "375f6b7e-9fcf-4b45-9db7-e2d38abf04b3",
+    "supplier_clean": "THC finds",
+    "raw_variants": [
+      "THC finds"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1
+  },
+  {
+    "id": "42157dd8-0527-45c5-a182-1537298823cf",
+    "supplier_clean": "proper shopper",
+    "raw_variants": [
+      "proper shopper"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1
+  },
+  {
+    "id": "24289348-66f5-4db0-9808-61b180865ea4",
+    "supplier_clean": "piyal",
+    "raw_variants": [
+      "piyal"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "4cd0397e-3f7a-4dbb-a042-f3b682683ea1",
+    "supplier_clean": "mica kim",
+    "raw_variants": [
+      "mica kim"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "e633d8e2-2260-425e-9068-5f90061b7051",
+    "supplier_clean": "Kim",
+    "raw_variants": [
+      "Kim"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "79a99c47-8dda-408f-88fe-b3282b7a816d",
+    "supplier_clean": "ELLE",
+    "raw_variants": [
+      "ELLE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-14",
+    "last_seen": "2025-10-01",
+    "trade_count": 3
+  },
+  {
+    "id": "cca61d9a-b399-485b-8681-b44f633741bf",
+    "supplier_clean": "CRYSTALS",
+    "raw_variants": [
+      "CRYSTALS"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 2
+  },
+  {
+    "id": "72333ba4-297f-49ba-87e6-0cd636fa8358",
+    "supplier_clean": "NGOC",
+    "raw_variants": [
+      "NGOC"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "8566cace-c256-42cb-baf2-a46690902422",
+    "supplier_clean": "ANGELA",
+    "raw_variants": [
+      "ANGELA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-18",
+    "last_seen": "2025-02-18",
+    "trade_count": 1
+  },
+  {
+    "id": "b09ff91d-5f87-4e03-b3f9-a9f3ff96748a",
+    "supplier_clean": "NAP Amex",
+    "raw_variants": [
+      "NAP Amex"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-04-28",
+    "last_seen": "2025-04-28",
+    "trade_count": 1
+  },
+  {
+    "id": "ea84628a-4f2a-4f68-8cca-b4fa92e3ce96",
+    "supplier_clean": "lsps",
+    "raw_variants": [
+      "lsps"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "7cd89896-32f9-4005-b0a6-803cf9d144bf",
+    "supplier_clean": "ollie shipp",
+    "raw_variants": [
+      "ollie shipp"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "72b05ac5-a3ed-43d2-83b6-5bb740554b45",
+    "supplier_clean": "Mia",
+    "raw_variants": [
+      "Mia"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 3
+  },
+  {
+    "id": "5d461c5c-b65c-430e-b8b2-59496c0cd59d",
+    "supplier_clean": "PRIME",
+    "raw_variants": [
+      "PRIME"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 7
+  },
+  {
+    "id": "48f4865c-ee39-461b-a111-ff5e5e60312e",
+    "supplier_clean": "ls shopper",
+    "raw_variants": [
+      "ls shopper"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 2
+  },
+  {
+    "id": "0bd5082d-afb1-44af-986c-36ccec29d9f8",
+    "supplier_clean": "prime",
+    "raw_variants": [
+      "prime"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 2
+  },
+  {
+    "id": "d5b8bfa1-be9c-4c47-8877-b2d341df0d9c",
+    "supplier_clean": "Fabulicious ltd",
+    "raw_variants": [
+      "Fabulicious ltd"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1
+  },
+  {
+    "id": "f0e756fc-e72d-4bf8-9c8b-9d5847f8c4ad",
+    "supplier_clean": "HJ HARRODS",
+    "raw_variants": [
+      "HJ HARRODS"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 2
+  },
+  {
+    "id": "c8e9477c-71a3-4205-b76a-890b8114b876",
+    "supplier_clean": "Harrods",
+    "raw_variants": [
+      "Harrods"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 2
+  },
+  {
+    "id": "50b9f074-2d76-4a3f-bb32-efd1826659c8",
+    "supplier_clean": "MONICA STAMP",
+    "raw_variants": [
+      "MONICA STAMP"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-23",
+    "last_seen": "2025-01-23",
+    "trade_count": 1
+  },
+  {
+    "id": "6ac2f2bf-72d9-46db-b16b-1fd7e5cbec2f",
+    "supplier_clean": "MAISON MIA",
+    "raw_variants": [
+      "MAISON MIA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-30",
+    "last_seen": "2025-10-01",
+    "trade_count": 3
+  },
+  {
+    "id": "e3add577-4d19-4137-aca6-51519977a3e3",
+    "supplier_clean": "JAY",
+    "raw_variants": [
+      "JAY"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-03-19",
+    "last_seen": "2025-03-19",
+    "trade_count": 1
+  },
+  {
+    "id": "81067bf2-e26d-47d2-94e4-30815018cf86",
+    "supplier_clean": "SARAH H",
+    "raw_variants": [
+      "SARAH H"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-04-30",
+    "last_seen": "2025-04-30",
+    "trade_count": 1
+  },
+  {
+    "id": "d1be9846-a5e9-419f-978a-c3456df8c525",
+    "supplier_clean": "JAMES LSPS",
+    "raw_variants": [
+      "JAMES LSPS"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-06-30",
+    "last_seen": "2025-06-30",
+    "trade_count": 1
+  },
+  {
+    "id": "8a811b60-08ed-4d8a-bb31-f80ee0116c57",
+    "supplier_clean": "MIA",
+    "raw_variants": [
+      "MIA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-04-17",
+    "last_seen": "2025-04-17",
+    "trade_count": 1
+  },
+  {
+    "id": "05928b65-a622-4acc-9915-3e0764360069",
+    "supplier_clean": "ANAHIDE",
+    "raw_variants": [
+      "ANAHIDE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-04-17",
+    "last_seen": "2025-04-17",
+    "trade_count": 1
+  },
+  {
+    "id": "c75f4be9-6ed1-4b02-b073-bea0a720498a",
+    "supplier_clean": "OLLY / JACKIE",
+    "raw_variants": [
+      "OLLY / JACKIE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-06-11",
+    "last_seen": "2025-06-11",
+    "trade_count": 1
+  },
+  {
+    "id": "e0b6c2ea-9c86-4180-a3fe-88657b0e6830",
+    "supplier_clean": "DUBAI AIRPORT/LARA",
+    "raw_variants": [
+      "DUBAI AIRPORT/LARA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-21",
+    "last_seen": "2025-02-21",
+    "trade_count": 1
+  },
+  {
+    "id": "f10c0bbe-793a-4c0b-994a-76b8a49683d8",
+    "supplier_clean": "OLOLADE",
+    "raw_variants": [
+      "OLOLADE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-22",
+    "last_seen": "2025-05-12",
+    "trade_count": 2
+  },
+  {
+    "id": "5aa67982-cb07-4fbb-a104-13c9c97b5262",
+    "supplier_clean": "Yali Ding",
+    "raw_variants": [
+      "Yali Ding"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "3a291907-964e-4c77-8af9-324a21a88864",
+    "supplier_clean": "STORE HARRODS AMEX",
+    "raw_variants": [
+      "STORE HARRODS AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-06-12",
+    "last_seen": "2025-06-12",
+    "trade_count": 1
+  },
+  {
+    "id": "a5405548-fc87-4010-8a5d-57d046517a98",
+    "supplier_clean": "LEANA",
+    "raw_variants": [
+      "LEANA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "f8ea0e82-d691-4d94-98a1-ba8ea52e89f3",
+    "supplier_clean": "CHICI / BON MARCHE AMEX",
+    "raw_variants": [
+      "CHICI / BON MARCHE AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "060a0843-7cc0-4110-b6d3-830c7a3a2e5a",
+    "supplier_clean": "BOND ST AMELX",
+    "raw_variants": [
+      "BOND ST AMELX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "c6515cb3-8a40-4aff-9a6e-133644969097",
+    "supplier_clean": "CHICI",
+    "raw_variants": [
+      "CHICI"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 3
+  },
+  {
+    "id": "f6528ecf-f29c-4545-9f46-048ac31bdd01",
+    "supplier_clean": "YOKO ELLE",
+    "raw_variants": [
+      "YOKO ELLE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-03-19",
+    "last_seen": "2025-03-19",
+    "trade_count": 1
+  },
+  {
+    "id": "f4074417-aa88-4b73-802a-805e1197e1f2",
+    "supplier_clean": "Prime",
+    "raw_variants": [
+      "Prime"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "097de6b9-6cbb-4cfe-b0a0-a8e9bf1e9196",
+    "supplier_clean": "GUZZ BURGESS",
+    "raw_variants": [
+      "GUZZ BURGESS"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "1e17d935-11cc-4835-bebd-75e463a8163c",
+    "supplier_clean": "BBA",
+    "raw_variants": [
+      "BBA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-06-24",
+    "last_seen": "2025-06-25",
+    "trade_count": 2
+  },
+  {
+    "id": "1600a43f-dc8d-4267-a5e6-00a3024a61b8",
+    "supplier_clean": "HERMES BOY",
+    "raw_variants": [
+      "HERMES BOY"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-03-05",
+    "last_seen": "2025-03-05",
+    "trade_count": 1
+  },
+  {
+    "id": "dd5e0bf7-ffbb-467b-9c7c-4c42ffaadbe4",
+    "supplier_clean": "SPACELUX",
+    "raw_variants": [
+      "SPACELUX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "b5b2dd82-37a9-4d4a-af58-a7f325e96a17",
+    "supplier_clean": "MAYA PRIME",
+    "raw_variants": [
+      "MAYA PRIME"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-29",
+    "last_seen": "2025-05-29",
+    "trade_count": 1
+  },
+  {
+    "id": "8108191d-ec72-4898-a91f-f56321f054e3",
+    "supplier_clean": "SIMONA",
+    "raw_variants": [
+      "SIMONA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "f3cfff8b-9727-408e-b251-1b586da70cb9",
+    "supplier_clean": "CHLOE BOND - AMEX",
+    "raw_variants": [
+      "CHLOE BOND - AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-27",
+    "last_seen": "2025-01-27",
+    "trade_count": 1
+  },
+  {
+    "id": "477cb629-f002-4cd6-aed1-62f22bcaa184",
+    "supplier_clean": "Yelyzaveta Artonkina",
+    "raw_variants": [
+      "Yelyzaveta Artonkina"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1
+  },
+  {
+    "id": "24971398-8a98-4844-bb26-f9e4d31835d6",
+    "supplier_clean": "GREEN AMEX VB ONLINE",
+    "raw_variants": [
+      "GREEN AMEX VB ONLINE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "42036f7c-d0a9-4ebe-9d13-f8bc5ff27fde",
+    "supplier_clean": "Astyla",
+    "raw_variants": [
+      "Astyla"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 2
+  },
+  {
+    "id": "463a576f-6eba-400e-9868-7432a2dbc8cc",
+    "supplier_clean": "Ela Walton St Ame",
+    "raw_variants": [
+      "Ela Walton St Ame"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-04-28",
+    "last_seen": "2025-04-28",
+    "trade_count": 1
+  },
+  {
+    "id": "11a9b6f6-be69-44ac-ab06-bca325034ff3",
+    "supplier_clean": "CLEO",
+    "raw_variants": [
+      "CLEO"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-15",
+    "last_seen": "2025-01-15",
+    "trade_count": 1
+  },
+  {
+    "id": "37bc03d4-9154-44ef-a048-655858ebfeb8",
+    "supplier_clean": "AMELIA",
+    "raw_variants": [
+      "AMELIA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-03",
+    "last_seen": "2025-02-03",
+    "trade_count": 1
+  },
+  {
+    "id": "e6dbbc16-9467-48ac-93dc-241eafc96ba8",
+    "supplier_clean": "LORO SLOANE AMEX",
+    "raw_variants": [
+      "LORO SLOANE AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-03-19",
+    "last_seen": "2025-03-19",
+    "trade_count": 1
+  },
+  {
+    "id": "f6a6dba8-4035-40f0-88f1-4f1637f80f22",
+    "supplier_clean": "MERCURE",
+    "raw_variants": [
+      "MERCURE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-31",
+    "last_seen": "2025-05-31",
+    "trade_count": 1
+  },
+  {
+    "id": "d98ebc38-39b0-4150-b95b-fbe04e2c0ef1",
+    "supplier_clean": "chanel bond street",
+    "raw_variants": [
+      "chanel bond street"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "566080b0-d61b-4ebc-b95e-bade832a1bca",
+    "supplier_clean": "chich",
+    "raw_variants": [
+      "chich"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1
+  },
+  {
+    "id": "287b866d-3e93-44f4-a833-65a4ef3b0dec",
+    "supplier_clean": "POSH LUXURY",
+    "raw_variants": [
+      "POSH LUXURY"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-19",
+    "last_seen": "2025-02-19",
+    "trade_count": 1
+  },
+  {
+    "id": "45590994-188e-41bc-81a0-ebdad08d3e65",
+    "supplier_clean": "TAN",
+    "raw_variants": [
+      "TAN"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-19",
+    "last_seen": "2025-01-19",
+    "trade_count": 1
+  },
+  {
+    "id": "62ce9db5-58a3-4d3f-9291-d29a369d02a2",
+    "supplier_clean": "ELIN MAASTIC",
+    "raw_variants": [
+      "ELIN MAASTIC"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-25",
+    "last_seen": "2025-01-25",
+    "trade_count": 1
+  },
+  {
+    "id": "e9f8963b-f47a-4688-90a8-87c8476b5c88",
+    "supplier_clean": "Crystal Kee Kee",
+    "raw_variants": [
+      "Crystal Kee Kee"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 4
+  },
+  {
+    "id": "46fb76aa-4dba-4163-bc55-80304bd937d8",
+    "supplier_clean": "ELA WALTON",
+    "raw_variants": [
+      "ELA WALTON"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-20",
+    "last_seen": "2025-05-20",
+    "trade_count": 1
+  },
+  {
+    "id": "9f0ab772-09cc-475e-8895-86e0b2de18eb",
+    "supplier_clean": "MO",
+    "raw_variants": [
+      "MO"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-06-30",
+    "last_seen": "2025-10-01",
+    "trade_count": 2
+  },
+  {
+    "id": "fb9cf4aa-585f-46bf-a2e5-d3fac6980ad5",
+    "supplier_clean": "Nina",
+    "raw_variants": [
+      "Nina"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 2
+  },
+  {
+    "id": "876939e6-28e7-4bdf-af87-8fa1d3a8cc4b",
+    "supplier_clean": "FREDDY",
+    "raw_variants": [
+      "FREDDY"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-27",
+    "last_seen": "2025-01-27",
+    "trade_count": 1
+  },
+  {
+    "id": "3fb48b4d-97e8-462a-85bf-e7d4b31a398d",
+    "supplier_clean": "WALTON ST",
+    "raw_variants": [
+      "WALTON ST"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-21",
+    "last_seen": "2025-05-21",
+    "trade_count": 1
+  },
+  {
+    "id": "dd108535-36be-4394-b89e-3e0f8a1dde6f",
+    "supplier_clean": "ariel",
+    "raw_variants": [
+      "ariel"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "06be8f22-4194-42b0-a227-3adeaffb469b",
+    "supplier_clean": "SLOANE AMEX",
+    "raw_variants": [
+      "SLOANE AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-04-08",
+    "last_seen": "2025-04-08",
+    "trade_count": 1
+  },
+  {
+    "id": "4ec72ac6-72d2-4e01-a7ac-31930e9a4828",
+    "supplier_clean": "CLAUDIA PROPER SHOPPER",
+    "raw_variants": [
+      "CLAUDIA PROPER SHOPPER"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-03-26",
+    "last_seen": "2025-03-26",
+    "trade_count": 1
+  },
+  {
+    "id": "22bfa3f9-9a32-458e-acc4-754c6549fe61",
+    "supplier_clean": "liza",
+    "raw_variants": [
+      "liza"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1
+  },
+  {
+    "id": "e6e1ea15-dcd1-44c2-a50f-366dd91cc169",
+    "supplier_clean": "STORE SLOANE AMEX",
+    "raw_variants": [
+      "STORE SLOANE AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "827a8f3f-1f5e-450a-8407-860580064d98",
+    "supplier_clean": "NINA",
+    "raw_variants": [
+      "NINA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 2
+  },
+  {
+    "id": "e4dae3d8-e34e-4fab-87fa-d13e9744a246",
+    "supplier_clean": "WALTON ST HARRODS AMEX",
+    "raw_variants": [
+      "WALTON ST HARRODS AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "969771c9-eb05-46eb-8994-3403f75f5eb3",
+    "supplier_clean": "YAN",
+    "raw_variants": [
+      "YAN"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-03-03",
+    "last_seen": "2025-03-03",
+    "trade_count": 1
+  },
+  {
+    "id": "b5a4ce39-f564-424d-84ca-3b9882aa52d5",
+    "supplier_clean": "ELA CHANEL WALTON",
+    "raw_variants": [
+      "ELA CHANEL WALTON"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-27",
+    "last_seen": "2025-02-27",
+    "trade_count": 1
+  },
+  {
+    "id": "23208c49-9633-4260-abfc-2f73880d0b01",
+    "supplier_clean": "Maison mia",
+    "raw_variants": [
+      "Maison mia"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1
+  },
+  {
+    "id": "e6e719dc-8e9e-47f7-8182-ea77ea87e4fd",
+    "supplier_clean": "olly bromfield",
+    "raw_variants": [
+      "olly bromfield"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1
+  },
+  {
+    "id": "dcd345e4-181f-43c8-a631-c66331fbc071",
+    "supplier_clean": "hj shopper",
+    "raw_variants": [
+      "hj shopper"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "31e51321-a5b7-47bf-a118-b9398c7c05f0",
+    "supplier_clean": "chanel walton",
+    "raw_variants": [
+      "chanel walton"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1
+  },
+  {
+    "id": "6abd0eb7-1b68-4e10-a4fd-d2eb533cfd2e",
+    "supplier_clean": "IMAN ABDEL KHALEK",
+    "raw_variants": [
+      "IMAN ABDEL KHALEK"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-10",
+    "last_seen": "2025-05-10",
+    "trade_count": 1
+  },
+  {
+    "id": "fe0ae3a1-3988-4ab9-93c6-c7d90dc59301",
+    "supplier_clean": "IVA VENDOME",
+    "raw_variants": [
+      "IVA VENDOME"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-03-20",
+    "last_seen": "2025-03-20",
+    "trade_count": 1
+  },
+  {
+    "id": "0a929fb7-a578-441c-aaa4-89816a254558",
+    "supplier_clean": "THE LUXE DETECTIVE",
+    "raw_variants": [
+      "THE LUXE DETECTIVE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "66e927d2-eec8-48af-a4ff-9634ddadbecd",
+    "supplier_clean": "SABRINA",
+    "raw_variants": [
+      "SABRINA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-03-16",
+    "last_seen": "2025-03-16",
+    "trade_count": 1
+  },
+  {
+    "id": "50591675-6baa-4c2f-a008-cad42f79b280",
+    "supplier_clean": "ONLINE AMEX",
+    "raw_variants": [
+      "ONLINE AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "cdce2f7f-f3f9-41f1-abe9-f581723c7281",
+    "supplier_clean": "KRIS SELFRIDGES",
+    "raw_variants": [
+      "KRIS SELFRIDGES"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-06-27",
+    "last_seen": "2025-06-27",
+    "trade_count": 1
+  },
+  {
+    "id": "23011182-7b91-4e5e-8beb-42de42b4c2e5",
+    "supplier_clean": "Nicole",
+    "raw_variants": [
+      "Nicole"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1
+  },
+  {
+    "id": "a46904e7-d65b-4232-be65-22e1317ba07b",
+    "supplier_clean": "KIKO",
+    "raw_variants": [
+      "KIKO"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2024-12-16",
+    "last_seen": "2025-03-27",
+    "trade_count": 2
+  },
+  {
+    "id": "50e4792c-5461-4c66-8b00-690c24136fa7",
+    "supplier_clean": "eduardo",
+    "raw_variants": [
+      "eduardo"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1
+  },
+  {
+    "id": "28799b72-3c00-4286-9f0d-18a350a10253",
+    "supplier_clean": "GEOFF",
+    "raw_variants": [
+      "GEOFF"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-23",
+    "last_seen": "2025-01-23",
+    "trade_count": 1
+  },
+  {
+    "id": "76f2eae9-7051-4dc0-a42a-8c7f5402550f",
+    "supplier_clean": "STORE AMEX",
+    "raw_variants": [
+      "STORE AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-30",
+    "last_seen": "2025-10-01",
+    "trade_count": 2
+  },
+  {
+    "id": "67a7a4e6-a39b-42a5-8301-55e4bda4b7c3",
+    "supplier_clean": "CHANEL SLOANE AMEX / ED PAGE",
+    "raw_variants": [
+      "CHANEL SLOANE AMEX / ED PAGE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-03-25",
+    "last_seen": "2025-03-25",
+    "trade_count": 1
+  },
+  {
+    "id": "5272d288-122d-4162-9bd0-53ef6be15373",
+    "supplier_clean": "GLOSS VINTAGE",
+    "raw_variants": [
+      "GLOSS VINTAGE"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "0775f72e-724b-4e01-8591-5d842270e013",
+    "supplier_clean": "MADALINA DENISA",
+    "raw_variants": [
+      "MADALINA DENISA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-10",
+    "last_seen": "2025-01-10",
+    "trade_count": 1
+  },
+  {
+    "id": "0f1e8ba0-7026-4341-ae9f-b795f7c6b40c",
+    "supplier_clean": "OLGA",
+    "raw_variants": [
+      "OLGA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-02-25",
+    "last_seen": "2025-02-25",
+    "trade_count": 1
+  },
+  {
+    "id": "4a155a88-7d61-404d-8157-1a57c96c99ab",
+    "supplier_clean": "WALTON ST AME",
+    "raw_variants": [
+      "WALTON ST AME"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-06-13",
+    "last_seen": "2025-06-13",
+    "trade_count": 1
+  },
+  {
+    "id": "ccd86bf2-f253-44a4-b0b3-470a266722d0",
+    "supplier_clean": "crystal",
+    "raw_variants": [
+      "crystal"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1
+  },
+  {
+    "id": "716e3f5d-5793-452a-9b1a-7ed5470dc1e5",
+    "supplier_clean": "BAGISTA",
+    "raw_variants": [
+      "BAGISTA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1
+  },
+  {
+    "id": "f6d10e86-750b-468e-ab73-c55333e7019e",
+    "supplier_clean": "CHARLIE STOCKBOX",
+    "raw_variants": [
+      "CHARLIE STOCKBOX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-19",
+    "last_seen": "2025-01-19",
+    "trade_count": 1
+  },
+  {
+    "id": "45382877-0341-4f56-ac9f-c88fa8ccdbf5",
+    "supplier_clean": "STOCK SOPHIE HARRODS?",
+    "raw_variants": [
+      "STOCK SOPHIE HARRODS?"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-01-23",
+    "last_seen": "2025-01-23",
+    "trade_count": 1
+  },
+  {
+    "id": "16a0c7f5-5ca7-4dc5-89b6-abe11f381eae",
+    "supplier_clean": "HARRODS AMEX",
+    "raw_variants": [
+      "HARRODS AMEX"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-06-24",
+    "last_seen": "2025-06-24",
+    "trade_count": 1
+  },
+  {
+    "id": "f49e118c-129f-4db3-9905-722dbda64b0b",
+    "supplier_clean": "Analogs SA",
+    "raw_variants": [
+      "Analogs SA"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1
+  },
+  {
+    "id": "5e69c472-fa39-47ae-9c80-9c309f91a6de",
+    "supplier_clean": "chanel nice",
+    "raw_variants": [
+      "chanel nice"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1
+  },
+  {
+    "id": "af5e3bd4-957d-4533-b6b3-0584349d2425",
+    "supplier_clean": "Julie phillips",
+    "raw_variants": [
+      "Julie phillips"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1
+  },
+  {
+    "id": "fa3e5fcd-2ed5-44a8-b512-73bc1b48d83f",
+    "supplier_clean": "STOCK - AMEX - BROWNS?",
+    "raw_variants": [
+      "STOCK - AMEX - BROWNS?"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-23",
+    "last_seen": "2025-05-23",
+    "trade_count": 1
+  },
+  {
+    "id": "74983957-0513-418d-a0b1-6bc25a9c053c",
+    "supplier_clean": "PROPER SHOPPER",
+    "raw_variants": [
+      "PROPER SHOPPER"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 2
+  },
+  {
+    "id": "b04c84d4-f3aa-4307-a767-25598e73ce9b",
+    "supplier_clean": "JAMES PS",
+    "raw_variants": [
+      "JAMES PS"
+    ],
+    "requires_review": false,
+    "reason": "",
+    "first_seen": "2025-05-27",
+    "last_seen": "2025-05-27",
+    "trade_count": 1
+  }
+]

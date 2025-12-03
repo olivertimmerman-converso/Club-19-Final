@@ -5,6 +5,7 @@ import { useTrade } from "@/contexts/TradeContext";
 import { Club19Logo } from "./Club19Logo";
 import { WizardStep } from "@/lib/types/invoice";
 import { UserButton } from "@clerk/nextjs";
+import Link from "next/link";
 
 const STEP_LABELS = ["Item Details", "Pricing", "Supplier & Buyer", "Logistics & Tax", "Review & Create"];
 
@@ -44,7 +45,7 @@ export function WizardShell({ children }: WizardShellProps) {
             >
               <Club19Logo />
             </button>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="flex flex-col items-end text-right">
                 <h1 className="font-serif text-base font-light leading-tight tracking-wide text-gray-900 sm:text-lg lg:text-xl">
                   Sales Atelier
@@ -53,6 +54,12 @@ export function WizardShell({ children }: WizardShellProps) {
                   Precision deal creation
                 </p>
               </div>
+              <Link
+                href="/dashboard"
+                className="hidden sm:flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 border border-gray-300 rounded-full hover:border-black hover:text-black transition-all"
+              >
+                Sales OS
+              </Link>
               <UserButton
                 afterSignOutUrl="/"
                 appearance={{

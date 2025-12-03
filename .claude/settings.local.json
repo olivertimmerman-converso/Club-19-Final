@@ -4,7 +4,21 @@
       "Bash(tree:*)",
       "Bash(npm run build)",
       "Bash(cd:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(npx vercel:*)",
+      "Bash(cat:*)",
+      "Bash(npx @clerk/backend:*)",
+      "Bash(node:*)",
+      "Bash(find:*)",
+      "Bash(chmod:*)",
+      "Bash(python3:*)",
+      "Bash(npm install:*)",
+      "Bash(xata schema edit:*)",
+      "Bash(npx xata:*)",
+      "Bash(perl -i -pe:*)"
     ],
     "deny": [],
     "ask": []

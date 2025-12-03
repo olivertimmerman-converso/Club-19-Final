@@ -1,0 +1,642 @@
+{
+  "Galaxy VIC": {
+    "clean": "Galaxy VIC",
+    "requires_review": false
+  },
+  "STOCK": {
+    "clean": "Stock (Internal)",
+    "requires_review": false
+  },
+  "Phuong": {
+    "clean": "Phuong",
+    "requires_review": false
+  },
+  "Chanel Bond": {
+    "clean": "Chanel Bond",
+    "requires_review": false
+  },
+  "Chanel Sloane": {
+    "clean": "Chanel Sloane",
+    "requires_review": false
+  },
+  "STOCK/": {
+    "clean": "STOCK/",
+    "requires_review": false
+  },
+  "Cherry": {
+    "clean": "Cherry",
+    "requires_review": false
+  },
+  "Crystal": {
+    "clean": "Crystal",
+    "requires_review": false
+  },
+  "LHS luxury": {
+    "clean": "LHS luxury",
+    "requires_review": false
+  },
+  "Maastic": {
+    "clean": "Maastic",
+    "requires_review": false
+  },
+  "Mercure": {
+    "clean": "Mercure",
+    "requires_review": false
+  },
+  "Fenny": {
+    "clean": "Fenny",
+    "requires_review": false
+  },
+  "VIC": {
+    "clean": "VIC",
+    "requires_review": false
+  },
+  "Naj": {
+    "clean": "Naj",
+    "requires_review": false
+  },
+  "shop with CC": {
+    "clean": "shop with CC",
+    "requires_review": false
+  },
+  "MIA LUXURY": {
+    "clean": "MIA LUXURY",
+    "requires_review": false
+  },
+  "EMPIRE": {
+    "clean": "EMPIRE",
+    "requires_review": false
+  },
+  "Carlotta": {
+    "clean": "Carlotta",
+    "requires_review": false
+  },
+  "VIC GALAXY": {
+    "clean": "VIC GALAXY",
+    "requires_review": false
+  },
+  "Shirley": {
+    "clean": "Shirley",
+    "requires_review": false
+  },
+  "Chanel bond": {
+    "clean": "Chanel bond",
+    "requires_review": false
+  },
+  "Selfridges": {
+    "clean": "Selfridges",
+    "requires_review": false
+  },
+  "Vic GAlaxy": {
+    "clean": "Vic GAlaxy",
+    "requires_review": false
+  },
+  "Sandra lebanon": {
+    "clean": "Sandra lebanon",
+    "requires_review": false
+  },
+  "Unknown": {
+    "clean": "Unknown",
+    "requires_review": false
+  },
+  "CLAUDIA": {
+    "clean": "CLAUDIA",
+    "requires_review": false
+  },
+  "KIM": {
+    "clean": "KIM",
+    "requires_review": false
+  },
+  "TARA": {
+    "clean": "TARA",
+    "requires_review": false
+  },
+  "HARRODS": {
+    "clean": "HARRODS",
+    "requires_review": false
+  },
+  "CRYSTAL": {
+    "clean": "CRYSTAL",
+    "requires_review": false
+  },
+  "ARIEL": {
+    "clean": "ARIEL",
+    "requires_review": false
+  },
+  "EDUARDO": {
+    "clean": "EDUARDO",
+    "requires_review": false
+  },
+  "PRIME - MAYA": {
+    "clean": "PRIME - MAYA",
+    "requires_review": false
+  },
+  "BOND ST": {
+    "clean": "BOND ST",
+    "requires_review": false
+  },
+  "CRYSTSL": {
+    "clean": "CRYSTSL",
+    "requires_review": false
+  },
+  "ASTYLA": {
+    "clean": "ASTYLA",
+    "requires_review": false
+  },
+  "LEANDRO": {
+    "clean": "LEANDRO",
+    "requires_review": false
+  },
+  "BV BOND": {
+    "clean": "BV BOND",
+    "requires_review": false
+  },
+  "ARAYA": {
+    "clean": "ARAYA",
+    "requires_review": false
+  },
+  "BAG A ALUX": {
+    "clean": "BAG A ALUX",
+    "requires_review": false
+  },
+  "SUPPLIER": {
+    "clean": "SUPPLIER",
+    "requires_review": false
+  },
+  "YALI": {
+    "clean": "YALI",
+    "requires_review": false
+  },
+  "Elle": {
+    "clean": "Elle",
+    "requires_review": false
+  },
+  "Bags by Appointment": {
+    "clean": "Bags by Appointment",
+    "requires_review": false
+  },
+  "AINHARA": {
+    "clean": "AINHARA",
+    "requires_review": false
+  },
+  "ANTONIO": {
+    "clean": "ANTONIO",
+    "requires_review": false
+  },
+  "CELINE BOND - AMEX": {
+    "clean": "CELINE BOND - AMEX",
+    "requires_review": false
+  },
+  "SELFRIDGES AMEX": {
+    "clean": "SELFRIDGES AMEX",
+    "requires_review": false
+  },
+  "Private label": {
+    "clean": "Private label",
+    "requires_review": false
+  },
+  "21 srl": {
+    "clean": "21 srl",
+    "requires_review": false
+  },
+  "ARIAL": {
+    "clean": "ARIAL",
+    "requires_review": false
+  },
+  "BAB": {
+    "clean": "BAB",
+    "requires_review": false
+  },
+  "KRIS SELF": {
+    "clean": "KRIS SELF",
+    "requires_review": false
+  },
+  "LIZA": {
+    "clean": "LIZA",
+    "requires_review": false
+  },
+  "Madani Lasfar": {
+    "clean": "Madani Lasfar",
+    "requires_review": false
+  },
+  "Alaia - Bond Street": {
+    "clean": "Alaia - Bond Street",
+    "requires_review": false
+  },
+  "selfridges": {
+    "clean": "selfridges",
+    "requires_review": false
+  },
+  "THC finds": {
+    "clean": "THC finds",
+    "requires_review": false
+  },
+  "proper shopper": {
+    "clean": "proper shopper",
+    "requires_review": false
+  },
+  "piyal": {
+    "clean": "piyal",
+    "requires_review": false
+  },
+  "mica kim": {
+    "clean": "mica kim",
+    "requires_review": false
+  },
+  "Kim": {
+    "clean": "Kim",
+    "requires_review": false
+  },
+  "ELLE": {
+    "clean": "ELLE",
+    "requires_review": false
+  },
+  "CRYSTALS": {
+    "clean": "CRYSTALS",
+    "requires_review": false
+  },
+  "NGOC": {
+    "clean": "NGOC",
+    "requires_review": false
+  },
+  "ANGELA": {
+    "clean": "ANGELA",
+    "requires_review": false
+  },
+  "NAP Amex": {
+    "clean": "NAP Amex",
+    "requires_review": false
+  },
+  "lsps": {
+    "clean": "lsps",
+    "requires_review": false
+  },
+  "ollie shipp": {
+    "clean": "ollie shipp",
+    "requires_review": false
+  },
+  "Mia": {
+    "clean": "Mia",
+    "requires_review": false
+  },
+  "PRIME": {
+    "clean": "PRIME",
+    "requires_review": false
+  },
+  "ls shopper": {
+    "clean": "ls shopper",
+    "requires_review": false
+  },
+  "prime": {
+    "clean": "prime",
+    "requires_review": false
+  },
+  "Fabulicious ltd": {
+    "clean": "Fabulicious ltd",
+    "requires_review": false
+  },
+  "HJ HARRODS": {
+    "clean": "HJ HARRODS",
+    "requires_review": false
+  },
+  "Harrods": {
+    "clean": "Harrods",
+    "requires_review": false
+  },
+  "MONICA STAMP": {
+    "clean": "MONICA STAMP",
+    "requires_review": false
+  },
+  "MAISON MIA": {
+    "clean": "MAISON MIA",
+    "requires_review": false
+  },
+  "JAY": {
+    "clean": "JAY",
+    "requires_review": false
+  },
+  "SARAH H": {
+    "clean": "SARAH H",
+    "requires_review": false
+  },
+  "JAMES LSPS": {
+    "clean": "JAMES LSPS",
+    "requires_review": false
+  },
+  "MIA": {
+    "clean": "MIA",
+    "requires_review": false
+  },
+  "ANAHIDE": {
+    "clean": "ANAHIDE",
+    "requires_review": false
+  },
+  "OLLY / JACKIE": {
+    "clean": "OLLY / JACKIE",
+    "requires_review": false
+  },
+  "DUBAI AIRPORT/LARA": {
+    "clean": "DUBAI AIRPORT/LARA",
+    "requires_review": false
+  },
+  "OLOLADE": {
+    "clean": "OLOLADE",
+    "requires_review": false
+  },
+  "Yali Ding": {
+    "clean": "Yali Ding",
+    "requires_review": false
+  },
+  "STORE HARRODS AMEX": {
+    "clean": "STORE HARRODS AMEX",
+    "requires_review": false
+  },
+  "LEANA": {
+    "clean": "LEANA",
+    "requires_review": false
+  },
+  "CHICI / BON MARCHE AMEX": {
+    "clean": "CHICI / BON MARCHE AMEX",
+    "requires_review": false
+  },
+  "BOND ST AMELX": {
+    "clean": "BOND ST AMELX",
+    "requires_review": false
+  },
+  "CHICI": {
+    "clean": "CHICI",
+    "requires_review": false
+  },
+  "YOKO ELLE": {
+    "clean": "YOKO ELLE",
+    "requires_review": false
+  },
+  "Prime": {
+    "clean": "Prime",
+    "requires_review": false
+  },
+  "GUZZ BURGESS": {
+    "clean": "GUZZ BURGESS",
+    "requires_review": false
+  },
+  "BBA": {
+    "clean": "BBA",
+    "requires_review": false
+  },
+  "HERMES BOY": {
+    "clean": "HERMES BOY",
+    "requires_review": false
+  },
+  "SPACELUX": {
+    "clean": "SPACELUX",
+    "requires_review": false
+  },
+  "MAYA PRIME": {
+    "clean": "MAYA PRIME",
+    "requires_review": false
+  },
+  "SIMONA": {
+    "clean": "SIMONA",
+    "requires_review": false
+  },
+  "CHLOE BOND - AMEX": {
+    "clean": "CHLOE BOND - AMEX",
+    "requires_review": false
+  },
+  "Yelyzaveta Artonkina": {
+    "clean": "Yelyzaveta Artonkina",
+    "requires_review": false
+  },
+  "GREEN AMEX VB ONLINE": {
+    "clean": "GREEN AMEX VB ONLINE",
+    "requires_review": false
+  },
+  "Astyla": {
+    "clean": "Astyla",
+    "requires_review": false
+  },
+  "Ela Walton St Ame": {
+    "clean": "Ela Walton St Ame",
+    "requires_review": false
+  },
+  "CLEO": {
+    "clean": "CLEO",
+    "requires_review": false
+  },
+  "AMELIA": {
+    "clean": "AMELIA",
+    "requires_review": false
+  },
+  "LORO SLOANE AMEX": {
+    "clean": "LORO SLOANE AMEX",
+    "requires_review": false
+  },
+  "MERCURE": {
+    "clean": "MERCURE",
+    "requires_review": false
+  },
+  "chanel bond street": {
+    "clean": "chanel bond street",
+    "requires_review": false
+  },
+  "chich": {
+    "clean": "chich",
+    "requires_review": false
+  },
+  "POSH LUXURY": {
+    "clean": "POSH LUXURY",
+    "requires_review": false
+  },
+  "TAN": {
+    "clean": "TAN",
+    "requires_review": false
+  },
+  "ELIN MAASTIC": {
+    "clean": "ELIN MAASTIC",
+    "requires_review": false
+  },
+  "Crystal Kee Kee": {
+    "clean": "Crystal Kee Kee",
+    "requires_review": false
+  },
+  "ELA WALTON": {
+    "clean": "ELA WALTON",
+    "requires_review": false
+  },
+  "MO": {
+    "clean": "MO",
+    "requires_review": false
+  },
+  "Nina": {
+    "clean": "Nina",
+    "requires_review": false
+  },
+  "FREDDY": {
+    "clean": "FREDDY",
+    "requires_review": false
+  },
+  "WALTON ST": {
+    "clean": "WALTON ST",
+    "requires_review": false
+  },
+  "ariel": {
+    "clean": "ariel",
+    "requires_review": false
+  },
+  "SLOANE AMEX": {
+    "clean": "SLOANE AMEX",
+    "requires_review": false
+  },
+  "CLAUDIA PROPER SHOPPER": {
+    "clean": "CLAUDIA PROPER SHOPPER",
+    "requires_review": false
+  },
+  "liza": {
+    "clean": "liza",
+    "requires_review": false
+  },
+  "STORE SLOANE AMEX": {
+    "clean": "STORE SLOANE AMEX",
+    "requires_review": false
+  },
+  "NINA": {
+    "clean": "NINA",
+    "requires_review": false
+  },
+  "WALTON ST HARRODS AMEX": {
+    "clean": "WALTON ST HARRODS AMEX",
+    "requires_review": false
+  },
+  "YAN": {
+    "clean": "YAN",
+    "requires_review": false
+  },
+  "ELA CHANEL WALTON": {
+    "clean": "ELA CHANEL WALTON",
+    "requires_review": false
+  },
+  "Maison mia": {
+    "clean": "Maison mia",
+    "requires_review": false
+  },
+  "olly bromfield": {
+    "clean": "olly bromfield",
+    "requires_review": false
+  },
+  "hj shopper": {
+    "clean": "hj shopper",
+    "requires_review": false
+  },
+  "chanel walton": {
+    "clean": "chanel walton",
+    "requires_review": false
+  },
+  "IMAN ABDEL KHALEK": {
+    "clean": "IMAN ABDEL KHALEK",
+    "requires_review": false
+  },
+  "IVA VENDOME": {
+    "clean": "IVA VENDOME",
+    "requires_review": false
+  },
+  "THE LUXE DETECTIVE": {
+    "clean": "THE LUXE DETECTIVE",
+    "requires_review": false
+  },
+  "SABRINA": {
+    "clean": "SABRINA",
+    "requires_review": false
+  },
+  "ONLINE AMEX": {
+    "clean": "ONLINE AMEX",
+    "requires_review": false
+  },
+  "KRIS SELFRIDGES": {
+    "clean": "KRIS SELFRIDGES",
+    "requires_review": false
+  },
+  "Nicole": {
+    "clean": "Nicole",
+    "requires_review": false
+  },
+  "KIKO": {
+    "clean": "KIKO",
+    "requires_review": false
+  },
+  "eduardo": {
+    "clean": "eduardo",
+    "requires_review": false
+  },
+  "GEOFF": {
+    "clean": "GEOFF",
+    "requires_review": false
+  },
+  "STORE AMEX": {
+    "clean": "STORE AMEX",
+    "requires_review": false
+  },
+  "CHANEL SLOANE AMEX / ED PAGE": {
+    "clean": "CHANEL SLOANE AMEX / ED PAGE",
+    "requires_review": false
+  },
+  "GLOSS VINTAGE": {
+    "clean": "GLOSS VINTAGE",
+    "requires_review": false
+  },
+  "MADALINA DENISA": {
+    "clean": "MADALINA DENISA",
+    "requires_review": false
+  },
+  "OLGA": {
+    "clean": "OLGA",
+    "requires_review": false
+  },
+  "WALTON ST AME": {
+    "clean": "WALTON ST AME",
+    "requires_review": false
+  },
+  "crystal": {
+    "clean": "crystal",
+    "requires_review": false
+  },
+  "BAGISTA": {
+    "clean": "BAGISTA",
+    "requires_review": false
+  },
+  "CHARLIE STOCKBOX": {
+    "clean": "CHARLIE STOCKBOX",
+    "requires_review": false
+  },
+  "STOCK SOPHIE HARRODS?": {
+    "clean": "STOCK SOPHIE HARRODS?",
+    "requires_review": false
+  },
+  "HARRODS AMEX": {
+    "clean": "HARRODS AMEX",
+    "requires_review": false
+  },
+  "Analogs SA": {
+    "clean": "Analogs SA",
+    "requires_review": false
+  },
+  "chanel nice": {
+    "clean": "chanel nice",
+    "requires_review": false
+  },
+  "Julie phillips": {
+    "clean": "Julie phillips",
+    "requires_review": false
+  },
+  "STOCK - AMEX - BROWNS?": {
+    "clean": "STOCK - AMEX - BROWNS?",
+    "requires_review": false
+  },
+  "PROPER SHOPPER": {
+    "clean": "PROPER SHOPPER",
+    "requires_review": false
+  },
+  "JAMES PS": {
+    "clean": "JAMES PS",
+    "requires_review": false
+  }
+}

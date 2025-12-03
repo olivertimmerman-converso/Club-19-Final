@@ -1,0 +1,116 @@
+/**
+ * Club 19 Sales OS - Shopper Legacy Dashboard
+ *
+ * Allowed: All roles
+ * - Shoppers see only their own data
+ * - Other roles can select which shopper to view
+ */
+
+export const dynamic = "force-dynamic";
+
+import { getUserRole } from "@/lib/getUserRole";
+import { auth } from "@clerk/nextjs/server";
+import {
+  getLegacySummary,
+  getLegacyMonthlySales,
+  getLegacyByCategory,
+  getLegacyBySupplier,
+  getTopLegacyClients,
+  getTopLegacySuppliers,
+  getRecentLegacyTrades,
+} from "@/lib/legacyData";
+import { SummaryCards } from "@/components/legacy/SummaryCards";
+import { SalesOverTimeChart } from "@/components/legacy/SalesOverTimeChart";
+import { MarginOverTimeChart } from "@/components/legacy/MarginOverTimeChart";
+import { CategoryBreakdownChart } from "@/components/legacy/CategoryBreakdownChart";
+import { SupplierContributionChart } from "@/components/legacy/SupplierContributionChart";
+import { TopClientsTable } from "@/components/legacy/TopClientsTable";
+import { TopSuppliersTable } from "@/components/legacy/TopSuppliersTable";
+import { RecentTradesTable } from "@/components/legacy/RecentTradesTable";
+import { ShopperSelector } from "@/components/legacy/ShopperSelector";
+
+export default async function MyLegacySalesPage({
+  searchParams,
+}: {
+  searchParams: { shopper?: string };
+}) {
+  const role = await getUserRole();
+  const { sessionClaims } = await auth();
+
+  // Determine which shopper's data to show
+  let shopperToView: "Hope" | "MC";
+
+  if (role === "shopper") {
+    // Shoppers see only their own data
+    // Detect shopper from Clerk user name
+    const userName = (sessionClaims as any)?.name || "";
+    shopperToView = userName.toLowerCase().includes("hope") ? "Hope" : "MC";
+  } else {
+    // Non-shoppers can select
+    shopperToView = (searchParams.shopper as "Hope" | "MC") || "Hope";
+  }
+
+  // Fetch data for selected shopper
+  const [
+    summary,
+    monthlySales,
+    categoryData,
+    supplierData,
+    topClients,
+    topSuppliers,
+    recentTrades,
+  ] = await Promise.all([
+    getLegacySummary(shopperToView),
+    getLegacyMonthlySales(shopperToView),
+    getLegacyByCategory(shopperToView),
+    getLegacyBySupplier(shopperToView),
+    getTopLegacyClients(shopperToView),
+    getTopLegacySuppliers(shopperToView),
+    getRecentLegacyTrades(20, shopperToView),
+  ]);
+
+  return (
+    <div className="p-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-semibold text-gray-900 mb-2">
+          {role === "shopper" ? "My Legacy Sales" : `${shopperToView}'s Legacy Sales`}
+        </h1>
+        <p className="text-gray-600">
+          Historical trade data (Dec 2024 - Oct 2025)
+        </p>
+      </div>
+
+      {/* Shopper Selector (non-shoppers only) */}
+      {role !== "shopper" && (
+        <div className="mb-6">
+          <ShopperSelector currentShopper={shopperToView} />
+        </div>
+      )}
+
+      {/* Summary Cards (no counts for shopper view) */}
+      <SummaryCards summary={summary} showCounts={false} />
+
+      {/* Charts - 2 Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <SalesOverTimeChart data={monthlySales} />
+        <MarginOverTimeChart data={monthlySales} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <CategoryBreakdownChart data={categoryData} />
+        <SupplierContributionChart data={supplierData} />
+      </div>
+
+      {/* Tables - Full Width */}
+      <div className="space-y-6 mb-8">
+        <RecentTradesTable data={recentTrades} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TopClientsTable data={topClients} />
+        <TopSuppliersTable data={topSuppliers} />
+      </div>
+    </div>
+  );
+}

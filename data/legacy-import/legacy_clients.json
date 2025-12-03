@@ -1,0 +1,1905 @@
+[
+  {
+    "id": "f025044c-ef87-42bd-9084-008e5776c772",
+    "client_clean": "bw prive",
+    "raw_variants": [
+      "BW PRIVE",
+      "BW Prive",
+      "BW prive"
+    ],
+    "client_status": "B2B",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 27,
+    "requires_review": false
+  },
+  {
+    "id": "98c0c713-1d30-4148-9f59-d50f541c5924",
+    "client_clean": "georgie insall",
+    "raw_variants": [
+      "Georgie Insall"
+    ],
+    "client_status": "B2B",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "999e82cb-b520-40c6-aca3-008e3660acf3",
+    "client_clean": "rohiqa mistrty",
+    "raw_variants": [
+      "Rohiqa Mistrty"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "56df1638-148c-4dfd-a73c-914275d5623c",
+    "client_clean": "mudhi mjid alsudairy",
+    "raw_variants": [
+      "Mudhi Mjid Alsudairy"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "73a2b549-489c-4567-a253-2f377ee69ea8",
+    "client_clean": "vitoria",
+    "raw_variants": [
+      "Vitoria"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "0a6102f0-1505-479b-9e46-560548283834",
+    "client_clean": "tatijana domovits",
+    "raw_variants": [
+      "TATIJANA DOMOVITS",
+      "Tatijana Domovits"
+    ],
+    "client_status": "End Client",
+    "first_seen": "2025-04-15",
+    "last_seen": "2025-04-15",
+    "trade_count": 11,
+    "requires_review": false
+  },
+  {
+    "id": "78c1f660-dca0-4929-8185-6a3c77742797",
+    "client_clean": "hewi",
+    "raw_variants": [
+      "HEWI"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 6,
+    "requires_review": false
+  },
+  {
+    "id": "a50d7250-1e56-4203-b310-a04175814dd7",
+    "client_clean": "camille",
+    "raw_variants": [
+      "Camille"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "0be13f39-c5f0-4010-9d00-bafb5a67f7dd",
+    "client_clean": "sarah k",
+    "raw_variants": [
+      "Sarah K"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "9d79aebc-4a74-4812-869f-0250ef947ca2",
+    "client_clean": "georgie wood",
+    "raw_variants": [
+      "Georgie Wood"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "6916a743-683b-4d51-8cab-0c11c7f865d6",
+    "client_clean": "enzo ide",
+    "raw_variants": [
+      "Enzo Ide"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "e13ef9dd-ac16-4656-86d2-646925f36a6c",
+    "client_clean": "awp",
+    "raw_variants": [
+      "AWP"
+    ],
+    "client_status": "B2B",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 3,
+    "requires_review": false
+  },
+  {
+    "id": "8d92689c-1085-4e5e-add5-fdae89422794",
+    "client_clean": "connie ps",
+    "raw_variants": [
+      "Connie PS"
+    ],
+    "client_status": "B2B",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "fd1d2a41-036c-4603-b013-375d6e519d83",
+    "client_clean": "rohiqa mistry",
+    "raw_variants": [
+      "ROHIQA MISTRY",
+      "Rohiqa Mistry"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 15,
+    "requires_review": false
+  },
+  {
+    "id": "a93348ac-5005-4238-8a6d-2fa82c05a1ce",
+    "client_clean": "leandro",
+    "raw_variants": [
+      "Leandro"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "a8bcade0-f457-4be6-8c35-3fc3842c3de6",
+    "client_clean": "basma",
+    "raw_variants": [
+      "Basma"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "4ba8b6fa-1533-47f7-8428-df9f0715c475",
+    "client_clean": "sara k",
+    "raw_variants": [
+      "Sara K"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "aa04c686-fc8f-4f1b-a62b-d7c93776da6b",
+    "client_clean": "tati domovts",
+    "raw_variants": [
+      "Tati Domovts"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "406095dc-8c03-46dd-9be1-7ecb44ef9c42",
+    "client_clean": "rohqia mistry",
+    "raw_variants": [
+      "ROHQIA MISTRY"
+    ],
+    "client_status": "End Client",
+    "first_seen": "2025-04-04",
+    "last_seen": "2025-04-09",
+    "trade_count": 3,
+    "requires_review": false
+  },
+  {
+    "id": "6e33a7b0-f956-4bee-9280-227ed738611b",
+    "client_clean": "awp - ciel bleu",
+    "raw_variants": [
+      "AWP - CIEL BLEU"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-04-15",
+    "last_seen": "2025-04-15",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "79debd8e-e3eb-4129-b95b-af8de41fb6d1",
+    "client_clean": "camille zarsky",
+    "raw_variants": [
+      "CAMILLE ZARSKY"
+    ],
+    "client_status": "End Client",
+    "first_seen": "2025-04-28",
+    "last_seen": "2025-04-28",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "2033de14-f5be-4e24-8b8b-5da6da377da2",
+    "client_clean": "awp - ciel blue",
+    "raw_variants": [
+      "AWP - CIEL BLUE"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-04-29",
+    "last_seen": "2025-04-29",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "6b45c640-a45f-4136-b978-605ef48e77b9",
+    "client_clean": "hardly ever worn it",
+    "raw_variants": [
+      "HARDLY EVER WORN IT"
+    ],
+    "client_status": "B2B",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "23699c48-5f7b-4f12-8cfb-fb190274c920",
+    "client_clean": "apoorva mehta",
+    "raw_variants": [
+      "APOORVA MEHTA"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "e6d4703c-625a-4c1a-a12e-e76ccc7d2016",
+    "client_clean": "farah bin ess",
+    "raw_variants": [
+      "FARAH BIN ESS"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "cc7705b4-48f5-49d7-b61f-8a62a5657532",
+    "client_clean": "bijal (apoorva)",
+    "raw_variants": [
+      "Bijal (Apoorva)"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "1179e4cf-2831-4a75-b129-825e8d78f112",
+    "client_clean": "anood khaled",
+    "raw_variants": [
+      "Anood Khaled"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "bec983e4-8b52-4abb-9290-300473d6b0f0",
+    "client_clean": "claire vick",
+    "raw_variants": [
+      "Claire Vick"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "afd3181d-416d-4b86-89fe-934624bdc1a5",
+    "client_clean": "allesandra francescutti",
+    "raw_variants": [
+      "Allesandra Francescutti"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "defd27c0-4655-4a24-8e71-ec11543ce9bd",
+    "client_clean": "emma collier",
+    "raw_variants": [
+      "EMMA COLLIER"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "4ab1bdde-f20c-4337-8e44-068f656cfb1d",
+    "client_clean": "gillian loo",
+    "raw_variants": [
+      "GILLIAN LOO"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "d3f0e867-cdfb-42d8-b11a-9aa4edf79492",
+    "client_clean": "wajd alsabah",
+    "raw_variants": [
+      "WAJD ALSABAH"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "df90ee90-f087-4c91-b59e-b98937871f85",
+    "client_clean": "tatjana domovits",
+    "raw_variants": [
+      "TATJANA DOMOVITS"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "576305b6-b80d-4f5d-adf9-1f15dbf3ff0c",
+    "client_clean": "noura yazeed",
+    "raw_variants": [
+      "NOURA YAZEED"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "99f6f2f0-6b37-4cb8-80ad-01da11226ee2",
+    "client_clean": "basma al saud",
+    "raw_variants": [
+      "BASMA AL SAUD"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "44b61cc3-914a-48d1-a51d-4759a32b07a3",
+    "client_clean": "de bouvoir house",
+    "raw_variants": [
+      "DE BOUVOIR HOUSE"
+    ],
+    "client_status": "B2B",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "99224ab7-495a-42b5-ba7b-702bb760a8b1",
+    "client_clean": "ashleigh pogue",
+    "raw_variants": [
+      "ASHLEIGH POGUE"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "b46c067e-927d-4f3e-a739-7064e6231492",
+    "client_clean": "ciel bleu",
+    "raw_variants": [
+      "CIEL BLEU"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-05-19",
+    "last_seen": "2025-05-19",
+    "trade_count": 3,
+    "requires_review": false
+  },
+  {
+    "id": "083e539d-8112-448a-93db-070e4ea88474",
+    "client_clean": "emma p lily",
+    "raw_variants": [
+      "EMMA P LILY"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "219d70ea-23b2-4983-a14d-ac4cbb347939",
+    "client_clean": "ruth barinstein",
+    "raw_variants": [
+      "RUTH BARINSTEIN"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "fa6f5020-0984-44b0-aa35-5d6b28603c69",
+    "client_clean": "yulia blower",
+    "raw_variants": [
+      "YULIA BLOWER"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "86c75f6f-daef-4a99-94b2-b7cfc2b50ca2",
+    "client_clean": "dbh",
+    "raw_variants": [
+      "DBH"
+    ],
+    "client_status": "B2B",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "a19ed883-e545-4a41-a97b-b191f44d54e4",
+    "client_clean": "ghada alghamdi",
+    "raw_variants": [
+      "GHADA ALGHAMDI"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "0a44d039-e511-48b9-8d24-a1c417e85e1f",
+    "client_clean": "shaikha suroor",
+    "raw_variants": [
+      "SHAIKHA SUROOR"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "ab2235aa-6cf2-4a0a-9040-5dd7b59662eb",
+    "client_clean": "maryam daewood",
+    "raw_variants": [
+      "MARYAM DAEWOOD"
+    ],
+    "client_status": "End Client",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "f7b297e9-4fab-4e20-9705-37aaf6b7115e",
+    "client_clean": "client",
+    "raw_variants": [
+      "CLIENT"
+    ],
+    "client_status": "CLIENT STATUS",
+    "first_seen": null,
+    "last_seen": null,
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "5bb7f0c8-fcc7-4a49-9e04-d687490a2692",
+    "client_clean": "a list",
+    "raw_variants": [
+      "A LIST"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-04-29",
+    "last_seen": "2025-04-29",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "45af9e87-9295-4552-8061-6e1435f6ccdd",
+    "client_clean": "aduna moreno",
+    "raw_variants": [
+      "Aduna Moreno"
+    ],
+    "client_status": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "38074748-4ec7-403c-be60-bc62f94d9501",
+    "client_clean": "ainhara atanes",
+    "raw_variants": [
+      "Ainhara Atanes"
+    ],
+    "client_status": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "375fd79f-6a9b-4deb-b27f-9e505eb4b3b5",
+    "client_clean": "amalie fries",
+    "raw_variants": [
+      "AMALIE FRIES"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-04-22",
+    "last_seen": "2025-04-22",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "928d64a0-46c2-48cc-abe4-61fc2a69051a",
+    "client_clean": "amelia",
+    "raw_variants": [
+      "AMELIA"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-02-13",
+    "last_seen": "2025-02-13",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "02432ba2-8c33-4d38-a506-3f324fb05761",
+    "client_clean": "amy feinblett",
+    "raw_variants": [
+      "AMY FEINBLETT"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-05-12",
+    "last_seen": "2025-05-12",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "f61c01e8-bd0a-4d4c-a565-e9b52d5017bd",
+    "client_clean": "becky c",
+    "raw_variants": [
+      "BECKY C"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-02-04",
+    "last_seen": "2025-02-04",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "c8b40964-f29d-474e-94d1-fe6cff281eed",
+    "client_clean": "becky chernov",
+    "raw_variants": [
+      "BECKY CHERNOV"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-03-28",
+    "last_seen": "2025-03-28",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "d3c668f0-74c5-46d9-b9d5-2dcbbdceb928",
+    "client_clean": "bettina looney",
+    "raw_variants": [
+      "BETTINA LOONEY",
+      "Bettina Looney"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 3,
+    "requires_review": false
+  },
+  {
+    "id": "9bb575c4-91a9-45b6-9a5c-1236c6ef5702",
+    "client_clean": "black label",
+    "raw_variants": [
+      "BLACK LABEL"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "5aae7b4a-d88c-4adf-897d-3a4824cade5d",
+    "client_clean": "calaum fl",
+    "raw_variants": [
+      "CALAUM FL"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-06-13",
+    "last_seen": "2025-06-13",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "70fe000c-8216-401b-8f51-a3d138c0bb8b",
+    "client_clean": "caroline stanbury",
+    "raw_variants": [
+      "CAROLINE STANBURY"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-04-30",
+    "last_seen": "2025-04-30",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "1f66de8a-8269-4302-856e-1f7c1b54d86a",
+    "client_clean": "chloe de s",
+    "raw_variants": [
+      "CHLOE DE S"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-02-13",
+    "last_seen": "2025-02-13",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "ae504889-6a7e-428a-98d6-faf1a27d8d82",
+    "client_clean": "chloe green",
+    "raw_variants": [
+      "chloe green"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 3,
+    "requires_review": false
+  },
+  {
+    "id": "091160f1-91f8-4b81-b2c6-c9952e65bf80",
+    "client_clean": "claudia harding",
+    "raw_variants": [
+      "claudia harding"
+    ],
+    "client_status": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "0894ef3e-18e8-465c-bfce-2cc48edb99f9",
+    "client_clean": "con questa",
+    "raw_variants": [
+      "Con questa"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "a447a654-ad12-4554-b02e-0c32139d6d8c",
+    "client_clean": "corinne anthony",
+    "raw_variants": [
+      "Corinne Anthony"
+    ],
+    "client_status": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "3c81fab3-30e1-4e03-baca-d59fc08d260e",
+    "client_clean": "cristina renaldo",
+    "raw_variants": [
+      "CRISTINA RENALDO",
+      "cristina renaldo"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-04-14",
+    "last_seen": "2025-07-01",
+    "trade_count": 3,
+    "requires_review": false
+  },
+  {
+    "id": "1005fc51-619f-4fc3-9e0a-bf8ae46be117",
+    "client_clean": "david mills",
+    "raw_variants": [
+      "David Mills"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "eb29d1a0-fc7d-4394-921b-cd14d4fa1c87",
+    "client_clean": "db payments",
+    "raw_variants": [
+      "DB PAYMENTS"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "ee93827f-bd11-4831-9a66-35dc2c058ed1",
+    "client_clean": "elena loktionova",
+    "raw_variants": [
+      "ELENA LOKTIONOVA"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-03-05",
+    "last_seen": "2025-03-05",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "8bdbd87d-d0bd-4976-a74e-141942e3b98f",
+    "client_clean": "elizabeth fisher",
+    "raw_variants": [
+      "ELIZABETH FISHER"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "42b9513d-28ae-44d1-9dbe-2f43846bb84b",
+    "client_clean": "emelia grosoli",
+    "raw_variants": [
+      "EMELIA GROSOLI",
+      "Emelia Grosoli"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-02-18",
+    "last_seen": "2025-10-01",
+    "trade_count": 12,
+    "requires_review": false
+  },
+  {
+    "id": "811ed727-72c4-46fc-b644-394f9dd7d67d",
+    "client_clean": "emilija radat",
+    "raw_variants": [
+      "EMILIJA RADAT"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "436c1b42-81d6-4d53-8661-20af33d58347",
+    "client_clean": "erika buchanan",
+    "raw_variants": [
+      "Erika Buchanan"
+    ],
+    "client_status": "",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "aad88a63-b2b8-4ca0-b2d7-30e445adfb43",
+    "client_clean": "francesco",
+    "raw_variants": [
+      "FRANCESCO"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-01-23",
+    "last_seen": "2025-01-30",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "f076ec2a-62d7-4f60-be1b-b80359de913e",
+    "client_clean": "francesco grosoli",
+    "raw_variants": [
+      "FRANCESCO GROSOLI",
+      "Francesco Grosoli"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-03-19",
+    "last_seen": "2025-09-01",
+    "trade_count": 4,
+    "requires_review": false
+  },
+  {
+    "id": "e941d4d3-0b36-473a-843d-fb42777ed92e",
+    "client_clean": "georgie coleridge cole",
+    "raw_variants": [
+      "GEORGIE COLERIDGE COLE"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-04-17",
+    "last_seen": "2025-04-17",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "5555ca6a-4d49-4b5f-8cb7-9c7793cc2e6e",
+    "client_clean": "gillian noble",
+    "raw_variants": [
+      "GILLIAN NOBLE"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-06-11",
+    "last_seen": "2025-06-11",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "965fd461-9354-4817-8e47-bcaf425677aa",
+    "client_clean": "haley silverberg",
+    "raw_variants": [
+      "HALEY SILVERBERG"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-02-21",
+    "last_seen": "2025-02-21",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "f20f8a0c-775a-45b0-baf6-a672d2cf6a59",
+    "client_clean": "harsh indulge global",
+    "raw_variants": [
+      "HARSH INDULGE GLOBAL"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "198aee1f-b2e7-4979-aee4-8098a907ad1f",
+    "client_clean": "henrik klinkhammer",
+    "raw_variants": [
+      "HENRIK KLINKHAMMER"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-05-12",
+    "last_seen": "2025-05-12",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "d97caffa-5789-452e-9320-87e00cf47961",
+    "client_clean": "iman abdel khalek",
+    "raw_variants": [
+      "IMAN ABDEL KHALEK"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-02-22",
+    "last_seen": "2025-06-12",
+    "trade_count": 3,
+    "requires_review": false
+  },
+  {
+    "id": "6f87e14f-8b65-4c7b-bd10-987bc12fa43b",
+    "client_clean": "imogen alexander debeauvoir house",
+    "raw_variants": [
+      "IMOGEN ALEXANDER DEBEAUVOIR HOUSE"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "fb2e3338-14c9-4620-aa2b-bebde4e31935",
+    "client_clean": "insignia",
+    "raw_variants": [
+      "INSIGNIA",
+      "insignia"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 5,
+    "requires_review": false
+  },
+  {
+    "id": "704c892d-4a28-4234-9385-5695bc12517a",
+    "client_clean": "jay boateng",
+    "raw_variants": [
+      "JAY BOATENG"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-03-19",
+    "last_seen": "2025-03-19",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "5a2fe357-d61b-493f-8b1b-2942ba0a4a40",
+    "client_clean": "jayne blight",
+    "raw_variants": [
+      "JAYNE BLIGHT",
+      "Jayne Blight"
+    ],
+    "client_status": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "3a706db1-e002-49ee-a013-f76f41a0a186",
+    "client_clean": "jennifer o'brien",
+    "raw_variants": [
+      "JENNIFER O'BRIEN"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-06-24",
+    "last_seen": "2025-06-24",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "14c58939-ec70-4f8d-823b-ee0e717a558a",
+    "client_clean": "jitka",
+    "raw_variants": [
+      "JITKA"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-03-05",
+    "last_seen": "2025-03-05",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "b5a09fbf-169d-4a5c-8a55-b09404f10ed2",
+    "client_clean": "joanne hill",
+    "raw_variants": [
+      "JOANNE HILL"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-02-14",
+    "last_seen": "2025-02-14",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "3b872545-558c-411e-9ebd-0147988b8b66",
+    "client_clean": "jordan grant",
+    "raw_variants": [
+      "JORDAN GRANT"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "66c8f90e-a59e-4faf-aafa-344a9290796a",
+    "client_clean": "jordan welker",
+    "raw_variants": [
+      "JORDAN WELKER",
+      "Jordan welker"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-05-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 4,
+    "requires_review": false
+  },
+  {
+    "id": "6642c651-a2b9-4c5b-9f6b-e8aac03ddb77",
+    "client_clean": "jordan yorn",
+    "raw_variants": [
+      "JORDAN YORN",
+      "Jordan yorn"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-01-27",
+    "last_seen": "2025-10-01",
+    "trade_count": 4,
+    "requires_review": false
+  },
+  {
+    "id": "85d0cfeb-27bd-4c55-9ddd-c7e5bf076d20",
+    "client_clean": "julie graham",
+    "raw_variants": [
+      "julie graham"
+    ],
+    "client_status": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "bd961267-ccae-42f0-9a8a-352a98772da7",
+    "client_clean": "julie phillips",
+    "raw_variants": [
+      "JULIE PHILLIPS"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "1996e5fe-d6d9-44f1-8879-9eb3d9621dc3",
+    "client_clean": "kai threads styling",
+    "raw_variants": [
+      "KAI THREADS STYLING"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-04-28",
+    "last_seen": "2025-04-28",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "10b2601c-48c9-45cc-99aa-f612e77dbed5",
+    "client_clean": "kareem",
+    "raw_variants": [
+      "Kareem"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "8fecf5f4-2633-4cb8-9bcc-66f3420c4327",
+    "client_clean": "kareem fahmy",
+    "raw_variants": [
+      "KAREEM FAHMY"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-01-15",
+    "last_seen": "2025-05-31",
+    "trade_count": 5,
+    "requires_review": false
+  },
+  {
+    "id": "0bfcc2e9-d3d5-4763-852e-ced7052a6fd0",
+    "client_clean": "katey caldwell",
+    "raw_variants": [
+      "Katey Caldwell"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "f9185877-6c16-4bdb-b1b4-c1189fa15456",
+    "client_clean": "katherine caldwell",
+    "raw_variants": [
+      "Katherine Caldwell"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "01404ce7-82a3-4f16-ae47-edd7f3833334",
+    "client_clean": "khaled",
+    "raw_variants": [
+      "KHALED"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-02-19",
+    "last_seen": "2025-02-19",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "8b93418e-fdb0-494f-8156-c4fdeff33690",
+    "client_clean": "khaled al m",
+    "raw_variants": [
+      "KHALED AL M"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-01-19",
+    "last_seen": "2025-01-25",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "88bdd63f-92d6-4da9-9b98-90f6967b2c24",
+    "client_clean": "khaled al muhairy",
+    "raw_variants": [
+      "Khaled Al Muhairy"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "c7b84f8f-1291-4983-b268-2ddf4084239b",
+    "client_clean": "khrystyna",
+    "raw_variants": [
+      "khrystyna"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "f53d7b9c-752e-41de-9e76-1a3f90e857fb",
+    "client_clean": "lafayette concierge",
+    "raw_variants": [
+      "LAFAYETTE CONCIERGE"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "a26e86d7-fc46-4802-a651-369cfe778edd",
+    "client_clean": "lauren kelly",
+    "raw_variants": [
+      "LAUREN KELLY"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-05-01",
+    "last_seen": "2025-05-07",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "cb553e6f-daaf-422c-880a-488fb09f5225",
+    "client_clean": "lauren mccoy",
+    "raw_variants": [
+      "LAUREN MCCOY"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-05-20",
+    "last_seen": "2025-05-20",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "edec40df-9660-4366-bce4-641c7fc18287",
+    "client_clean": "lauren threads",
+    "raw_variants": [
+      "LAUREN THREADS"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-06-01",
+    "last_seen": "2025-06-30",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "1491c960-dfc2-4ab9-99e8-f40b20f4309e",
+    "client_clean": "layan abdulla",
+    "raw_variants": [
+      "Layan Abdulla"
+    ],
+    "client_status": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "500f38d7-9dba-46f0-a0ac-4a2545088cfd",
+    "client_clean": "lily f /",
+    "raw_variants": [
+      "LILY F /"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-01-27",
+    "last_seen": "2025-01-27",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "60bfdcfb-3ee0-4793-856b-09f017c558ef",
+    "client_clean": "ls personal shopper",
+    "raw_variants": [
+      "ls personal shopper"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "7b29363a-1af0-42c7-b1c2-09754cb6a3aa",
+    "client_clean": "lucy kareem wife",
+    "raw_variants": [
+      "LUCY KAREEM WIFE"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-05-21",
+    "last_seen": "2025-05-21",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "6a3b2f7a-4562-4a2f-995e-aaa25561a0e2",
+    "client_clean": "lyndon lea",
+    "raw_variants": [
+      "lyndon lea"
+    ],
+    "client_status": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "7cc6b354-5ee1-4c9d-9afb-906aa3677451",
+    "client_clean": "maastic",
+    "raw_variants": [
+      "MAASTIC"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-04-08",
+    "last_seen": "2025-04-08",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "5768d33b-d36d-4490-94ad-184594e38e44",
+    "client_clean": "maria bucchianeri",
+    "raw_variants": [
+      "MARIA BUCCHIANERI"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-03-26",
+    "last_seen": "2025-06-25",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "f54a33c8-e3c4-4cd1-9037-d0bbd5581e55",
+    "client_clean": "maria sitaramayya",
+    "raw_variants": [
+      "Maria Sitaramayya"
+    ],
+    "client_status": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "4ac2ed63-7950-40fd-a427-19b2cb581df0",
+    "client_clean": "marlene pereira",
+    "raw_variants": [
+      "MARLENE PEREIRA"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "e704dc33-192b-40c6-9206-72b77d7c791d",
+    "client_clean": "martha l d'agostini",
+    "raw_variants": [
+      "MARTHA L D'AGOSTINI"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "1664f99c-362e-4a2d-ae8d-ded35dc2bbaf",
+    "client_clean": "matt hadfield",
+    "raw_variants": [
+      "MATT HADFIELD"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "d3e6beea-693a-4702-a717-99923a990cff",
+    "client_clean": "mel procura",
+    "raw_variants": [
+      "MEL PROCURA"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-05-07",
+    "last_seen": "2025-10-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "417ea588-9b75-4124-adc0-d7b0b49e204c",
+    "client_clean": "michelle shepherd",
+    "raw_variants": [
+      "Michelle Shepherd"
+    ],
+    "client_status": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "9cfc2478-6fc7-4e90-bf61-8fed077ba239",
+    "client_clean": "millie kahane",
+    "raw_variants": [
+      "MILLIE KAHANE"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-02-24",
+    "last_seen": "2025-02-24",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "14684e8a-63e6-419d-aa7c-c9e9bad47628",
+    "client_clean": "nourhan gomaa",
+    "raw_variants": [
+      "NOURHAN GOMAA",
+      "Nourhan Gomaa"
+    ],
+    "client_status": ", END CLIENT",
+    "first_seen": "2025-04-24",
+    "last_seen": "2025-07-01",
+    "trade_count": 2,
+    "requires_review": true
+  },
+  {
+    "id": "54c230e7-dd71-43d5-a434-2c4a254a95a5",
+    "client_clean": "official watches",
+    "raw_variants": [
+      "Official watches"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "9a52f707-d1a1-4bff-9476-f31f52607064",
+    "client_clean": "oliver",
+    "raw_variants": [
+      "OLIVER"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-03-03",
+    "last_seen": "2025-03-03",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "93d9ced9-a183-4c22-8a65-9496eaccf5d6",
+    "client_clean": "oliver threads",
+    "raw_variants": [
+      "OLIVER THREADS"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-02-17",
+    "last_seen": "2025-02-27",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "b7acbc9f-1b86-4e48-87aa-ca6dd9d3ae43",
+    "client_clean": "onaro",
+    "raw_variants": [
+      "Onaro",
+      "onaro"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "8646a68d-529c-48cf-8414-72653c5b1a51",
+    "client_clean": "patti k",
+    "raw_variants": [
+      "Patti K"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "5a7a56ef-f8ee-4e3f-9f1f-2fc5072fe443",
+    "client_clean": "pien vroegh",
+    "raw_variants": [
+      "pien vroegh"
+    ],
+    "client_status": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "888c9543-8126-4703-b5b0-2c2de1bbd273",
+    "client_clean": "prime",
+    "raw_variants": [
+      "PRIME"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-05-10",
+    "last_seen": "2025-05-10",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "c04cc4e9-b5ab-47f3-83cb-d7c1b6942796",
+    "client_clean": "procura",
+    "raw_variants": [
+      "PROCURA",
+      "Procura"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-01-18",
+    "last_seen": "2025-08-01",
+    "trade_count": 4,
+    "requires_review": false
+  },
+  {
+    "id": "b3b0a5e7-8d4a-4301-b65c-8e3b671419ab",
+    "client_clean": "rachel birkett",
+    "raw_variants": [
+      "RACHEL BIRKETT",
+      "Rachel Birkett"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-06-18",
+    "last_seen": "2025-09-01",
+    "trade_count": 3,
+    "requires_review": false
+  },
+  {
+    "id": "c7a6fea0-075d-4060-86e5-2338cf05ae5b",
+    "client_clean": "rebecca chernov",
+    "raw_variants": [
+      "REBECCA CHERNOV"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "bf1cddc7-1cc5-40e4-9770-08248367b428",
+    "client_clean": "refined luxury",
+    "raw_variants": [
+      "REFINED LUXURY",
+      "Refined luxury"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "6a0700c9-dd52-4b79-ac9c-ebde1df11864",
+    "client_clean": "rik k",
+    "raw_variants": [
+      "RIK K"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-03-16",
+    "last_seen": "2025-03-16",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "f170a1e3-17ac-465f-9f7e-f0c5826718c8",
+    "client_clean": "sabine meidinger",
+    "raw_variants": [
+      "SABINE MEIDINGER"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "18711571-1629-47ca-a3c5-57a1e7f3cdbc",
+    "client_clean": "samantha potter",
+    "raw_variants": [
+      "SAMANTHA POTTER"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "53676c94-d0eb-46de-8291-335147dbfbdf",
+    "client_clean": "samantha wilson",
+    "raw_variants": [
+      "SAMANTHA WILSON"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-06-27",
+    "last_seen": "2025-06-27",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "e233c783-ba81-4399-b186-713212f61591",
+    "client_clean": "sara anne tiern",
+    "raw_variants": [
+      "Sara Anne Tiern"
+    ],
+    "client_status": "",
+    "first_seen": "2025-07-01",
+    "last_seen": "2025-07-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "4c487d14-76f4-42ce-afe7-ebb24f69e994",
+    "client_clean": "sara kayruz",
+    "raw_variants": [
+      "SARA KAYRUZ"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "9f89f489-d5c1-40d1-a022-802b1b182c90",
+    "client_clean": "sara martinez",
+    "raw_variants": [
+      "SARA MARTINEZ"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2024-12-16",
+    "last_seen": "2024-12-16",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "01ff2c89-2ac5-4105-bfca-17c1fee0bd85",
+    "client_clean": "sarah anne tierney",
+    "raw_variants": [
+      "Sarah Anne Tierney"
+    ],
+    "client_status": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "a1621906-6eaa-460b-b773-e4be1495e69f",
+    "client_clean": "sarah hopkins",
+    "raw_variants": [
+      "SARAH HOPKINS"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-01-23",
+    "last_seen": "2025-03-14",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "4403ee64-9313-4199-80d4-7cd1ccc7a7bf",
+    "client_clean": "shayoon yasin",
+    "raw_variants": [
+      "SHAYOON YASIN"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-05-30",
+    "last_seen": "2025-05-30",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "367ed229-6d75-4da1-a675-fc5f11aa6065",
+    "client_clean": "sheena birch",
+    "raw_variants": [
+      "SHEENA BIRCH"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-06-30",
+    "last_seen": "2025-06-30",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "d9c9d39b-6a0e-4783-a144-3a2b1a9ed8f1",
+    "client_clean": "sini nacken-meinen",
+    "raw_variants": [
+      "SINI NACKEN-MEINEN"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-03-25",
+    "last_seen": "2025-03-25",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "11352a85-dbae-42b1-8b0b-97a608947d5c",
+    "client_clean": "sm creps",
+    "raw_variants": [
+      "SM CREPS"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "77b9471f-a336-403a-9cb7-7ae8e8a5e318",
+    "client_clean": "sophie s",
+    "raw_variants": [
+      "SOPHIE S"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-01-10",
+    "last_seen": "2025-02-25",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "d25b235d-7618-4578-b6d9-9c5b6975b6b7",
+    "client_clean": "sophie sinclair",
+    "raw_variants": [
+      "SOPHIE SINCLAIR",
+      "Sophie Sinclair"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-05-20",
+    "last_seen": "2025-10-01",
+    "trade_count": 5,
+    "requires_review": false
+  },
+  {
+    "id": "54c5de92-06d1-45cc-8f8b-2074172c8841",
+    "client_clean": "steph h",
+    "raw_variants": [
+      "STEPH H"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-01-19",
+    "last_seen": "2025-01-23",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "50fc7f73-c3f2-437a-acbe-49d98d39d8bc",
+    "client_clean": "steph hill",
+    "raw_variants": [
+      "STEPH HILL",
+      "Steph Hill"
+    ],
+    "client_status": ", END CLIENT",
+    "first_seen": "2025-06-24",
+    "last_seen": "2025-09-01",
+    "trade_count": 2,
+    "requires_review": true
+  },
+  {
+    "id": "aa6a18ca-311e-4d3f-8230-ffc1e6fdbcfd",
+    "client_clean": "susan clery",
+    "raw_variants": [
+      "susan clery"
+    ],
+    "client_status": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "37c2f7f4-70d2-41e0-babd-1651f07930b8",
+    "client_clean": "tash de savary",
+    "raw_variants": [
+      "Tash de savary"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-09-01",
+    "last_seen": "2025-09-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "fe6fc04d-5ec9-40d4-ac86-96b7888aaca2",
+    "client_clean": "taylor mehrez",
+    "raw_variants": [
+      "TAYLOR MEHREZ"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-06-02",
+    "last_seen": "2025-06-02",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "ccfed028-c00b-48c4-8eae-65bcf33922f2",
+    "client_clean": "tfh",
+    "raw_variants": [
+      "TFH"
+    ],
+    "client_status": "",
+    "first_seen": "2025-08-01",
+    "last_seen": "2025-08-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "8c5275c2-cc0b-467c-8639-4ae255cca5ad",
+    "client_clean": "threads",
+    "raw_variants": [
+      "THREADS"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-05-23",
+    "last_seen": "2025-05-23",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "b72cdfe9-b9d2-47a4-b1cf-972a2b5ea8ca",
+    "client_clean": "with maya ltd",
+    "raw_variants": [
+      "WITH MAYA LTD"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "551cb8db-4868-4df1-ac49-188379879e16",
+    "client_clean": "yelena eveloff",
+    "raw_variants": [
+      "YELENA EVELOFF"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "050495d4-51bb-4391-9d3f-987cf8edc53b",
+    "client_clean": "yena kim",
+    "raw_variants": [
+      "YENA KIM"
+    ],
+    "client_status": "END CLIENT",
+    "first_seen": "2025-05-27",
+    "last_seen": "2025-05-27",
+    "trade_count": 1,
+    "requires_review": false
+  },
+  {
+    "id": "0671ad2c-bd5a-4cda-bad2-a65ddaa62ddc",
+    "client_clean": "yesenia estrada",
+    "raw_variants": [
+      "YESENIA ESTRADA"
+    ],
+    "client_status": "",
+    "first_seen": "2025-10-01",
+    "last_seen": "2025-10-01",
+    "trade_count": 2,
+    "requires_review": false
+  },
+  {
+    "id": "96b26017-69d8-4078-be05-2a6060dae936",
+    "client_clean": "zarina bettina",
+    "raw_variants": [
+      "ZARINA BETTINA"
+    ],
+    "client_status": "B2B",
+    "first_seen": "2025-03-27",
+    "last_seen": "2025-03-27",
+    "trade_count": 1,
+    "requires_review": false
+  }
+]

@@ -1,0 +1,2389 @@
+[
+  {
+    "clean_name": "Galaxy VIC",
+    "raw_variants": [
+      "Galaxy VIC"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Stock (Internal)",
+    "raw_variants": [
+      "STOCK"
+    ],
+    "sources": [
+      "Hope",
+      "MC"
+    ],
+    "rows": [
+      6,
+      19,
+      20,
+      25,
+      95,
+      14,
+      103
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Phuong",
+    "raw_variants": [
+      "Phuong"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      7
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Chanel Bond",
+    "raw_variants": [
+      "Chanel Bond"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      8
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Chanel Sloane",
+    "raw_variants": [
+      "Chanel Sloane"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      9
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "STOCK/",
+    "raw_variants": [
+      "STOCK/"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      10
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Cherry",
+    "raw_variants": [
+      "Cherry"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      11
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Crystal",
+    "raw_variants": [
+      "Crystal"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      12,
+      17
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "LHS luxury",
+    "raw_variants": [
+      "LHS luxury"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      13
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Maastic",
+    "raw_variants": [
+      "Maastic"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      14
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Mercure",
+    "raw_variants": [
+      "Mercure"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      15
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Fenny",
+    "raw_variants": [
+      "Fenny"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      16
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "VIC",
+    "raw_variants": [
+      "VIC"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      18
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Naj",
+    "raw_variants": [
+      "Naj"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      21
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "shop with CC",
+    "raw_variants": [
+      "shop with CC"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      22
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "MIA LUXURY",
+    "raw_variants": [
+      "MIA LUXURY"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      23,
+      28
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "EMPIRE",
+    "raw_variants": [
+      "EMPIRE"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      24
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Carlotta",
+    "raw_variants": [
+      "Carlotta"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      26
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "VIC GALAXY",
+    "raw_variants": [
+      "VIC GALAXY"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      27
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Shirley",
+    "raw_variants": [
+      "Shirley"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      29
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Chanel bond",
+    "raw_variants": [
+      "Chanel bond"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      30
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Selfridges",
+    "raw_variants": [
+      "Selfridges"
+    ],
+    "sources": [
+      "Hope",
+      "MC"
+    ],
+    "rows": [
+      31,
+      32,
+      88
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Vic GAlaxy",
+    "raw_variants": [
+      "Vic GAlaxy"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      33
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Sandra lebanon",
+    "raw_variants": [
+      "Sandra lebanon"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      34
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Unknown",
+    "raw_variants": [
+      "Unknown"
+    ],
+    "sources": [
+      "Hope",
+      "MC"
+    ],
+    "rows": [
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      107,
+      23,
+      79,
+      133
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CLAUDIA",
+    "raw_variants": [
+      "CLAUDIA"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      94,
+      99
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "KIM",
+    "raw_variants": [
+      "KIM"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      96
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "TARA",
+    "raw_variants": [
+      "TARA"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      97
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "HARRODS",
+    "raw_variants": [
+      "HARRODS"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      98
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CRYSTAL",
+    "raw_variants": [
+      "CRYSTAL"
+    ],
+    "sources": [
+      "Hope",
+      "MC"
+    ],
+    "rows": [
+      100,
+      104,
+      105,
+      116,
+      10,
+      26,
+      104,
+      107,
+      124,
+      130,
+      168,
+      177
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ARIEL",
+    "raw_variants": [
+      "ARIEL"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      101,
+      102
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "EDUARDO",
+    "raw_variants": [
+      "EDUARDO"
+    ],
+    "sources": [
+      "Hope",
+      "MC"
+    ],
+    "rows": [
+      103,
+      112,
+      181
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "PRIME - MAYA",
+    "raw_variants": [
+      "PRIME - MAYA"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      106
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "BOND ST",
+    "raw_variants": [
+      "BOND ST"
+    ],
+    "sources": [
+      "Hope",
+      "MC"
+    ],
+    "rows": [
+      108,
+      35
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CRYSTSL",
+    "raw_variants": [
+      "CRYSTSL"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      109
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ASTYLA",
+    "raw_variants": [
+      "ASTYLA"
+    ],
+    "sources": [
+      "Hope",
+      "MC"
+    ],
+    "rows": [
+      110,
+      31,
+      102
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "LEANDRO",
+    "raw_variants": [
+      "LEANDRO"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      111
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "BV BOND",
+    "raw_variants": [
+      "BV BOND"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      113
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ARAYA",
+    "raw_variants": [
+      "ARAYA"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      114,
+      115
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "BAG A ALUX",
+    "raw_variants": [
+      "BAG A ALUX"
+    ],
+    "sources": [
+      "Hope"
+    ],
+    "rows": [
+      117
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "SUPPLIER",
+    "raw_variants": [
+      "SUPPLIER"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      2
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "YALI",
+    "raw_variants": [
+      "YALI"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      3,
+      121,
+      138
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Elle",
+    "raw_variants": [
+      "Elle"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      4,
+      37,
+      99,
+      100
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Bags by Appointment",
+    "raw_variants": [
+      "Bags by Appointment"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      5,
+      24,
+      140
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "AINHARA",
+    "raw_variants": [
+      "AINHARA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      6
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ANTONIO",
+    "raw_variants": [
+      "ANTONIO"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      7,
+      142
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CELINE BOND - AMEX",
+    "raw_variants": [
+      "CELINE BOND - AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      8
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "SELFRIDGES AMEX",
+    "raw_variants": [
+      "SELFRIDGES AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      9,
+      83,
+      91,
+      125,
+      158
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Private label",
+    "raw_variants": [
+      "Private label"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      11
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "21 srl",
+    "raw_variants": [
+      "21 srl"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      12
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ARIAL",
+    "raw_variants": [
+      "ARIAL"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      13
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "BAB",
+    "raw_variants": [
+      "BAB"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      15
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "KRIS SELF",
+    "raw_variants": [
+      "KRIS SELF"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      16
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "LIZA",
+    "raw_variants": [
+      "LIZA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      17,
+      21,
+      166
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Madani Lasfar",
+    "raw_variants": [
+      "Madani Lasfar"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      18
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Alaia - Bond Street",
+    "raw_variants": [
+      "Alaia - Bond Street"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      19,
+      143
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "selfridges",
+    "raw_variants": [
+      "selfridges"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      20
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "THC finds",
+    "raw_variants": [
+      "THC finds"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      22
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "proper shopper",
+    "raw_variants": [
+      "proper shopper"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      25
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "piyal",
+    "raw_variants": [
+      "piyal"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      27
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "mica kim",
+    "raw_variants": [
+      "mica kim"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      28
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Kim",
+    "raw_variants": [
+      "Kim"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      29
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ELLE",
+    "raw_variants": [
+      "ELLE"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      30,
+      75,
+      120
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CRYSTALS",
+    "raw_variants": [
+      "CRYSTALS"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      32,
+      45
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "NGOC",
+    "raw_variants": [
+      "NGOC"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      33
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ANGELA",
+    "raw_variants": [
+      "ANGELA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      34
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "NAP Amex",
+    "raw_variants": [
+      "NAP Amex"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      36
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "lsps",
+    "raw_variants": [
+      "lsps"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      38
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ollie shipp",
+    "raw_variants": [
+      "ollie shipp"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      39
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Mia",
+    "raw_variants": [
+      "Mia"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      40,
+      113,
+      127
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "PRIME",
+    "raw_variants": [
+      "PRIME"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      41,
+      62,
+      77,
+      128,
+      141,
+      152,
+      161
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ls shopper",
+    "raw_variants": [
+      "ls shopper"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      42,
+      65
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "prime",
+    "raw_variants": [
+      "prime"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      43,
+      147
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Fabulicious ltd",
+    "raw_variants": [
+      "Fabulicious ltd"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      44
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "HJ HARRODS",
+    "raw_variants": [
+      "HJ HARRODS"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      46,
+      155
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Harrods",
+    "raw_variants": [
+      "Harrods"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      47,
+      53
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "MONICA STAMP",
+    "raw_variants": [
+      "MONICA STAMP"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      48
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "MAISON MIA",
+    "raw_variants": [
+      "MAISON MIA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      49,
+      58,
+      86
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "JAY",
+    "raw_variants": [
+      "JAY"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      50
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "SARAH H",
+    "raw_variants": [
+      "SARAH H"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      51
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "JAMES LSPS",
+    "raw_variants": [
+      "JAMES LSPS"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      52
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "MIA",
+    "raw_variants": [
+      "MIA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      54
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ANAHIDE",
+    "raw_variants": [
+      "ANAHIDE"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      55
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "OLLY / JACKIE",
+    "raw_variants": [
+      "OLLY / JACKIE"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      56
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "DUBAI AIRPORT/LARA",
+    "raw_variants": [
+      "DUBAI AIRPORT/LARA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      57
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "OLOLADE",
+    "raw_variants": [
+      "OLOLADE"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      59,
+      61
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Yali Ding",
+    "raw_variants": [
+      "Yali Ding"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      60
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "STORE HARRODS AMEX",
+    "raw_variants": [
+      "STORE HARRODS AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      63
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "LEANA",
+    "raw_variants": [
+      "LEANA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      64
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CHICI / BON MARCHE AMEX",
+    "raw_variants": [
+      "CHICI / BON MARCHE AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      66
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "BOND ST AMELX",
+    "raw_variants": [
+      "BOND ST AMELX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      67
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CHICI",
+    "raw_variants": [
+      "CHICI"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      68,
+      69,
+      146
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "YOKO ELLE",
+    "raw_variants": [
+      "YOKO ELLE"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      70
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Prime",
+    "raw_variants": [
+      "Prime"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      71
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "GUZZ BURGESS",
+    "raw_variants": [
+      "GUZZ BURGESS"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      72
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "BBA",
+    "raw_variants": [
+      "BBA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      73,
+      116
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "HERMES BOY",
+    "raw_variants": [
+      "HERMES BOY"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      74
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "SPACELUX",
+    "raw_variants": [
+      "SPACELUX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      76
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "MAYA PRIME",
+    "raw_variants": [
+      "MAYA PRIME"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      78
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "SIMONA",
+    "raw_variants": [
+      "SIMONA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      80
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CHLOE BOND - AMEX",
+    "raw_variants": [
+      "CHLOE BOND - AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      81
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Yelyzaveta Artonkina",
+    "raw_variants": [
+      "Yelyzaveta Artonkina"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      82
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "GREEN AMEX VB ONLINE",
+    "raw_variants": [
+      "GREEN AMEX VB ONLINE"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      84
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Astyla",
+    "raw_variants": [
+      "Astyla"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      85,
+      144
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Ela Walton St Ame",
+    "raw_variants": [
+      "Ela Walton St Ame"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      87
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CLEO",
+    "raw_variants": [
+      "CLEO"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      89
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "AMELIA",
+    "raw_variants": [
+      "AMELIA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      90
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "LORO SLOANE AMEX",
+    "raw_variants": [
+      "LORO SLOANE AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      92
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "MERCURE",
+    "raw_variants": [
+      "MERCURE"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      93
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "chanel bond street",
+    "raw_variants": [
+      "chanel bond street"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      94
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "chich",
+    "raw_variants": [
+      "chich"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      95
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "POSH LUXURY",
+    "raw_variants": [
+      "POSH LUXURY"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      96
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "TAN",
+    "raw_variants": [
+      "TAN"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      97
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ELIN MAASTIC",
+    "raw_variants": [
+      "ELIN MAASTIC"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      98
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Crystal Kee Kee",
+    "raw_variants": [
+      "Crystal Kee Kee"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      101,
+      110,
+      126,
+      178
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ELA WALTON",
+    "raw_variants": [
+      "ELA WALTON"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      105
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "MO",
+    "raw_variants": [
+      "MO"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      106,
+      148
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Nina",
+    "raw_variants": [
+      "Nina"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      108,
+      123
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "FREDDY",
+    "raw_variants": [
+      "FREDDY"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      109
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "WALTON ST",
+    "raw_variants": [
+      "WALTON ST"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      111
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ariel",
+    "raw_variants": [
+      "ariel"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      112
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "SLOANE AMEX",
+    "raw_variants": [
+      "SLOANE AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      114
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CLAUDIA PROPER SHOPPER",
+    "raw_variants": [
+      "CLAUDIA PROPER SHOPPER"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      115
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "liza",
+    "raw_variants": [
+      "liza"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      117
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "STORE SLOANE AMEX",
+    "raw_variants": [
+      "STORE SLOANE AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      118
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "NINA",
+    "raw_variants": [
+      "NINA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      119,
+      151
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "WALTON ST HARRODS AMEX",
+    "raw_variants": [
+      "WALTON ST HARRODS AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      122
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "YAN",
+    "raw_variants": [
+      "YAN"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      129
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ELA CHANEL WALTON",
+    "raw_variants": [
+      "ELA CHANEL WALTON"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      131
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Maison mia",
+    "raw_variants": [
+      "Maison mia"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      132
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "olly bromfield",
+    "raw_variants": [
+      "olly bromfield"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      134
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "hj shopper",
+    "raw_variants": [
+      "hj shopper"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      135
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "chanel walton",
+    "raw_variants": [
+      "chanel walton"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      136
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "IMAN ABDEL KHALEK",
+    "raw_variants": [
+      "IMAN ABDEL KHALEK"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      137
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "IVA VENDOME",
+    "raw_variants": [
+      "IVA VENDOME"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      139
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "THE LUXE DETECTIVE",
+    "raw_variants": [
+      "THE LUXE DETECTIVE"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      145
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "SABRINA",
+    "raw_variants": [
+      "SABRINA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      149
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "ONLINE AMEX",
+    "raw_variants": [
+      "ONLINE AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      150
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "KRIS SELFRIDGES",
+    "raw_variants": [
+      "KRIS SELFRIDGES"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      153
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Nicole",
+    "raw_variants": [
+      "Nicole"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      154
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "KIKO",
+    "raw_variants": [
+      "KIKO"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      156,
+      185
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "eduardo",
+    "raw_variants": [
+      "eduardo"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      157
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "GEOFF",
+    "raw_variants": [
+      "GEOFF"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      159
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "STORE AMEX",
+    "raw_variants": [
+      "STORE AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      160,
+      184
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CHANEL SLOANE AMEX / ED PAGE",
+    "raw_variants": [
+      "CHANEL SLOANE AMEX / ED PAGE"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      162
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "GLOSS VINTAGE",
+    "raw_variants": [
+      "GLOSS VINTAGE"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      163
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "MADALINA DENISA",
+    "raw_variants": [
+      "MADALINA DENISA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      164
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "OLGA",
+    "raw_variants": [
+      "OLGA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      165
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "WALTON ST AME",
+    "raw_variants": [
+      "WALTON ST AME"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      167
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "crystal",
+    "raw_variants": [
+      "crystal"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      169
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "BAGISTA",
+    "raw_variants": [
+      "BAGISTA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      170
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "CHARLIE STOCKBOX",
+    "raw_variants": [
+      "CHARLIE STOCKBOX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      171
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "STOCK SOPHIE HARRODS?",
+    "raw_variants": [
+      "STOCK SOPHIE HARRODS?"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      172
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "HARRODS AMEX",
+    "raw_variants": [
+      "HARRODS AMEX"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      173
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Analogs SA",
+    "raw_variants": [
+      "Analogs SA"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      174
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "chanel nice",
+    "raw_variants": [
+      "chanel nice"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      175
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "Julie phillips",
+    "raw_variants": [
+      "Julie phillips"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      176
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "STOCK - AMEX - BROWNS?",
+    "raw_variants": [
+      "STOCK - AMEX - BROWNS?"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      179
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "PROPER SHOPPER",
+    "raw_variants": [
+      "PROPER SHOPPER"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      180,
+      183
+    ],
+    "requires_review": false,
+    "reason": ""
+  },
+  {
+    "clean_name": "JAMES PS",
+    "raw_variants": [
+      "JAMES PS"
+    ],
+    "sources": [
+      "MC"
+    ],
+    "rows": [
+      182
+    ],
+    "requires_review": false,
+    "reason": ""
+  }
+]

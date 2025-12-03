@@ -13,6 +13,8 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { canAccess, getHomepage, type UserRole } from "./lib/rbac";
+import { canAccessRoute } from "./lib/sidebarConfig";
+import type { Role } from "./lib/getUserRole";
 
 // Public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
@@ -55,13 +57,13 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   // Get user role from Clerk publicMetadata (Edge Runtime compatible)
   interface ClerkSessionClaims {
     publicMetadata?: {
-      role?: UserRole;
+      role?: Role;
     };
   }
   const role = ((sessionClaims as ClerkSessionClaims)?.publicMetadata?.role) || "shopper";
 
   // Debug logging for role extraction
-  if (pathname.startsWith("/staff")) {
+  if (pathname.startsWith("/staff") || pathname.startsWith("/dashboard") || pathname.startsWith("/sales") || pathname.startsWith("/clients") || pathname.startsWith("/suppliers") || pathname.startsWith("/invoices") || pathname.startsWith("/finance") || pathname.startsWith("/admin") || pathname.startsWith("/legacy")) {
     console.log(`[MIDDLEWARE] 🔍 User ${userId} accessing ${pathname} with role: ${role}`);
   }
 
@@ -78,10 +80,9 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     );
   }
 
-  // Redirect root to role homepage
+  // Redirect root to /dashboard (universal entrypoint)
   if (pathname === "/") {
-    const homepage = getHomepage(role);
-    return NextResponse.redirect(new URL(homepage, req.url));
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   // Allow access to unauthorised page (use constant for consistency)
@@ -89,10 +90,25 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
 
-  // Check RBAC permissions for Staff routes
+  // Check RBAC permissions for new OS routes
+  const isOSRoute = pathname.startsWith("/dashboard") ||
+                    pathname.startsWith("/sales") ||
+                    pathname.startsWith("/clients") ||
+                    pathname.startsWith("/suppliers") ||
+                    pathname.startsWith("/invoices") ||
+                    pathname.startsWith("/finance") ||
+                    pathname.startsWith("/admin") ||
+                    pathname.startsWith("/legacy");
+
+  if (isOSRoute && !canAccessRoute(pathname, role)) {
+    console.error(`[MIDDLEWARE] ❌ Access denied: ${role} tried to access ${pathname}`);
+    return NextResponse.redirect(new URL(ACCESS_DENIED, req.url));
+  }
+
+  // Check RBAC permissions for legacy Staff routes (maintain backward compatibility)
   const isStaffRoute = pathname.startsWith("/staff");
 
-  if (isStaffRoute && !canAccess(pathname, role)) {
+  if (isStaffRoute && !canAccess(pathname, role as UserRole)) {
     console.error(`[MIDDLEWARE] ❌ Access denied: ${role} tried to access ${pathname}`);
     return NextResponse.redirect(new URL(ACCESS_DENIED, req.url));
   }

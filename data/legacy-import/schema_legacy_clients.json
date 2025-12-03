@@ -1,0 +1,16 @@
+{
+  "tables": [
+    {
+      "name": "legacy_clients",
+      "columns": [
+        {"name": "client_clean", "type": "string"},
+        {"name": "raw_variants", "type": "multiple"},
+        {"name": "client_status", "type": "string"},
+        {"name": "first_seen", "type": "datetime"},
+        {"name": "last_seen", "type": "datetime"},
+        {"name": "trade_count", "type": "int"},
+        {"name": "requires_review", "type": "bool"}
+      ]
+    }
+  ]
+}

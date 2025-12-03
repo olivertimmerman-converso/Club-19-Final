@@ -1,0 +1,23 @@
+{
+  "tables": [
+    {
+      "name": "legacy_trades",
+      "columns": [
+        {"name": "invoice_number", "type": "string"},
+        {"name": "trade_date", "type": "datetime"},
+        {"name": "raw_client", "type": "string"},
+        {"name": "raw_supplier", "type": "string"},
+        {"name": "client_id", "type": "link", "link": {"table": "legacy_clients"}},
+        {"name": "supplier_id", "type": "link", "link": {"table": "legacy_suppliers"}},
+        {"name": "item", "type": "text"},
+        {"name": "brand", "type": "string"},
+        {"name": "category", "type": "string"},
+        {"name": "buy_price", "type": "float"},
+        {"name": "sell_price", "type": "float"},
+        {"name": "margin", "type": "float"},
+        {"name": "source", "type": "string"},
+        {"name": "raw_row", "type": "json"}
+      ]
+    }
+  ]
+}

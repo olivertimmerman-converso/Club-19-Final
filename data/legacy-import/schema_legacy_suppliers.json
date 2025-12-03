@@ -1,0 +1,16 @@
+{
+  "tables": [
+    {
+      "name": "legacy_suppliers",
+      "columns": [
+        {"name": "supplier_clean", "type": "string"},
+        {"name": "raw_variants", "type": "multiple"},
+        {"name": "requires_review", "type": "bool"},
+        {"name": "reason", "type": "text"},
+        {"name": "first_seen", "type": "datetime"},
+        {"name": "last_seen", "type": "datetime"},
+        {"name": "trade_count", "type": "int"}
+      ]
+    }
+  ]
+}
