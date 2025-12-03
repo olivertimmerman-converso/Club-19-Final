@@ -18,7 +18,8 @@
       "Bash(npm install:*)",
       "Bash(xata schema edit:*)",
       "Bash(npx xata:*)",
-      "Bash(perl -i -pe:*)"
+      "Bash(perl -i -pe:*)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []
