@@ -4,7 +4,7 @@ export default function SignInPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-white">
       <SignIn
-        fallbackRedirectUrl="/trade/new"
+        fallbackRedirectUrl="/dashboard"
         signUpUrl="/sign-up"
       />
     </div>

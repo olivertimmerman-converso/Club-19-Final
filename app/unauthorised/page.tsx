@@ -6,12 +6,33 @@
 
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
-import { getUserRole } from "@/lib/auth";
-import { getHomepage } from "@/lib/rbac";
+import { getUserRole } from "@/lib/getUserRole";
 
 export default async function UnauthorisedPage() {
-  const role = await getUserRole();
-  const homepage = role ? getHomepage(role) : "/sign-in";
+  let homepage = "/dashboard";
+
+  try {
+    const role = await getUserRole();
+
+    // Determine homepage based on role
+    switch (role) {
+      case "superadmin":
+      case "admin":
+        homepage = "/dashboard";
+        break;
+      case "finance":
+        homepage = "/finance";
+        break;
+      case "shopper":
+        homepage = "/sales";
+        break;
+      default:
+        homepage = "/dashboard";
+    }
+  } catch (error) {
+    console.error("[Unauthorised Page] ❌ Failed to get role:", error);
+    homepage = "/sign-in";
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">

@@ -21,7 +21,9 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/api/xero/webhooks",  // Xero webhooks (signature-verified internally)
+  "/unauthorised",         // Access denied page (needs to be accessible)
+  "/debug-role",           // Debug page (for troubleshooting auth issues)
+  "/api/xero/webhooks",    // Xero webhooks (signature-verified internally)
   "/favicon(.*)",
   "/api/webhooks(.*)",
 ]);

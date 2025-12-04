@@ -8,6 +8,7 @@
 import { getUserRole } from "@/lib/getUserRole";
 import { Sidebar } from "./Sidebar";
 import { OSNav } from "./OSNav";
+import { ErrorFallback } from "./ErrorFallback";
 
 interface OSLayoutProps {
   children: React.ReactNode;
@@ -28,26 +29,8 @@ export async function OSLayout({ children }: OSLayoutProps) {
     console.error("[OSLayout] ❌ Failed to get user role:", error);
     console.error("[OSLayout] 🔄 Rendering error state");
 
-    // Render error fallback
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="max-w-md p-6 bg-white rounded-lg shadow-lg border border-red-300">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">⚠️</span>
-            <h2 className="text-lg font-semibold text-gray-900">Authentication Error</h2>
-          </div>
-          <p className="text-gray-600 mb-4">
-            Unable to load your user session. Please try refreshing the page.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
+    // Render error fallback (client component with button)
+    return <ErrorFallback />;
   }
 
   console.log("[OSLayout] 🎨 Rendering layout with role:", role);
