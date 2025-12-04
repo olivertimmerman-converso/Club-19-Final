@@ -13,7 +13,20 @@ interface OSLayoutProps {
 }
 
 export async function OSLayout({ children }: OSLayoutProps) {
-  const role = await getUserRole();
+  // ---------------------------------------------
+  // TEST MODE OVERRIDE (RBAC + AUTH DISABLED)
+  // In test mode, default to superadmin role and hide user button
+  // ---------------------------------------------
+  let role = "shopper";
+  let isTestMode = false;
+
+  if (process.env.TEST_MODE === "true") {
+    console.warn("[TEST MODE] OSLayout bypassing getUserRole() - returning 'superadmin'");
+    role = "superadmin";
+    isTestMode = true;
+  } else {
+    role = await getUserRole();
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -28,17 +41,26 @@ export async function OSLayout({ children }: OSLayoutProps) {
             {/* Page-specific content can go here */}
           </div>
 
-          {/* User Profile */}
-          <div className="flex items-center gap-4">
-            <UserButton
-              afterSignOutUrl="/sign-in"
-              appearance={{
-                elements: {
-                  avatarBox: "w-10 h-10",
-                },
-              }}
-            />
-          </div>
+          {/* User Profile - Only show if not in test mode */}
+          {!isTestMode && (
+            <div className="flex items-center gap-4">
+              <UserButton
+                afterSignOutUrl="/sign-in"
+                appearance={{
+                  elements: {
+                    avatarBox: "w-10 h-10",
+                  },
+                }}
+              />
+            </div>
+          )}
+
+          {/* Test Mode Indicator */}
+          {isTestMode && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 border border-yellow-300 rounded-md">
+              <span className="text-sm font-medium text-yellow-800">⚠️ TEST MODE</span>
+            </div>
+          )}
         </header>
 
         {/* Page Content */}
