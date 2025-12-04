@@ -8,7 +8,7 @@
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
-import { getUserRole } from "@/lib/getUserRole";
+import { getUserRole, assertLegacyAccess } from "@/lib/getUserRole";
 import {
   getLegacySummary,
   getLegacyMonthlySales,
@@ -33,9 +33,13 @@ export default async function LegacyDashboardPage() {
   // RBAC: Only superadmin, admin, finance
   const role = await getUserRole();
 
+  // Redirect shoppers to their personal sales view
   if (role === "shopper") {
     redirect("/legacy/my-sales");
   }
+
+  // Assert legacy access (will redirect to /unauthorised if denied)
+  assertLegacyAccess(role);
 
   // Fetch all data in parallel
   const [

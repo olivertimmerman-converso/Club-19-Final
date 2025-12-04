@@ -14,7 +14,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { canAccess, getHomepage, type UserRole } from "./lib/rbac";
 import { canAccessRoute } from "./lib/sidebarConfig";
-import type { Role } from "./lib/getUserRole";
+import { resolveUserRoleFromMetadata, type Role } from "./lib/getUserRole";
 
 // Public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
@@ -55,7 +55,6 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   }
 
   // Get user role from Clerk publicMetadata (Edge Runtime compatible)
-  // Support both 'role' and 'staffRole' fields for production compatibility
   interface ClerkSessionClaims {
     publicMetadata?: {
       role?: Role;
@@ -63,11 +62,15 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     };
   }
   const metadata = (sessionClaims as ClerkSessionClaims)?.publicMetadata;
-  const role = (metadata?.staffRole || metadata?.role) || "shopper";
+
+  // Use unified role resolver (single source of truth)
+  const role = resolveUserRoleFromMetadata(metadata);
 
   // Debug logging for role extraction
   if (pathname.startsWith("/staff") || pathname.startsWith("/dashboard") || pathname.startsWith("/sales") || pathname.startsWith("/clients") || pathname.startsWith("/suppliers") || pathname.startsWith("/invoices") || pathname.startsWith("/finance") || pathname.startsWith("/admin") || pathname.startsWith("/legacy")) {
-    console.log(`[MIDDLEWARE] 🔍 User ${userId} accessing ${pathname} with role: ${role}`);
+    console.log(`[MIDDLEWARE] 🔍 User ${userId} accessing ${pathname}`);
+    console.log(`[MIDDLEWARE] 📋 Resolved role: "${role}"`);
+    console.log(`[MIDDLEWARE] 📦 Metadata:`, JSON.stringify(metadata, null, 2));
   }
 
   // Protect admin-only API routes
@@ -103,9 +106,15 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
                     pathname.startsWith("/admin") ||
                     pathname.startsWith("/legacy");
 
-  if (isOSRoute && !canAccessRoute(pathname, role)) {
-    console.error(`[MIDDLEWARE] ❌ Access denied: ${role} tried to access ${pathname}`);
-    return NextResponse.redirect(new URL(ACCESS_DENIED, req.url));
+  if (isOSRoute) {
+    const hasAccess = canAccessRoute(pathname, role);
+    console.log(`[MIDDLEWARE] 🔐 Route check for ${pathname}: role="${role}", hasAccess=${hasAccess}`);
+
+    if (!hasAccess) {
+      console.error(`[MIDDLEWARE] ❌ Access denied: ${role} tried to access ${pathname}`);
+      console.error(`[MIDDLEWARE] 🚨 BLOCKING USER - Redirecting to ${ACCESS_DENIED}`);
+      return NextResponse.redirect(new URL(ACCESS_DENIED, req.url));
+    }
   }
 
   // Check RBAC permissions for legacy Staff routes (maintain backward compatibility)

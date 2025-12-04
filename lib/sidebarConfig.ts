@@ -4,7 +4,7 @@
  * Role-based navigation configuration
  */
 
-import { Role } from "./getUserRole";
+import { LEGACY_ALLOWED_ROLES, Role } from "./getUserRole";
 
 export interface SidebarItem {
   label: string;
@@ -59,7 +59,7 @@ export const sidebarConfig: Record<string, SidebarItem> = {
   legacy: {
     label: "Legacy Data",
     href: "/legacy",
-    roles: ["admin", "finance", "superadmin"],
+    roles: [...LEGACY_ALLOWED_ROLES],
     icon: "Archive",
   },
 };
@@ -84,8 +84,12 @@ export function canAccessRoute(route: string, role: Role): boolean {
 
   if (!item) {
     // Route not in sidebar config - allow by default
+    console.log(`[canAccessRoute] ℹ️  Route "${route}" not in sidebar config - allowing by default`);
     return true;
   }
 
-  return item.roles.includes(role);
+  const hasAccess = item.roles.includes(role);
+  console.log(`[canAccessRoute] 🔍 Route: "${route}", Item: "${item.label}", Allowed roles: [${item.roles.join(", ")}], User role: "${role}", Access: ${hasAccess}`);
+
+  return hasAccess;
 }
