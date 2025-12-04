@@ -4,20 +4,7 @@ const nextConfig = {
   images: {
     domains: ["img.clerk.com"],
   },
-  async redirects() {
-    return [
-      {
-        source: "/invoice",
-        destination: "/trade/new",
-        permanent: true,
-      },
-      {
-        source: "/",
-        destination: "/trade/new",
-        permanent: true,
-      },
-    ];
-  },
+  // Redirects removed - root page now handles routing based on user role
 };
 
 module.exports = nextConfig;
