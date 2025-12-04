@@ -14,7 +14,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { canAccess, getHomepage, type UserRole } from "./lib/rbac";
 import { canAccessRoute } from "./lib/sidebarConfig";
-import { resolveUserRoleFromMetadata, type Role } from "./lib/getUserRole";
+import { resolveUserRoleFromMetadata, type Role } from "./lib/roleUtils";
 
 // Public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([

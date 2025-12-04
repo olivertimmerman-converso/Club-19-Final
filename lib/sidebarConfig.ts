@@ -4,7 +4,7 @@
  * Role-based navigation configuration
  */
 
-import { LEGACY_ALLOWED_ROLES, Role } from "./getUserRole";
+import { LEGACY_ALLOWED_ROLES, type Role } from "./roleUtils";
 
 export interface SidebarItem {
   label: string;
