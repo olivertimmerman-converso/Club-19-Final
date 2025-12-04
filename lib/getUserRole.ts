@@ -1,85 +1,70 @@
 /**
  * Club 19 Sales OS - Server-Side Role Resolution
  *
- * Server-side helper to get user role from Clerk
- *
- * IMPORTANT: This module uses server-only APIs and should ONLY be imported
- * from Server Components, Server Actions, and API routes.
- *
- * For client components or middleware, import from lib/roleUtils.ts instead.
+ * Production-ready role resolution for SSR
+ * NEVER crashes - always returns a valid StaffRole
  */
 
 import "server-only";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import {
-  type Role,
-  LEGACY_ALLOWED_ROLES,
-  resolveUserRoleFromMetadata
-} from "./roleUtils";
+import { type StaffRole, isValidStaffRole, getDefaultRole } from "./roleTypes";
 
 /**
- * Get the current user's role from Clerk metadata
- * Server-side only - uses clerkClient()
+ * Get the current user's staff role from Clerk metadata
  *
- * Includes comprehensive error handling and debug logging
+ * SSR-safe - uses Clerk server APIs only
+ * Never throws - always returns a valid StaffRole
+ * Defaults to "shopper" on any error
  *
- * @returns Role - User's role (defaults to "shopper" if not set)
+ * @returns StaffRole - User's role (defaults to "shopper")
  */
-export async function getUserRole(): Promise<Role> {
-  console.log("[getUserRole] 🔍 Starting role resolution");
+export async function getUserRole(): Promise<StaffRole> {
+  console.log("[getUserRole] 🔍 Starting SSR-safe role resolution");
 
   try {
+    // Get userId from Clerk auth() - SSR optimized
     console.log("[getUserRole] 🔐 Calling Clerk auth()");
     const { userId } = await auth();
-    console.log(`[getUserRole] 📋 UserId from auth: ${userId || "(none)"}`);
+    console.log(`[getUserRole] 📋 UserId: ${userId || "(none)"}`);
 
+    // No userId = unauthenticated = shopper
     if (!userId) {
-      console.log("[getUserRole] ⚠️  No userId found - returning 'shopper' (unauthenticated)");
-      return "shopper";
+      console.log("[getUserRole] ⚠️  No userId - returning 'shopper' (unauthenticated)");
+      return getDefaultRole();
     }
 
-    console.log("[getUserRole] 📡 Fetching user metadata from Clerk");
-    const user = await (await clerkClient()).users.getUser(userId);
-    console.log("[getUserRole] ✅ User metadata retrieved");
+    // Fetch user from Clerk - SSR-safe
+    console.log("[getUserRole] 📡 Fetching user from Clerk");
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    console.log("[getUserRole] ✅ User fetched successfully");
 
-    const metadata = user?.publicMetadata as { role?: Role; staffRole?: Role } | undefined;
+    // Extract staffRole from publicMetadata (CANONICAL SOURCE)
+    const metadata = user?.publicMetadata as { staffRole?: string } | undefined;
     console.log("[getUserRole] 📦 Metadata:", JSON.stringify(metadata, null, 2));
 
-    // Use unified resolver
-    const resolvedRole = resolveUserRoleFromMetadata(metadata);
-    console.log(`[getUserRole] ✅ Final resolved role: "${resolvedRole}"`);
+    const rawRole = metadata?.staffRole;
+    console.log(`[getUserRole] 📋 Raw staffRole from metadata: "${rawRole}"`);
 
-    return resolvedRole;
+    // Validate and return
+    if (rawRole && isValidStaffRole(rawRole)) {
+      console.log(`[getUserRole] ✅ Valid role resolved: "${rawRole}"`);
+      return rawRole;
+    }
+
+    // Invalid or missing role = default to shopper
+    console.log(`[getUserRole] ⚠️  Invalid or missing staffRole - defaulting to "shopper"`);
+    return getDefaultRole();
+
   } catch (error) {
+    // NEVER crash the page - log and return default
     console.error("[getUserRole] ❌ Error fetching user role:", error);
     console.error("[getUserRole] 📊 Error details:", {
       name: error instanceof Error ? error.name : "Unknown",
       message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack?.substring(0, 500) : undefined
     });
-    console.log("[getUserRole] 🔄 Falling back to 'shopper' role due to error");
-    return "shopper";
+    console.log("[getUserRole] 🔄 Falling back to 'shopper' due to error");
+    return getDefaultRole();
   }
-}
-
-/**
- * Assert that a user role has access to legacy dashboards
- * Redirects to /unauthorised if access denied
- *
- * Server-side only - uses Next.js redirect()
- *
- * @param role - User's role to check
- */
-export function assertLegacyAccess(role: Role): void {
-  console.log(`[assertLegacyAccess] 🔐 Checking access for role: "${role}"`);
-  console.log(`[assertLegacyAccess] 📋 Allowed roles:`, LEGACY_ALLOWED_ROLES);
-
-  if (!LEGACY_ALLOWED_ROLES.includes(role as any)) {
-    console.error(`[assertLegacyAccess] ❌ Access DENIED - Role "${role}" not in allowed roles`);
-    console.error(`[assertLegacyAccess] 🚫 Redirecting to /unauthorised`);
-    redirect("/unauthorised");
-  }
-
-  console.log(`[assertLegacyAccess] ✅ Access GRANTED for role: "${role}"`);
 }

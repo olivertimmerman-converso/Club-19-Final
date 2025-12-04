@@ -7,8 +7,8 @@
 
 export const dynamic = "force-dynamic";
 
-import { redirect } from "next/navigation";
-import { getUserRole, assertLegacyAccess } from "@/lib/getUserRole";
+import { getUserRole } from "@/lib/getUserRole";
+import { assertLegacyAccess } from "@/lib/assertAccess";
 import {
   getLegacySummary,
   getLegacyMonthlySales,

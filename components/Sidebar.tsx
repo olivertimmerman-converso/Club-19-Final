@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type Role } from "@/lib/roleUtils";
+import { type StaffRole } from "@/lib/roleTypes";
 import { getSidebarItemsForRole } from "@/lib/sidebarConfig";
 import {
   LayoutDashboard,
@@ -33,7 +33,7 @@ const iconMap = {
 };
 
 interface SidebarProps {
-  role: Role;
+  role: StaffRole;
 }
 
 export function Sidebar({ role }: SidebarProps) {

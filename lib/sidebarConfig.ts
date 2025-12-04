@@ -4,12 +4,12 @@
  * Role-based navigation configuration
  */
 
-import { LEGACY_ALLOWED_ROLES, type Role } from "./roleUtils";
+import { type StaffRole } from "./roleTypes";
 
 export interface SidebarItem {
   label: string;
   href: string;
-  roles: Role[];
+  roles: StaffRole[];
   icon?: string;
 }
 
@@ -59,7 +59,7 @@ export const sidebarConfig: Record<string, SidebarItem> = {
   legacy: {
     label: "Legacy Data",
     href: "/legacy",
-    roles: [...LEGACY_ALLOWED_ROLES],
+    roles: ["superadmin", "admin", "finance"],
     icon: "Archive",
   },
 };
@@ -67,29 +67,8 @@ export const sidebarConfig: Record<string, SidebarItem> = {
 /**
  * Get sidebar items allowed for a specific role
  */
-export function getSidebarItemsForRole(role: Role): SidebarItem[] {
+export function getSidebarItemsForRole(role: StaffRole): SidebarItem[] {
   return Object.values(sidebarConfig).filter((item) =>
     item.roles.includes(role)
   );
-}
-
-/**
- * Check if a user role can access a specific route
- */
-export function canAccessRoute(route: string, role: Role): boolean {
-  // Find matching sidebar item
-  const item = Object.values(sidebarConfig).find(
-    (item) => item.href === route || route.startsWith(item.href + "/")
-  );
-
-  if (!item) {
-    // Route not in sidebar config - allow by default
-    console.log(`[canAccessRoute] ℹ️  Route "${route}" not in sidebar config - allowing by default`);
-    return true;
-  }
-
-  const hasAccess = item.roles.includes(role);
-  console.log(`[canAccessRoute] 🔍 Route: "${route}", Item: "${item.label}", Allowed roles: [${item.roles.join(", ")}], User role: "${role}", Access: ${hasAccess}`);
-
-  return hasAccess;
 }

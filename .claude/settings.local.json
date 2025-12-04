@@ -24,7 +24,8 @@
       "Bash(yes:*)",
       "Bash(script -q /dev/null npx xata codegen:*)",
       "Bash(git fetch:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(wait)"
     ],
     "deny": [],
     "ask": []
