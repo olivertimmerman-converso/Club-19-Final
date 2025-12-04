@@ -33,8 +33,19 @@ const isLegacyProtectedRoute = createRouteMatcher([
 const ACCESS_DENIED = "/unauthorised";
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
-  const { userId, sessionClaims } = await auth();
   const { pathname } = req.nextUrl;
+
+  // ---------------------------------------------
+  // TEST MODE OVERRIDE (RBAC + AUTH DISABLED)
+  // Bypass ALL authentication and RBAC checks
+  // ---------------------------------------------
+  if (process.env.TEST_MODE === "true") {
+    console.warn(`[TEST MODE] ⚠️  Middleware override active for ${pathname}`);
+    console.warn(`[TEST MODE] 🔓 Bypassing all auth + role checks`);
+    return NextResponse.next();
+  }
+
+  const { userId, sessionClaims } = await auth();
 
   // Allow public routes
   if (isPublicRoute(req)) {

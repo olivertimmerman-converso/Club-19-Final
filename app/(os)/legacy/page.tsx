@@ -30,45 +30,55 @@ import { RecentTradesTable } from "@/components/legacy/RecentTradesTable";
 import { ReviewFlagsPanel } from "@/components/legacy/ReviewFlagsPanel";
 
 export default async function LegacyDashboardPage() {
-  // RBAC: Only superadmin, admin, finance
-  const role = await getUserRole();
-
   // ---------------------------------------------
-  // TEMPORARY OVERRIDE: PAGE-LEVEL RBAC DISABLED
-  // Allows all authenticated users to view legacy dashboard
-  // during test mode (matches middleware RBAC disable)
+  // TEST MODE OVERRIDE (RBAC + AUTH DISABLED)
+  // Bypass role checks entirely in test mode
   // ---------------------------------------------
-  console.warn("[LEGACY PAGE] ⚠️  RBAC TEMP DISABLED - Allowing role:", role);
+  let role = "shopper";
+  if (process.env.TEST_MODE === "true") {
+    console.warn("[TEST MODE] Legacy page loading - RBAC fully bypassed");
+    role = "superadmin";
+  } else {
+    role = await getUserRole();
+    console.warn("[LEGACY PAGE] ⚠️  RBAC TEMP DISABLED - Allowing role:", role);
+  }
 
-  // ORIGINAL RBAC CODE (COMMENTED OUT FOR TESTING):
-  // // Redirect shoppers to their personal sales view
-  // if (role === "shopper") {
-  //   redirect("/legacy/my-sales");
-  // }
-  //
-  // // Assert legacy access (will redirect to /unauthorised if denied)
-  // assertLegacyAccess(role);
+  // Fetch all data in parallel with error handling
+  let summary: any, monthlySales: any[], categoryData: any[], supplierData: any[], topClients: any[], topSuppliers: any[], recentTrades: any[], reviewFlags: any;
 
-  // Fetch all data in parallel
-  const [
-    summary,
-    monthlySales,
-    categoryData,
-    supplierData,
-    topClients,
-    topSuppliers,
-    recentTrades,
-    reviewFlags,
-  ] = await Promise.all([
-    getLegacySummary(),
-    getLegacyMonthlySales(),
-    getLegacyByCategory(),
-    getLegacyBySupplier(),
-    getTopLegacyClients(),
-    getTopLegacySuppliers(),
-    getRecentLegacyTrades(20),
-    getReviewFlags(),
-  ]);
+  try {
+    [
+      summary,
+      monthlySales,
+      categoryData,
+      supplierData,
+      topClients,
+      topSuppliers,
+      recentTrades,
+      reviewFlags,
+    ] = await Promise.all([
+      getLegacySummary().catch(e => { console.error("[LEGACY] getSummary failed:", e); return {} as any; }),
+      getLegacyMonthlySales().catch(e => { console.error("[LEGACY] getMonthlySales failed:", e); return []; }),
+      getLegacyByCategory().catch(e => { console.error("[LEGACY] getByCategory failed:", e); return []; }),
+      getLegacyBySupplier().catch(e => { console.error("[LEGACY] getBySupplier failed:", e); return []; }),
+      getTopLegacyClients().catch(e => { console.error("[LEGACY] getTopClients failed:", e); return []; }),
+      getTopLegacySuppliers().catch(e => { console.error("[LEGACY] getTopSuppliers failed:", e); return []; }),
+      getRecentLegacyTrades(20).catch(e => { console.error("[LEGACY] getRecentTrades failed:", e); return []; }),
+      getReviewFlags().catch(e => { console.error("[LEGACY] getReviewFlags failed:", e); return {} as any; }),
+    ]);
+    console.log("[TEST MODE] Legacy data fetched successfully");
+  } catch (error) {
+    console.error("[LEGACY PAGE] Fatal error fetching data:", error);
+    // Provide safe defaults
+    summary = { totalSales: 0, totalMargin: 0, tradeCount: 0, clientCount: 0, supplierCount: 0, avgMargin: 0, dateRange: { start: null, end: null } };
+    monthlySales = [];
+    categoryData = [];
+    supplierData = [];
+    topClients = [];
+    topSuppliers = [];
+    recentTrades = [];
+    reviewFlags = { clientsRequiringReview: 0, suppliersRequiringReview: 0, tradesWithoutDates: 0, clientDetails: [], supplierDetails: [] };
+  }
 
   return (
     <div className="p-6">

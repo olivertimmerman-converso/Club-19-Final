@@ -25,6 +25,15 @@ import {
  * @returns Role - User's role (defaults to "shopper" if not set)
  */
 export async function getUserRole(): Promise<Role> {
+  // ---------------------------------------------
+  // TEST MODE OVERRIDE (RBAC + AUTH DISABLED)
+  // Always return superadmin in test mode
+  // ---------------------------------------------
+  if (process.env.TEST_MODE === "true") {
+    console.warn("[TEST MODE] getUserRole() bypassed - returning 'superadmin'");
+    return "superadmin";
+  }
+
   try {
     const { userId } = await auth();
 
@@ -52,6 +61,15 @@ export async function getUserRole(): Promise<Role> {
  * @param role - User's role to check
  */
 export function assertLegacyAccess(role: Role): void {
+  // ---------------------------------------------
+  // TEST MODE OVERRIDE (RBAC + AUTH DISABLED)
+  // Never block access in test mode
+  // ---------------------------------------------
+  if (process.env.TEST_MODE === "true") {
+    console.warn(`[TEST MODE] assertLegacyAccess() bypassed - allowing role: ${role}`);
+    return;
+  }
+
   if (!LEGACY_ALLOWED_ROLES.includes(role as any)) {
     console.error(`[assertLegacyAccess] ❌ Role "${role}" denied access to legacy dashboards`);
     redirect("/unauthorised");
