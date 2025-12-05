@@ -20,7 +20,6 @@ interface EnvironmentVariables {
   // Xero Integration
   XERO_CLIENT_ID: string;
   XERO_CLIENT_SECRET: string;
-  XERO_REDIRECT_URI: string;
   XERO_WEBHOOK_SECRET: string;
   XERO_SYSTEM_USER_ID: string;
 
@@ -42,23 +41,24 @@ export function validateEnvironmentVariables(): void {
     "CLERK_SECRET_KEY",
     "XERO_CLIENT_ID",
     "XERO_CLIENT_SECRET",
-    "XERO_REDIRECT_URI",
     "XERO_WEBHOOK_SECRET",
     "XERO_SYSTEM_USER_ID",
   ];
 
   for (const key of required) {
-    if (!process.env[key]) {
+    const value = process.env[key];
+    if (!value || value === "FILL_ME") {
       missing.push(key);
     }
   }
 
   if (missing.length > 0) {
     const errorMessage = [
-      "❌ Missing required environment variables:",
+      "❌ Missing or placeholder environment variables:",
       ...missing.map((key) => `  - ${key}`),
       "",
       "Please check your .env.local file and ensure all required variables are set.",
+      "Replace any 'FILL_ME' placeholders with actual values.",
     ].join("\n");
 
     console.error(errorMessage);

@@ -70,8 +70,8 @@ export async function GET(req: NextRequest) {
     // STEP 2: Get Xero tokens
     // Use system admin user for cron token access
     const systemUserId = process.env.XERO_SYSTEM_USER_ID;
-    if (!systemUserId) {
-      console.error("[XERO SYNC] ❌ XERO_SYSTEM_USER_ID not configured");
+    if (!systemUserId || systemUserId === "FILL_ME") {
+      console.error("[XERO SYNC] ❌ XERO_SYSTEM_USER_ID not configured or is placeholder");
       return NextResponse.json(
         { error: "System user not configured" },
         { status: 500 }

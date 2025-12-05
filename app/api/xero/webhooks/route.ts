@@ -50,8 +50,8 @@ function xata() {
 function verifyXeroSignature(rawBody: string, signature: string): boolean {
   const webhookSecret = process.env.XERO_WEBHOOK_SECRET;
 
-  if (!webhookSecret) {
-    console.error("[XERO WEBHOOK] ❌ XERO_WEBHOOK_SECRET not configured");
+  if (!webhookSecret || webhookSecret === "FILL_ME") {
+    console.error("[XERO WEBHOOK] ❌ XERO_WEBHOOK_SECRET not configured or is placeholder");
     return false;
   }
 
@@ -184,9 +184,9 @@ export async function POST(req: NextRequest) {
         // Fetch full invoice details from Xero API
         // Use system admin user for webhook token access
         const systemUserId = process.env.XERO_SYSTEM_USER_ID;
-        if (!systemUserId) {
+        if (!systemUserId || systemUserId === "FILL_ME") {
           console.error(
-            "[XERO WEBHOOK] ❌ XERO_SYSTEM_USER_ID not configured"
+            "[XERO WEBHOOK] ❌ XERO_SYSTEM_USER_ID not configured or is placeholder"
           );
           errorCount++;
           continue;
