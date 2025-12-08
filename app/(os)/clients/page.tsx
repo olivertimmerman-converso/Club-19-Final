@@ -26,9 +26,8 @@ interface ClientWithStats {
 }
 
 export default async function ClientsPage() {
-  // Get role and user info for filtering
+  // Get role for filtering
   const role = await getUserRole();
-  const currentUser = await getCurrentUser();
 
   // Fetch all sales to calculate stats
   let salesQuery = xata.db.Sales
@@ -41,8 +40,11 @@ export default async function ClientsPage() {
     ]);
 
   // Filter sales for shoppers - only their own sales
-  if (role === 'shopper' && currentUser?.fullName) {
-    salesQuery = salesQuery.filter({ shopper_name: currentUser.fullName });
+  if (role === 'shopper') {
+    const currentUser = await getCurrentUser();
+    if (currentUser?.fullName) {
+      salesQuery = salesQuery.filter({ shopper_name: currentUser.fullName });
+    }
   }
 
   const sales = await salesQuery.getAll();

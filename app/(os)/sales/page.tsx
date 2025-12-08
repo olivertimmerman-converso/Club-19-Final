@@ -21,9 +21,8 @@ interface SalesPageProps {
 }
 
 export default async function SalesPage({ searchParams }: SalesPageProps) {
-  // Get role and user info for filtering
+  // Get role for filtering
   const role = await getUserRole();
-  const currentUser = await getCurrentUser();
 
   // Get month filter
   const params = await searchParams;
@@ -48,8 +47,11 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     ]);
 
   // Filter for shoppers - only show their own sales
-  if (role === 'shopper' && currentUser?.fullName) {
-    query = query.filter({ shopper_name: currentUser.fullName });
+  if (role === 'shopper') {
+    const currentUser = await getCurrentUser();
+    if (currentUser?.fullName) {
+      query = query.filter({ shopper_name: currentUser.fullName });
+    }
   }
 
   // Apply date range filter if specified
