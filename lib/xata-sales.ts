@@ -441,21 +441,16 @@ export async function createSaleFromAppPayload(
     commission_lock_date: undefined,
     commission_paid_date: undefined,
 
-    // Buyer type (for analytics)
-    buyer_type: sanitizedPayload.buyerType || "",
-
-    // Authenticity tracking (Story 2)
-    authenticity_status: sanitizedPayload.authenticity_status || "not_verified",
-    supplier_receipt_attached: sanitizedPayload.supplier_receipt_attached || false,
-
-    // Denormalized entity names (Story 3) - for reporting and analytics
-    buyer_name: buyer.name,
-    supplier_name: supplier.name,
-    shopper_name: shopper.name,
-    introducer_name: introducer?.name || "",
-
-    // Invoice due date (Story 4)
-    invoice_due_date: sanitizedPayload.invoice_due_date,
+    // NOTE: The following fields exist in TypeScript schema but NOT in actual Xata database
+    // Commenting out to prevent "column not found" errors until schema is migrated
+    // buyer_type: sanitizedPayload.buyerType || "",
+    // authenticity_status: sanitizedPayload.authenticity_status || "not_verified",
+    // supplier_receipt_attached: sanitizedPayload.supplier_receipt_attached || false,
+    // buyer_name: buyer.name,
+    // supplier_name: supplier.name,
+    // shopper_name: shopper.name,
+    // introducer_name: introducer?.name || "",
+    // invoice_due_date: sanitizedPayload.invoice_due_date,
 
     // Notes
     internal_notes: sanitizedPayload.internal_notes || "",
