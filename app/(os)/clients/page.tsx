@@ -65,7 +65,7 @@ export default async function ClientsPage() {
     return {
       id: buyer.id,
       name: buyer.name || 'Unnamed Client',
-      email: buyer.email,
+      email: buyer.email ?? null,
       totalSpend,
       totalMargin,
       tradesCount,
