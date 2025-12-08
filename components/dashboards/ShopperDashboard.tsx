@@ -35,7 +35,7 @@ export async function ShopperDashboard({
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
             <h3 className="text-sm font-medium text-yellow-900">Unable to load your data</h3>
             <p className="mt-1 text-sm text-yellow-700">
-              We couldn't identify your account. Please contact support if this issue persists.
+              We couldn&apos;t identify your account. Please contact support if this issue persists.
             </p>
           </div>
         </div>

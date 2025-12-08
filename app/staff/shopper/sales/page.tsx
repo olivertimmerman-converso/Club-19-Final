@@ -73,6 +73,7 @@ export default function ShopperSalesPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Client-side filtering
