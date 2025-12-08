@@ -25,7 +25,7 @@ export default function SaleNotFound() {
           </svg>
           <h3 className="mt-4 text-lg font-medium text-gray-900">Sale Not Found</h3>
           <p className="mt-2 text-sm text-gray-500">
-            The sale you're looking for doesn't exist or may have been deleted.
+            The sale you&apos;re looking for does not exist or may have been deleted.
           </p>
           <div className="mt-6">
             <Link
