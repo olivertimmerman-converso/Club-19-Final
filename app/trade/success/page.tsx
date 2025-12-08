@@ -142,6 +142,15 @@ function SuccessContent() {
             >
               Create Another Invoice
             </Link>
+
+            {/* Tertiary: View in Sales OS - Outlined Gray */}
+            <Link
+              href="/dashboard"
+              aria-label="View in Sales OS"
+              className="block w-full border border-gray-300 text-gray-700 rounded-xl py-3 bg-white hover:bg-gray-50 transition-colors text-center font-medium"
+            >
+              View in Sales OS
+            </Link>
           </div>
 
           {/* Footer - Muted Guidance */}
