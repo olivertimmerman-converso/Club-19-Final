@@ -2,7 +2,11 @@
  * Club 19 Sales OS - Finance Dashboard
  */
 
-export function FinanceDashboard() {
+interface FinanceDashboardProps {
+  monthParam?: string;
+}
+
+export function FinanceDashboard({ monthParam }: FinanceDashboardProps) {
   return (
     <div className="p-6">
       <h1 className="text-3xl font-semibold text-gray-900 mb-2">

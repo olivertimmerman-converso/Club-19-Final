@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { XataClient } from "@/src/xata";
+import { MonthPicker } from "@/components/ui/MonthPicker";
+import { ViewAsSelector } from "@/components/ui/ViewAsSelector";
+import { getMonthDateRange } from "@/lib/dateUtils";
 
 /**
  * Club 19 Sales OS - Superadmin Dashboard
@@ -9,9 +12,16 @@ import { XataClient } from "@/src/xata";
 
 const xata = new XataClient();
 
-export async function SuperadminDashboard() {
+interface SuperadminDashboardProps {
+  monthParam?: string;
+}
+
+export async function SuperadminDashboard({ monthParam = "current" }: SuperadminDashboardProps) {
+  // Get date range for filtering
+  const dateRange = getMonthDateRange(monthParam);
+
   // Query Sales table for metrics
-  const sales = await xata.db.Sales
+  let salesQuery = xata.db.Sales
     .select([
       'sale_amount_inc_vat',
       'gross_margin',
@@ -21,9 +31,19 @@ export async function SuperadminDashboard() {
       'item_title',
       'sale_reference',
       'id',
-    ])
-    .sort('sale_date', 'desc')
-    .getAll();
+    ]);
+
+  // Apply date range filter if specified
+  if (dateRange) {
+    salesQuery = salesQuery.filter({
+      sale_date: {
+        $ge: dateRange.start,
+        $le: dateRange.end,
+      },
+    });
+  }
+
+  const sales = await salesQuery.sort('sale_date', 'desc').getAll();
 
   // Calculate metrics
   const totalSales = sales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
@@ -60,25 +80,29 @@ export async function SuperadminDashboard() {
             Full system access and administration
           </p>
         </div>
-        <Link
-          href="/trade/new"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-        >
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-4">
+          <ViewAsSelector />
+          <MonthPicker />
+          <Link
+            href="/trade/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Create New Sale
-        </Link>
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Create New Sale
+          </Link>
+        </div>
       </div>
 
       {/* Metrics Cards */}

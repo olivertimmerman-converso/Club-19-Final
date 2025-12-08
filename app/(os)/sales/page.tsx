@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { XataClient } from "@/src/xata";
+import { getUserRole } from "@/lib/getUserRole";
+import { getCurrentUser } from "@/lib/getCurrentUser";
+import { MonthPicker } from "@/components/ui/MonthPicker";
+import { getMonthDateRange } from "@/lib/dateUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -7,13 +11,27 @@ export const dynamic = "force-dynamic";
  * Club 19 Sales OS - Sales Overview
  *
  * Displays all sales from the Xata database
+ * Shoppers see only their own sales, others see all sales
  */
 
 const xata = new XataClient();
 
-export default async function SalesPage() {
+interface SalesPageProps {
+  searchParams: Promise<{ month?: string }>;
+}
+
+export default async function SalesPage({ searchParams }: SalesPageProps) {
+  // Get role and user info for filtering
+  const role = await getUserRole();
+  const currentUser = await getCurrentUser();
+
+  // Get month filter
+  const params = await searchParams;
+  const monthParam = params.month || "current";
+  const dateRange = getMonthDateRange(monthParam);
+
   // Query Sales table from Xata
-  const sales = await xata.db.Sales
+  let query = xata.db.Sales
     .select([
       'id',
       'sale_reference',
@@ -26,9 +44,25 @@ export default async function SalesPage() {
       'invoice_status',
       'currency',
       'buyer.name',
-    ])
-    .sort('sale_date', 'desc')
-    .getAll();
+      'shopper_name',
+    ]);
+
+  // Filter for shoppers - only show their own sales
+  if (role === 'shopper' && currentUser?.fullName) {
+    query = query.filter({ shopper_name: currentUser.fullName });
+  }
+
+  // Apply date range filter if specified
+  if (dateRange) {
+    query = query.filter({
+      sale_date: {
+        $ge: dateRange.start,
+        $le: dateRange.end,
+      },
+    });
+  }
+
+  const sales = await query.sort('sale_date', 'desc').getAll();
 
   // Format currency
   const formatCurrency = (amount: number | null | undefined, currency: string | null | undefined) => {
@@ -76,28 +110,31 @@ export default async function SalesPage() {
         <div>
           <h1 className="text-3xl font-semibold text-gray-900 mb-2">Sales</h1>
           <p className="text-gray-600">
-            {sales.length} sale{sales.length !== 1 ? 's' : ''} in database
+            {sales.length} sale{sales.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Link
-          href="/trade/new"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-        >
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-4">
+          <MonthPicker />
+          <Link
+            href="/trade/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Create New Sale
-        </Link>
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Create New Sale
+          </Link>
+        </div>
       </div>
 
       {/* Sales Table */}

@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { XataClient } from "@/src/xata";
+import { getUserRole } from "@/lib/getUserRole";
+import { getCurrentUser } from "@/lib/getCurrentUser";
+import { MonthPicker } from "@/components/ui/MonthPicker";
+import { getMonthDateRange } from "@/lib/dateUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -8,13 +12,27 @@ export const dynamic = "force-dynamic";
  *
  * Commission tracking and P&L overview
  * Restricted: Admin + Finance + Superadmin
+ * Shoppers see only their own commission data (not company P&L)
  */
 
 const xata = new XataClient();
 
-export default async function FinancePage() {
-  // Fetch all sales with financial and commission data
-  const sales = await xata.db.Sales
+interface FinancePageProps {
+  searchParams: Promise<{ month?: string }>;
+}
+
+export default async function FinancePage({ searchParams }: FinancePageProps) {
+  // Get role and user info for filtering
+  const role = await getUserRole();
+  const currentUser = await getCurrentUser();
+
+  // Get month filter
+  const params = await searchParams;
+  const monthParam = params.month || "current";
+  const dateRange = getMonthDateRange(monthParam);
+
+  // Fetch sales with financial and commission data
+  let salesQuery = xata.db.Sales
     .select([
       'id',
       'sale_date',
@@ -30,8 +48,25 @@ export default async function FinancePage() {
       'commission_locked',
       'commission_paid',
       'shopper.name',
-    ])
-    .getAll();
+      'shopper_name',
+    ]);
+
+  // Filter for shoppers - only show their own sales
+  if (role === 'shopper' && currentUser?.fullName) {
+    salesQuery = salesQuery.filter({ shopper_name: currentUser.fullName });
+  }
+
+  // Apply date range filter if specified
+  if (dateRange) {
+    salesQuery = salesQuery.filter({
+      sale_date: {
+        $ge: dateRange.start,
+        $le: dateRange.end,
+      },
+    });
+  }
+
+  const sales = await salesQuery.getAll();
 
   // Calculate P&L totals
   const totalRevenue = sales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
@@ -100,36 +135,41 @@ export default async function FinancePage() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold text-gray-900 mb-2">Finance</h1>
-        <p className="text-gray-600">
-          Commission tracking and P&L overview
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Finance</h1>
+          <p className="text-gray-600">
+            Commission tracking and P&L overview
+          </p>
+        </div>
+        <MonthPicker />
       </div>
 
-      {/* P&L Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Total Revenue</h3>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
-          <p className="text-xs text-gray-500 mt-1">All sales inc VAT</p>
+      {/* P&L Summary Cards - Hidden from shoppers */}
+      {role !== 'shopper' && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Revenue</h3>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+            <p className="text-xs text-gray-500 mt-1">All sales inc VAT</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Costs</h3>
+            <p className="text-2xl font-bold text-red-600">{formatCurrency(totalCosts)}</p>
+            <p className="text-xs text-gray-500 mt-1">Buy + shipping + fees</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Gross Margin</h3>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalMargin)}</p>
+            <p className="text-xs text-gray-500 mt-1">Total profit</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Margin %</h3>
+            <p className="text-2xl font-bold text-purple-600">{marginPercent.toFixed(1)}%</p>
+            <p className="text-xs text-gray-500 mt-1">Average margin rate</p>
+          </div>
         </div>
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Total Costs</h3>
-          <p className="text-2xl font-bold text-red-600">{formatCurrency(totalCosts)}</p>
-          <p className="text-xs text-gray-500 mt-1">Buy + shipping + fees</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Gross Margin</h3>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(totalMargin)}</p>
-          <p className="text-xs text-gray-500 mt-1">Total profit</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Margin %</h3>
-          <p className="text-2xl font-bold text-purple-600">{marginPercent.toFixed(1)}%</p>
-          <p className="text-xs text-gray-500 mt-1">Average margin rate</p>
-        </div>
-      </div>
+      )}
 
       {/* Commission Overview */}
       <div className="mb-8">
@@ -252,45 +292,47 @@ export default async function FinancePage() {
         )}
       </div>
 
-      {/* Revenue by Brand */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Revenue by Brand (Top 5)</h2>
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          {topBrands.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-8">No sales data available.</p>
-          ) : (
-            <div className="space-y-4">
-              {topBrands.map(([brand, data]) => {
-                const brandMarginPercent = data.revenue > 0 ? (data.margin / data.revenue) * 100 : 0;
-                const brandPercentOfTotal = totalRevenue > 0 ? (data.revenue / totalRevenue) * 100 : 0;
+      {/* Revenue by Brand - Hidden from shoppers */}
+      {role !== 'shopper' && (
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Revenue by Brand (Top 5)</h2>
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            {topBrands.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-8">No sales data available.</p>
+            ) : (
+              <div className="space-y-4">
+                {topBrands.map(([brand, data]) => {
+                  const brandMarginPercent = data.revenue > 0 ? (data.margin / data.revenue) * 100 : 0;
+                  const brandPercentOfTotal = totalRevenue > 0 ? (data.revenue / totalRevenue) * 100 : 0;
 
-                return (
-                  <div key={brand}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-medium text-gray-900">{brand}</h4>
-                          <span className="text-sm text-gray-500">{brandPercentOfTotal.toFixed(1)}% of total</span>
-                        </div>
-                        <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
-                          <span>Revenue: {formatCurrency(data.revenue)}</span>
-                          <span>Margin: {formatCurrency(data.margin)} ({brandMarginPercent.toFixed(1)}%)</span>
+                  return (
+                    <div key={brand}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-gray-900">{brand}</h4>
+                            <span className="text-sm text-gray-500">{brandPercentOfTotal.toFixed(1)}% of total</span>
+                          </div>
+                          <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                            <span>Revenue: {formatCurrency(data.revenue)}</span>
+                            <span>Margin: {formatCurrency(data.margin)} ({brandMarginPercent.toFixed(1)}%)</span>
+                          </div>
                         </div>
                       </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-purple-600 h-2 rounded-full"
+                          style={{ width: `${brandPercentOfTotal}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-purple-600 h-2 rounded-full"
-                        style={{ width: `${brandPercentOfTotal}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

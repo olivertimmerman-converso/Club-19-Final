@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { XataClient } from "@/src/xata";
+import { getUserRole } from "@/lib/getUserRole";
+import { getCurrentUser } from "@/lib/getCurrentUser";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +9,7 @@ export const dynamic = "force-dynamic";
  * Club 19 Sales OS - Clients Page
  *
  * Displays all buyers/clients with their transaction statistics
+ * Shoppers see only clients they've sold to
  */
 
 const xata = new XataClient();
@@ -23,20 +26,37 @@ interface ClientWithStats {
 }
 
 export default async function ClientsPage() {
-  // Fetch all buyers
-  const buyers = await xata.db.Buyers
-    .select(['*'])
-    .getAll();
+  // Get role and user info for filtering
+  const role = await getUserRole();
+  const currentUser = await getCurrentUser();
 
   // Fetch all sales to calculate stats
-  const sales = await xata.db.Sales
+  let salesQuery = xata.db.Sales
     .select([
       'buyer.id',
       'sale_amount_inc_vat',
       'gross_margin',
       'sale_date',
-    ])
-    .getAll();
+      'shopper_name',
+    ]);
+
+  // Filter sales for shoppers - only their own sales
+  if (role === 'shopper' && currentUser?.fullName) {
+    salesQuery = salesQuery.filter({ shopper_name: currentUser.fullName });
+  }
+
+  const sales = await salesQuery.getAll();
+
+  // Get unique buyer IDs from sales
+  const uniqueBuyerIds = [...new Set(sales.map(sale => sale.buyer?.id).filter((id): id is string => !!id))];
+
+  // Fetch only buyers that have sales (filtered by shopper if applicable)
+  const buyers = uniqueBuyerIds.length > 0
+    ? await xata.db.Buyers
+        .select(['*'])
+        .filter({ id: { $any: uniqueBuyerIds } })
+        .getAll()
+    : [];
 
   // Calculate stats for each buyer
   const clientsWithStats: ClientWithStats[] = buyers.map(buyer => {

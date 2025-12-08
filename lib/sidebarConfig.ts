@@ -17,37 +17,37 @@ export const sidebarConfig: Record<string, SidebarItem> = {
   dashboard: {
     label: "Dashboard",
     href: "/dashboard",
-    roles: ["shopper", "admin", "finance", "superadmin"],
+    roles: ["shopper", "admin", "finance", "superadmin", "founder"],
     icon: "LayoutDashboard",
   },
   sales: {
     label: "Sales",
     href: "/sales",
-    roles: ["shopper", "admin", "finance", "superadmin"],
+    roles: ["shopper", "admin", "finance", "superadmin", "founder"],
     icon: "Briefcase",
   },
   clients: {
     label: "Clients",
     href: "/clients",
-    roles: ["shopper", "admin", "finance", "superadmin"],
+    roles: ["shopper", "admin", "finance", "superadmin", "founder"],
     icon: "Users",
   },
   suppliers: {
     label: "Suppliers",
     href: "/suppliers",
-    roles: ["shopper", "admin", "finance", "superadmin"],
+    roles: ["admin", "finance", "superadmin"],
     icon: "Truck",
   },
   invoices: {
     label: "Invoices",
     href: "/invoices",
-    roles: ["admin", "finance", "superadmin"],
+    roles: ["admin", "finance", "superadmin", "founder"],
     icon: "FileText",
   },
   finance: {
     label: "Finance",
     href: "/finance",
-    roles: ["admin", "finance", "superadmin"],
+    roles: ["admin", "finance", "superadmin", "founder"],
     icon: "Calculator",
   },
   admin: {

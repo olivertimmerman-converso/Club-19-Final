@@ -4,9 +4,9 @@
  * Canonical role system - all roles stored in user.publicMetadata.staffRole
  */
 
-export type StaffRole = "superadmin" | "admin" | "finance" | "shopper";
+export type StaffRole = "superadmin" | "admin" | "finance" | "shopper" | "founder";
 
-export const STAFF_ROLES: StaffRole[] = ["superadmin", "admin", "finance", "shopper"];
+export const STAFF_ROLES: StaffRole[] = ["superadmin", "admin", "finance", "shopper", "founder"];
 
 export function isValidStaffRole(role: any): role is StaffRole {
   return STAFF_ROLES.includes(role);

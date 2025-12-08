@@ -2,7 +2,11 @@
  * Club 19 Sales OS - Admin Dashboard
  */
 
-export function AdminDashboard() {
+interface AdminDashboardProps {
+  monthParam?: string;
+}
+
+export function AdminDashboard({ monthParam }: AdminDashboardProps) {
   return (
     <div className="p-6">
       <h1 className="text-3xl font-semibold text-gray-900 mb-2">
