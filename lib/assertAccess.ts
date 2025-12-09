@@ -2,10 +2,16 @@
  * Club 19 Sales OS - Access Control & RBAC
  *
  * Production-ready authorization system
+ * All logic delegated to lib/permissions.ts (single source of truth)
  */
 
 import { redirect } from "next/navigation";
-import { type StaffRole } from "./roleTypes";
+import {
+  type StaffRole,
+  canAccessRoute,
+  isRouteReadOnly,
+  canAccessLegacy as canAccessLegacyRoute,
+} from "./permissions";
 
 /**
  * Check if a role can access a specific route
@@ -14,124 +20,22 @@ import { type StaffRole } from "./roleTypes";
  * @param role - User's staff role
  * @returns true if access granted, false otherwise
  */
-export function canAccessRoute(pathname: string, role: StaffRole): boolean {
+export function canAccessRoute_Deprecated(pathname: string, role: StaffRole): boolean {
   console.log(`[RBAC] 🔐 Checking access: pathname="${pathname}", role="${role}"`);
 
-  // Superadmin has access to everything
-  if (role === "superadmin") {
-    console.log(`[RBAC] ✅ GRANTED: superadmin has full access`);
-    return true;
+  const hasAccess = canAccessRoute(role, pathname);
+
+  if (hasAccess) {
+    console.log(`[RBAC] ✅ GRANTED: ${role} can access "${pathname}"`);
+  } else {
+    console.log(`[RBAC] ❌ DENIED: ${role} cannot access "${pathname}"`);
   }
 
-  // Admin access - full OS except system config
-  if (role === "admin") {
-    const systemConfigRoutes = ["/admin/system", "/rbac", "/env"];
-    const isSystemConfig = systemConfigRoutes.some(route => pathname.startsWith(route));
-
-    if (isSystemConfig) {
-      console.log(`[RBAC] ❌ DENIED: admin cannot access system config routes`);
-      return false;
-    }
-
-    console.log(`[RBAC] ✅ GRANTED: admin has access to this route`);
-    return true;
-  }
-
-  // Finance access - finance, invoices, legacy, dashboard
-  if (role === "finance") {
-    const financeAllowedRoutes = [
-      "/finance",
-      "/invoices",
-      "/legacy",
-      "/dashboard",
-    ];
-
-    const hasAccess = financeAllowedRoutes.some(route => pathname.startsWith(route));
-
-    if (hasAccess) {
-      console.log(`[RBAC] ✅ GRANTED: finance has access to this route`);
-      return true;
-    }
-
-    console.log(`[RBAC] ❌ DENIED: finance role cannot access "${pathname}"`);
-    return false;
-  }
-
-  // Operations access - operations manager (Alys)
-  if (role === "operations") {
-    const operationsAllowedRoutes = [
-      "/staff",
-      "/dashboard",
-      "/sales",
-      "/clients",
-      "/suppliers",
-      "/shoppers",
-      "/invoices",
-      "/finance",
-      "/legacy",
-      "/trade",
-    ];
-
-    const hasAccess = operationsAllowedRoutes.some(route => pathname.startsWith(route));
-
-    if (hasAccess) {
-      console.log(`[RBAC] ✅ GRANTED: operations has access to this route`);
-      return true;
-    }
-
-    console.log(`[RBAC] ❌ DENIED: operations role cannot access "${pathname}"`);
-    return false;
-  }
-
-  // Shopper access - very restricted
-  if (role === "shopper") {
-    const shopperAllowedRoutes = [
-      "/staff",                    // Staff navigation hub
-      "/staff/shopper/dashboard",  // Shopper staff dashboard
-      "/staff/shopper/sales",      // Shopper sales management
-      "/sales",
-      "/legacy/my-sales",
-      "/dashboard/shopper",
-    ];
-
-    const hasAccess = shopperAllowedRoutes.some(route => pathname.startsWith(route));
-
-    if (hasAccess) {
-      console.log(`[RBAC] ✅ GRANTED: shopper has access to this route`);
-      return true;
-    }
-
-    console.log(`[RBAC] ❌ DENIED: shopper role cannot access "${pathname}"`);
-    return false;
-  }
-
-  // Founder access - similar to operations but for founders
-  if (role === "founder") {
-    const founderAllowedRoutes = [
-      "/staff",
-      "/dashboard",
-      "/sales",
-      "/clients",
-      "/shoppers",
-      "/invoices",
-      "/finance",
-    ];
-
-    const hasAccess = founderAllowedRoutes.some(route => pathname.startsWith(route));
-
-    if (hasAccess) {
-      console.log(`[RBAC] ✅ GRANTED: founder has access to this route`);
-      return true;
-    }
-
-    console.log(`[RBAC] ❌ DENIED: founder role cannot access "${pathname}"`);
-    return false;
-  }
-
-  // Default deny
-  console.log(`[RBAC] ❌ DENIED: unknown role or no match`);
-  return false;
+  return hasAccess;
 }
+
+// Re-export the main function with the expected name for backward compatibility
+export { canAccessRoute };
 
 /**
  * Assert access to a route - throws redirect if denied
@@ -145,7 +49,7 @@ export function canAccessRoute(pathname: string, role: StaffRole): boolean {
 export function assertAccess(pathname: string, role: StaffRole): void {
   console.log(`[assertAccess] 🔒 Asserting access for role="${role}" to pathname="${pathname}"`);
 
-  if (!canAccessRoute(pathname, role)) {
+  if (!canAccessRoute(role, pathname)) {
     console.error(`[assertAccess] 🚫 ACCESS DENIED - Redirecting to /unauthorised`);
     redirect("/unauthorised");
   }
@@ -156,14 +60,11 @@ export function assertAccess(pathname: string, role: StaffRole): void {
 /**
  * Check if role can access legacy dashboards
  *
- * Legacy access: superadmin, admin, finance
- *
  * @param role - User's staff role
  * @returns true if can access legacy, false otherwise
  */
 export function canAccessLegacy(role: StaffRole): boolean {
-  const allowedRoles: StaffRole[] = ["superadmin", "admin", "finance"];
-  return allowedRoles.includes(role);
+  return canAccessLegacyRoute(role);
 }
 
 /**
@@ -182,4 +83,15 @@ export function assertLegacyAccess(role: StaffRole): void {
   }
 
   console.log(`[assertLegacyAccess] ✅ Legacy access granted`);
+}
+
+/**
+ * Check if a route is read-only for a given role
+ *
+ * @param pathname - The route path to check
+ * @param role - User's staff role
+ * @returns true if read-only, false otherwise
+ */
+export function isReadOnly(pathname: string, role: StaffRole): boolean {
+  return isRouteReadOnly(role, pathname);
 }

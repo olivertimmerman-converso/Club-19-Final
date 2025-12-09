@@ -1,14 +1,24 @@
 /**
  * Club 19 Sales OS - Role-Based Access Control
  *
- * Roles:
- * - shopper: Hope, MC (sales team)
- * - admin: Sophie (operations manager)
- * - finance: Alys (finance team)
- * - superadmin: Oliver (full system access)
+ * DEPRECATED: This file re-exports from lib/permissions.ts for backward compatibility
+ * New code should import directly from lib/permissions.ts
+ *
+ * @deprecated Use lib/permissions.ts instead
  */
 
-export type UserRole = 'shopper' | 'admin' | 'finance' | 'superadmin' | 'founder' | 'operations';
+import {
+  type StaffRole,
+  canAccessRoute,
+  isRouteReadOnly,
+  getHomepageForRole,
+  getRoleLabel,
+} from "./permissions";
+
+/**
+ * @deprecated Use StaffRole from lib/permissions.ts instead
+ */
+export type UserRole = StaffRole;
 
 export interface RoleConfig {
   allowedRoutes: string[];
