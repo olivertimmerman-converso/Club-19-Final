@@ -38,6 +38,12 @@ export const sidebarConfig: Record<string, SidebarItem> = {
     roles: ["admin", "finance", "superadmin", "operations"],
     icon: "Truck",
   },
+  shoppers: {
+    label: "Shoppers",
+    href: "/shoppers",
+    roles: ["superadmin", "founder", "operations"],
+    icon: "Users",
+  },
   invoices: {
     label: "Invoices",
     href: "/invoices",

@@ -48,6 +48,7 @@
   "exclude": [
     "node_modules",
     "lib/_archive",
-    ".xata"
+    ".xata",
+    "scripts"
   ]
 }
