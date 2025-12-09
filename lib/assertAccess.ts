@@ -69,6 +69,7 @@ export function canAccessRoute(pathname: string, role: StaffRole): boolean {
       "/invoices",
       "/finance",
       "/legacy",
+      "/trade",
     ];
 
     const hasAccess = operationsAllowedRoutes.some(route => pathname.startsWith(route));
