@@ -60,6 +60,7 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
       'commissionable_margin',
       'commission_locked',
       'commission_paid',
+      'shopper.id',
       'shopper.name',
       'buyer.id',
       'buyer.name',
@@ -86,7 +87,7 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
   const now = new Date();
   const ytdStart = new Date(now.getFullYear(), 0, 1);
   const ytdSales = await xata.db.Sales
-    .select(['sale_amount_inc_vat', 'shopper.name'])
+    .select(['sale_amount_inc_vat', 'shopper.id', 'shopper.name'])
     .filter({
       sale_date: {
         $ge: ytdStart,
@@ -99,11 +100,13 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
   // Calculate shopper performance
   const shopperStats = new Map<string, ShopperPerformance>();
 
-  // Process current month sales
+  // Process current month sales - use shopper ID as key for deduplication
   sales.forEach(sale => {
+    const shopperId = sale.shopper?.id || 'unassigned';
     const shopperName = sale.shopper?.name || 'Unassigned';
-    if (!shopperStats.has(shopperName)) {
-      shopperStats.set(shopperName, {
+
+    if (!shopperStats.has(shopperId)) {
+      shopperStats.set(shopperId, {
         name: shopperName,
         thisMonthSales: 0,
         margin: 0,
@@ -112,17 +115,17 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
         ytdSales: 0,
       });
     }
-    const stats = shopperStats.get(shopperName)!;
+    const stats = shopperStats.get(shopperId)!;
     stats.thisMonthSales += sale.sale_amount_inc_vat || 0;
     stats.margin += sale.gross_margin || 0;
     stats.commission += sale.commissionable_margin || 0;
   });
 
-  // Add YTD data
+  // Add YTD data - use shopper ID for matching
   ytdSales.forEach(sale => {
-    const shopperName = sale.shopper?.name || 'Unassigned';
-    if (shopperStats.has(shopperName)) {
-      shopperStats.get(shopperName)!.ytdSales += sale.sale_amount_inc_vat || 0;
+    const shopperId = sale.shopper?.id || 'unassigned';
+    if (shopperStats.has(shopperId)) {
+      shopperStats.get(shopperId)!.ytdSales += sale.sale_amount_inc_vat || 0;
     }
   });
 
