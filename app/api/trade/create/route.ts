@@ -57,6 +57,33 @@ async function findOrCreateBuyer(buyerName: string, xeroContactId?: string) {
 }
 
 /**
+ * Find or create Supplier record in Xata
+ */
+async function findOrCreateSupplier(supplierName: string, supplierXataId?: string) {
+  // If we have a Xata ID, try to find by ID first
+  if (supplierXataId) {
+    const supplier = await xata.db.Suppliers.read(supplierXataId);
+    if (supplier) {
+      return supplier;
+    }
+  }
+
+  // Try to find existing supplier by name
+  let supplier = await xata.db.Suppliers
+    .filter({ name: supplierName })
+    .getFirst();
+
+  if (!supplier) {
+    // Create new supplier
+    supplier = await xata.db.Suppliers.create({
+      name: supplierName,
+    });
+  }
+
+  return supplier;
+}
+
+/**
  * POST /api/trade/create
  *
  * Receives a Trade object, validates it, forwards to Make.com, returns invoice details
@@ -171,6 +198,18 @@ export async function POST(request: NextRequest) {
       // TODO: In the future, consider creating separate Sale records for each item
       const firstItem = trade.items[0];
 
+      // Find or create supplier record (from first item)
+      const supplier = await findOrCreateSupplier(
+        firstItem.supplier.name,
+        firstItem.supplier.xataId
+      );
+
+      if (!supplier) {
+        console.warn('[TRADE CREATE] ⚠️  Failed to create/find supplier, saving without supplier link');
+      } else {
+        console.log(`[TRADE CREATE] Supplier: ${supplier.name} (${supplier.id})`);
+      }
+
       // Calculate totals
       const totalBuyPrice = trade.items.reduce((sum, item) =>
         sum + (item.buyPriceGBP || item.buyPrice), 0
@@ -188,6 +227,9 @@ export async function POST(request: NextRequest) {
 
         // Buyer (link to Buyers table) - only if buyer exists
         buyer: buyer?.id || undefined,
+
+        // Supplier (link to Suppliers table) - only if supplier exists
+        supplier: supplier?.id || undefined,
 
         // Item details (from first item)
         brand: firstItem.brand,

@@ -2,9 +2,16 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTrade } from "@/contexts/TradeContext";
-import { fetchXeroBuyers, fetchXeroSuppliers, NormalizedContact } from "@/lib/xero";
+import { fetchXeroBuyers, NormalizedContact } from "@/lib/xero";
 import { PaymentMethod, TaxRegime, BuyerType } from "@/lib/types/invoice";
 import { COUNTRIES, POPULAR_COUNTRIES } from "@/lib/constants";
+
+// Xata Supplier type
+interface XataSupplier {
+  id: string;
+  name: string;
+  email: string;
+}
 
 // Helper to determine tax regime from country
 function getTaxRegime(country: string): TaxRegime {
@@ -48,13 +55,14 @@ export function StepSupplierBuyer() {
     state.currentPaymentMethod || PaymentMethod.CARD
   );
 
-  // === SUPPLIER XERO SEARCH STATE ===
-  const [supplierXeroContactId, setSupplierXeroContactId] = useState("");
+  // === SUPPLIER XATA SEARCH STATE ===
+  const [supplierXataId, setSupplierXataId] = useState("");
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
-  const [supplierDropdownResults, setSupplierDropdownResults] = useState<NormalizedContact[]>([]);
+  const [supplierDropdownResults, setSupplierDropdownResults] = useState<XataSupplier[]>([]);
   const [supplierSelectedIndex, setSupplierSelectedIndex] = useState(-1);
   const [isSupplierSearchActive, setIsSupplierSearchActive] = useState(false);
   const [supplierNoResults, setSupplierNoResults] = useState(false);
+  const [showCreateSupplier, setShowCreateSupplier] = useState(false);
   const supplierDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const supplierAbortController = useRef<AbortController | null>(null);
 
@@ -140,9 +148,10 @@ export function StepSupplierBuyer() {
         name: supplierName,
         country: supplierCountry,
         taxRegime: taxRegime,
+        xataId: supplierXataId || undefined, // Include Xata Supplier ID if available
       });
     }
-  }, [supplierName, supplierCountry, setCurrentSupplier]);
+  }, [supplierName, supplierCountry, supplierXataId, setCurrentSupplier]);
 
   // Sync payment method to context
   useEffect(() => {
@@ -150,7 +159,7 @@ export function StepSupplierBuyer() {
   }, [paymentMethod, setCurrentPaymentMethod]);
 
   // === DEBOUNCED SUPPLIER SEARCH ===
-  // Memoized debounced search function for better performance
+  // Memoized debounced search function using Xata suppliers
   const debouncedSupplierSearch = useMemo(
     () => {
       return (query: string) => {
@@ -168,14 +177,23 @@ export function StepSupplierBuyer() {
           setLoadingSuppliers(true);
 
           try {
-            const results = await fetchXeroSuppliers(query);
-            setSupplierDropdownResults(results);
-            setXeroError(null);
+            const response = await fetch(`/api/suppliers/search?q=${encodeURIComponent(query)}`, {
+              signal: supplierAbortController.current.signal,
+            });
 
-            // Show "no results" message if empty (strict mode - suppliers only)
+            if (!response.ok) {
+              throw new Error('Failed to search suppliers');
+            }
+
+            const results: XataSupplier[] = await response.json();
+            setSupplierDropdownResults(results);
+
+            // Show "no results" or "create new" option
             if (results.length === 0) {
               setSupplierNoResults(true);
-              console.log(`[SUPPLIER SEARCH] No suppliers found for "${query}" (strict mode)`);
+              console.log(`[SUPPLIER SEARCH] No suppliers found for "${query}"`);
+            } else {
+              setSupplierNoResults(false);
             }
           } catch (error: any) {
             // Ignore AbortError - it just means we cancelled the request
@@ -184,13 +202,9 @@ export function StepSupplierBuyer() {
               return;
             }
 
-            console.error("[SUPPLIER SEARCH] Xero supplier search failed:", error);
+            console.error("[SUPPLIER SEARCH] Xata supplier search failed:", error);
             setSupplierDropdownResults([]);
             setSupplierNoResults(false);
-            // Only show error if it's a connection issue
-            if (error.message && error.message.includes("Xero not connected")) {
-              setXeroError(error.message);
-            }
           } finally {
             setLoadingSuppliers(false);
           }
@@ -200,16 +214,17 @@ export function StepSupplierBuyer() {
     [] // Empty deps - stable function across renders
   );
 
-  // === SUPPLIER HANDLERS (Xero integration) ===
+  // === SUPPLIER HANDLERS (Xata integration) ===
   const handleSupplierInput = async (value: string) => {
     setSupplierName(value);
     setSupplierSelectedIndex(-1);
     setIsSupplierSearchActive(true);
-    setSupplierXeroContactId(""); // Clear xeroContactId when typing
+    setSupplierXataId(""); // Clear xataId when typing
     setSupplierNoResults(false); // Reset no results flag
+    setShowCreateSupplier(false); // Hide create form
 
-    // Use debounced search if query length >= 3 (raised from 2)
-    if (value.length >= 3) {
+    // Use debounced search if query length >= 2
+    if (value.length >= 2) {
       debouncedSupplierSearch(value);
     } else {
       // Clear results if query too short
@@ -222,13 +237,42 @@ export function StepSupplierBuyer() {
     }
   };
 
-  const selectSupplier = (contact: NormalizedContact) => {
-    setSupplierName(contact.name);
-    setSupplierXeroContactId(contact.contactId);
+  const selectSupplier = (supplier: XataSupplier) => {
+    setSupplierName(supplier.name);
+    setSupplierXataId(supplier.id);
     setSupplierDropdownResults([]);
     setSupplierSelectedIndex(-1);
     setIsSupplierSearchActive(false);
     setSupplierNoResults(false);
+    setShowCreateSupplier(false);
+  };
+
+  // Create new supplier via API
+  const handleCreateSupplier = async () => {
+    if (!supplierName.trim()) return;
+
+    try {
+      setLoadingSuppliers(true);
+      const response = await fetch('/api/suppliers/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: supplierName.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create supplier');
+      }
+
+      const data = await response.json();
+      if (data.success && data.supplier) {
+        // Select the newly created supplier
+        selectSupplier(data.supplier);
+      }
+    } catch (error) {
+      console.error("[SUPPLIER CREATE] Failed to create supplier:", error);
+    } finally {
+      setLoadingSuppliers(false);
+    }
   };
 
   // === BUYER HANDLERS (Xero integration) ===
@@ -370,7 +414,7 @@ export function StepSupplierBuyer() {
       <div className="border-t-4 border-purple-600 bg-purple-50 p-4 rounded-lg space-y-4">
         <h3 className="font-semibold text-gray-900">Supplier (Buy Side)</h3>
 
-        {/* Supplier Name with Xero Search */}
+        {/* Supplier Name Search */}
         <div className="relative">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Supplier Name <span className="text-red-600">*</span>
@@ -380,7 +424,7 @@ export function StepSupplierBuyer() {
               type="text"
               value={supplierName}
               onChange={(e) => handleSupplierInput(e.target.value)}
-              placeholder="Search Xero suppliers..."
+              placeholder="Search suppliers..."
               className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
@@ -411,11 +455,11 @@ export function StepSupplierBuyer() {
             )}
           </div>
           <p className="text-xs text-gray-600 mt-1">
-            Search for existing Xero supplier or enter new name
+            Search for existing supplier or create a new one
           </p>
 
           {/* Skeleton Loader Dropdown (shown while loading) */}
-          {loadingSuppliers && isSupplierSearchActive && supplierName.length >= 3 && (
+          {loadingSuppliers && isSupplierSearchActive && supplierName.length >= 2 && (
             <div className="mt-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-md">
               <p className="text-sm text-purple-700 flex items-center gap-2">
                 <svg
@@ -443,23 +487,23 @@ export function StepSupplierBuyer() {
             </div>
           )}
 
-          {/* Xero Supplier Search Dropdown with Skeleton Loader */}
+          {/* Supplier Search Dropdown Results */}
           {isSupplierSearchActive && !loadingSuppliers && supplierDropdownResults.length > 0 && (
             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-              {supplierDropdownResults.map((contact, idx) => (
+              {supplierDropdownResults.map((supplier, idx) => (
                 <div
-                  key={contact.contactId || idx}
-                  onClick={() => selectSupplier(contact)}
+                  key={supplier.id || idx}
+                  onClick={() => selectSupplier(supplier)}
                   className={`px-3 py-2 cursor-pointer hover:bg-purple-100 ${
                     idx === supplierSelectedIndex ? "bg-purple-100" : ""
                   }`}
                 >
                   <div className="text-sm font-medium text-gray-900">
-                    {contact.name}
+                    {supplier.name}
                   </div>
-                  {contact.email && (
+                  {supplier.email && (
                     <div className="text-xs text-gray-500">
-                      {contact.email}
+                      {supplier.email}
                     </div>
                   )}
                 </div>
@@ -479,24 +523,28 @@ export function StepSupplierBuyer() {
             </div>
           )}
 
-          {/* No Supplier Results Message */}
-          {supplierNoResults && !loadingSuppliers && (
+          {/* No Supplier Results - Offer to Create New */}
+          {supplierNoResults && !loadingSuppliers && supplierName.trim() && (
             <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <p className="text-sm text-blue-800">
-                <strong>No supplier found in Xero matching this name.</strong>
+                <strong>No supplier found matching &quot;{supplierName}&quot;</strong>
               </p>
-              <p className="text-xs text-blue-700 mt-1">
-                Please add this supplier in Xero if they are new, or check the spelling.
-              </p>
+              <button
+                type="button"
+                onClick={handleCreateSupplier}
+                className="mt-2 text-sm text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-md transition-colors"
+              >
+                + Create &quot;{supplierName}&quot; as new supplier
+              </button>
             </div>
           )}
         </div>
 
         {/* Show selected supplier confirmation */}
-        {supplierXeroContactId && (
+        {supplierXataId && (
           <div className="bg-green-50 border border-green-200 rounded-md p-3">
             <p className="text-xs text-green-800">
-              ✓ Xero supplier selected: <strong>{supplierName}</strong>
+              ✓ Supplier selected: <strong>{supplierName}</strong>
             </p>
           </div>
         )}

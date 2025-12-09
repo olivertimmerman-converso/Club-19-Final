@@ -39,6 +39,7 @@ export type Supplier = {
   name: string;
   country: string; // e.g. "UK", "France", "USA"
   taxRegime: TaxRegime;
+  xataId?: string; // Xata Suppliers table ID (optional, set when supplier selected from search)
 };
 
 // ============================================================================
