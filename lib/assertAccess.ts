@@ -57,6 +57,31 @@ export function canAccessRoute(pathname: string, role: StaffRole): boolean {
     return false;
   }
 
+  // Operations access - operations manager (Alys)
+  if (role === "operations") {
+    const operationsAllowedRoutes = [
+      "/staff",
+      "/dashboard",
+      "/sales",
+      "/clients",
+      "/suppliers",
+      "/shoppers",
+      "/invoices",
+      "/finance",
+      "/legacy",
+    ];
+
+    const hasAccess = operationsAllowedRoutes.some(route => pathname.startsWith(route));
+
+    if (hasAccess) {
+      console.log(`[RBAC] ✅ GRANTED: operations has access to this route`);
+      return true;
+    }
+
+    console.log(`[RBAC] ❌ DENIED: operations role cannot access "${pathname}"`);
+    return false;
+  }
+
   // Shopper access - very restricted
   if (role === "shopper") {
     const shopperAllowedRoutes = [
@@ -76,6 +101,29 @@ export function canAccessRoute(pathname: string, role: StaffRole): boolean {
     }
 
     console.log(`[RBAC] ❌ DENIED: shopper role cannot access "${pathname}"`);
+    return false;
+  }
+
+  // Founder access - similar to operations but for founders
+  if (role === "founder") {
+    const founderAllowedRoutes = [
+      "/staff",
+      "/dashboard",
+      "/sales",
+      "/clients",
+      "/shoppers",
+      "/invoices",
+      "/finance",
+    ];
+
+    const hasAccess = founderAllowedRoutes.some(route => pathname.startsWith(route));
+
+    if (hasAccess) {
+      console.log(`[RBAC] ✅ GRANTED: founder has access to this route`);
+      return true;
+    }
+
+    console.log(`[RBAC] ❌ DENIED: founder role cannot access "${pathname}"`);
     return false;
   }
 
