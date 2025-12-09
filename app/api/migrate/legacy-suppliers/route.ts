@@ -6,8 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { getXataClient } from "@/src/xata";
+import { getUserRole } from "@/lib/getUserRole";
 
 const xata = getXataClient();
 
@@ -19,14 +20,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is superadmin
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    const userRole = user.publicMetadata?.role as string | undefined;
+    // Check if user is superadmin or founder
+    const userRole = await getUserRole();
 
     if (userRole !== "superadmin" && userRole !== "founder") {
       return NextResponse.json(
-        { error: "Forbidden - Superadmin access required" },
+        { error: "Forbidden - Superadmin or Founder access required" },
         { status: 403 }
       );
     }
