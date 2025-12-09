@@ -192,11 +192,9 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
         </div>
         <div className="flex items-center gap-4">
           <MonthPicker />
-          <button
+          <a
+            href={`/api/export/monthly-sales?month=${monthParam}`}
             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-            onClick={() => {
-              window.location.href = `/api/export/monthly-sales?month=${monthParam}`;
-            }}
           >
             <svg
               className="w-4 h-4 mr-2"
@@ -212,7 +210,7 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
               />
             </svg>
             Export Month
-          </button>
+          </a>
         </div>
       </div>
 
