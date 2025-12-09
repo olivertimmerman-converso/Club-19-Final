@@ -15,6 +15,11 @@
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
+/**
+ * Type-safe log metadata - can be any JSON-serializable value
+ */
+export type LogMetadata = string | number | boolean | null | undefined | LogMetadata[] | { [key: string]: LogMetadata };
+
 export interface LoggerConfig {
   environment: "development" | "production";
   enableDebug: boolean;
@@ -61,7 +66,7 @@ function formatLogMessage(
   level: LogLevel,
   subsystem: string,
   message: string,
-  data?: any
+  data?: LogMetadata
 ): string {
   const timestamp = getTimestamp();
   const levelTag = level.toUpperCase().padEnd(5);
@@ -87,7 +92,7 @@ function formatLogMessage(
 /**
  * Debug log - development only
  */
-export function debug(subsystem: string, message: string, data?: any): void {
+export function debug(subsystem: string, message: string, data?: LogMetadata): void {
   if (!loggerConfig.enableDebug) return;
 
   const formatted = formatLogMessage("debug", subsystem, message, data);
@@ -97,7 +102,7 @@ export function debug(subsystem: string, message: string, data?: any): void {
 /**
  * Info log - general informational messages
  */
-export function info(subsystem: string, message: string, data?: any): void {
+export function info(subsystem: string, message: string, data?: LogMetadata): void {
   if (!loggerConfig.enableInfo) return;
 
   const formatted = formatLogMessage("info", subsystem, message, data);
@@ -107,7 +112,7 @@ export function info(subsystem: string, message: string, data?: any): void {
 /**
  * Warning log - potential issues
  */
-export function warn(subsystem: string, message: string, data?: any): void {
+export function warn(subsystem: string, message: string, data?: LogMetadata): void {
   if (!loggerConfig.enableWarn) return;
 
   const formatted = formatLogMessage("warn", subsystem, message, data);
@@ -117,7 +122,7 @@ export function warn(subsystem: string, message: string, data?: any): void {
 /**
  * Error log - error conditions
  */
-export function error(subsystem: string, message: string, data?: any): void {
+export function error(subsystem: string, message: string, data?: LogMetadata): void {
   if (!loggerConfig.enableError) return;
 
   const formatted = formatLogMessage("error", subsystem, message, data);
@@ -161,10 +166,10 @@ export class Timer {
  */
 export function createLogger(subsystem: string) {
   return {
-    debug: (message: string, data?: any) => debug(subsystem, message, data),
-    info: (message: string, data?: any) => info(subsystem, message, data),
-    warn: (message: string, data?: any) => warn(subsystem, message, data),
-    error: (message: string, data?: any) => error(subsystem, message, data),
+    debug: (message: string, data?: LogMetadata) => debug(subsystem, message, data),
+    info: (message: string, data?: LogMetadata) => info(subsystem, message, data),
+    warn: (message: string, data?: LogMetadata) => warn(subsystem, message, data),
+    error: (message: string, data?: LogMetadata) => error(subsystem, message, data),
     timer: (operation: string) => new Timer(subsystem, operation),
   };
 }
