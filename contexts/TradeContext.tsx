@@ -89,9 +89,9 @@ const createInitialState = (): WizardState => ({
   items: [],
   editingItemId: null,
   buyer: null,
-  dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  dueDate: new Date()
     .toISOString()
-    .split("T")[0], // 7 days from now
+    .split("T")[0], // Today
   notes: "",
   impliedCosts: null,
   estimatedImportExportGBP: null,
