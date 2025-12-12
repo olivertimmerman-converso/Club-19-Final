@@ -29,7 +29,7 @@ const ALL_SIDEBAR_ITEMS: SidebarItem[] = [
     icon: "Briefcase",
   },
   {
-    label: "Deal Studio",
+    label: "Sales Atelier",
     href: "/trade/new",
     icon: "Sparkles",
   },

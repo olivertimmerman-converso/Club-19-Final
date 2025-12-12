@@ -83,7 +83,7 @@ export const ROUTE_PERMISSIONS: Record<string, {
     description: "Legacy data dashboards",
   },
   "/trade": {
-    allowedRoles: ["superadmin", "operations"],
+    allowedRoles: ["superadmin", "founder", "operations", "shopper"],
     description: "Sales Atelier / Deal Studio",
   },
 
