@@ -48,7 +48,7 @@ export function StepPricing() {
 
       {/* Buy Price Card */}
       <div className="border-t-4 border-green-600 bg-green-50 p-4 rounded-lg space-y-4">
-        <h3 className="font-semibold text-gray-900">Buy Side (Supplier)</h3>
+        <h3 className="font-semibold text-gray-900">Cost Details (Supplier)</h3>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -93,7 +93,7 @@ export function StepPricing() {
 
       {/* Sell Price Card */}
       <div className="border-t-4 border-purple-600 bg-purple-50 p-4 rounded-lg space-y-4">
-        <h3 className="font-semibold text-gray-900">Sell Side (Client)</h3>
+        <h3 className="font-semibold text-gray-900">Sale Details (Client)</h3>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">

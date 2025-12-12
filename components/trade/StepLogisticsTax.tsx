@@ -353,7 +353,7 @@ export function StepLogisticsTax() {
             )}
             {state.buyer && (
               <p>
-                <strong>Buyer:</strong> {state.buyer.name}
+                <strong>Client:</strong> {state.buyer.name}
               </p>
             )}
             {state.deliveryCountry && (

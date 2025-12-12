@@ -355,7 +355,7 @@ export function StepSupplierBuyer() {
       {/* Header */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          Supplier & Buyer
+          Supplier & Client
         </h2>
         <p className="text-sm text-gray-600">
           Who are you buying from and selling to?
@@ -412,7 +412,7 @@ export function StepSupplierBuyer() {
 
       {/* Supplier Card - Purple */}
       <div className="border-t-4 border-purple-600 bg-purple-50 p-4 rounded-lg space-y-4">
-        <h3 className="font-semibold text-gray-900">Supplier (Buy Side)</h3>
+        <h3 className="font-semibold text-gray-900">Supplier (Cost Details)</h3>
 
         {/* Supplier Name Search */}
         <div className="relative">
@@ -552,7 +552,7 @@ export function StepSupplierBuyer() {
         {/* Supplier Country */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Supplier Country <span className="text-red-600">*</span>
+            Country Supplier is supplying from <span className="text-red-600">*</span>
           </label>
           <select
             value={supplierCountry}
@@ -612,23 +612,23 @@ export function StepSupplierBuyer() {
 
       {/* Buyer Card - Purple */}
       <div className="border-t-4 border-purple-600 bg-purple-50 p-4 rounded-lg space-y-4">
-        <h3 className="font-semibold text-gray-900">Buyer (Sell Side)</h3>
+        <h3 className="font-semibold text-gray-900">Client (Sale Details)</h3>
 
         {/* Buyer Name with Xero Search */}
         <div className="relative">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Buyer Name <span className="text-red-600">*</span>
+            Client Name <span className="text-red-600">*</span>
           </label>
           <input
             type="text"
             value={buyerName}
             onChange={(e) => handleBuyerInput(e.target.value)}
-            placeholder="Search Xero buyers..."
+            placeholder="Search clients..."
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
             required
           />
           <p className="text-xs text-gray-600 mt-1">
-            Search for existing Xero customer or enter new name
+            Search for existing client or enter new name
           </p>
 
           {/* Xero Buyer Search Dropdown */}
@@ -689,7 +689,7 @@ export function StepSupplierBuyer() {
               `}
             >
               <p className="font-semibold">B2B Buyer</p>
-              <p className="text-xs text-gray-500 mt-1">Wholesale / Retailer</p>
+              <p className="text-xs text-gray-500 mt-1">Company / Wholesale / Retailer</p>
             </div>
 
             {/* End Client Card */}
@@ -702,7 +702,7 @@ export function StepSupplierBuyer() {
               `}
             >
               <p className="font-semibold">End Client</p>
-              <p className="text-xs text-gray-500 mt-1">Private client / final buyer</p>
+              <p className="text-xs text-gray-500 mt-1">Private Client / Final Buyer</p>
             </div>
 
           </div>
@@ -716,7 +716,7 @@ export function StepSupplierBuyer() {
         {/* Delivery Country */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Delivery Country <span className="text-red-600">*</span>
+            Client delivery country <span className="text-red-600">*</span>
           </label>
           <select
             value={deliveryCountry}

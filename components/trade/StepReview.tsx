@@ -125,7 +125,7 @@ export function StepReview() {
     }
 
     if (!state.buyer.xeroContactId) {
-      setError("Buyer must be selected from Xero. Please go back and select a Xero contact.");
+      setError("Client must be selected from Xero. Please go back and select a Xero contact.");
       return;
     }
 
@@ -341,14 +341,14 @@ export function StepReview() {
         </div>
       )}
 
-      {/* Buyer & Delivery Info */}
+      {/* Client & Delivery Info */}
       {(state.buyer || state.deliveryCountry) && (
         <div className="border border-purple-300 bg-purple-50 rounded-lg p-4">
-          <h3 className="font-semibold text-purple-900 mb-3">Buyer & Delivery</h3>
+          <h3 className="font-semibold text-purple-900 mb-3">Client & Delivery</h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
             {state.buyer && (
               <div>
-                <div className="text-purple-700 font-medium">Buyer</div>
+                <div className="text-purple-700 font-medium">Client</div>
                 <div className="text-purple-900">{state.buyer.name}</div>
                 {state.buyer.xeroContactId && (
                   <div className="text-xs text-purple-600 mt-0.5">
