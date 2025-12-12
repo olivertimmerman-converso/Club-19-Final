@@ -16,7 +16,8 @@ export function StepReview() {
     setError,
     resetWizard,
     goToStep,
-    addItem
+    addItem,
+    updateItem
   } = useTrade();
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -27,18 +28,17 @@ export function StepReview() {
   } | null>(null);
 
   // Convert currentItem to TradeItem automatically when entering this step
+  // Updates existing item if prices change (when user goes back and edits)
   useEffect(() => {
-    // Only add if we have currentItem and no items in the list yet
     if (
       state.currentItem &&
       state.currentSupplier &&
       state.taxScenario &&
       state.currentItem.buyPrice &&
-      state.currentItem.sellPrice &&
-      state.items.length === 0
+      state.currentItem.sellPrice
     ) {
       const tradeItem: TradeItem = {
-        id: uuidv4(),
+        id: state.items[0]?.id || uuidv4(), // Reuse existing ID or create new
         brand: state.currentItem.brand,
         category: state.currentItem.category,
         description: state.currentItem.description,
@@ -55,7 +55,13 @@ export function StepReview() {
         brandTheme: state.taxScenario.brandTheme,
       };
 
-      addItem(tradeItem);
+      if (state.items.length === 0) {
+        // Add new item if array is empty
+        addItem(tradeItem);
+      } else {
+        // Update existing item with new prices/data
+        updateItem(state.items[0].id, tradeItem);
+      }
     }
   }, [
     state.currentItem,
@@ -63,6 +69,7 @@ export function StepReview() {
     state.taxScenario,
     state.items.length,
     addItem,
+    updateItem,
   ]);
 
   // Calculate totals and margins
