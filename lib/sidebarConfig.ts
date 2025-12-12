@@ -29,11 +29,6 @@ const ALL_SIDEBAR_ITEMS: SidebarItem[] = [
     icon: "Briefcase",
   },
   {
-    label: "Sales Atelier",
-    href: "/trade/new",
-    icon: "Sparkles",
-  },
-  {
     label: "Clients",
     href: "/clients",
     icon: "Users",
@@ -59,14 +54,19 @@ const ALL_SIDEBAR_ITEMS: SidebarItem[] = [
     icon: "Calculator",
   },
   {
-    label: "Admin",
-    href: "/admin",
-    icon: "Shield",
-  },
-  {
     label: "Legacy Data",
     href: "/legacy",
     icon: "Archive",
+  },
+  {
+    label: "Sales Atelier",
+    href: "/trade/new",
+    icon: "PlusCircle",
+  },
+  {
+    label: "Admin",
+    href: "/admin",
+    icon: "Shield",
   },
 ];
 
