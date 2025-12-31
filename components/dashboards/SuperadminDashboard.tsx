@@ -220,6 +220,14 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
         </div>
       </div>
 
+      {/* Xero Sync Controls */}
+      <div className="mb-6">
+        <DashboardClientWrapper
+          unallocatedSales={unallocatedSales}
+          shoppers={shoppers}
+        />
+      </div>
+
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
@@ -251,12 +259,6 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
           )}
         </div>
       </div>
-
-      {/* Xero Sync Controls and Unallocated Invoices */}
-      <DashboardClientWrapper
-        unallocatedSales={unallocatedSales}
-        shoppers={shoppers}
-      />
 
       {/* Recent Sales Section */}
       <div className="mb-8">
