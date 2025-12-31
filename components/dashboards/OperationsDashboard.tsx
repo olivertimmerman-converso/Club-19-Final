@@ -8,7 +8,7 @@
 import { XataClient } from "@/src/xata";
 import Link from "next/link";
 import { MonthPicker } from "@/components/ui/MonthPicker";
-import { DashboardClientWrapper } from "./DashboardClientWrapper";
+// import { DashboardClientWrapper } from "./DashboardClientWrapper"; // Temporarily disabled
 
 const xata = new XataClient();
 
@@ -171,34 +171,28 @@ export async function OperationsDashboard({
   const allBuyers = await xata.db.Buyers.select(["id", "name"]).getMany({ pagination: { size: 200 } });
   const buyerFirstPurchase = new Map<string, Date>();
 
-  // Query unallocated sales (for Xero sync system)
-  const unallocatedSalesRaw = await xata.db.Sales
-    .filter({ needs_allocation: true })
-    .select(['id', 'xero_invoice_number', 'sale_date', 'sale_amount_inc_vat', 'buyer_name', 'internal_notes', 'buyer.name'])
-    .getMany();
-
-  // Serialize unallocated sales for client component (convert Date to string)
-  const unallocatedSales = unallocatedSalesRaw.map(sale => ({
-    id: sale.id,
-    xero_invoice_number: sale.xero_invoice_number,
-    sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
-    sale_amount_inc_vat: sale.sale_amount_inc_vat,
-    buyer_name: sale.buyer_name,
-    internal_notes: sale.internal_notes,
-    buyer: sale.buyer ? { name: sale.buyer.name } : null,
-  }));
-
-  // Query all shoppers (for allocation dropdown)
-  const shoppersRaw = await xata.db.Shoppers
-    .select(['id', 'name'])
-    .sort('name', 'asc')
-    .getMany();
-
-  // Serialize shoppers for client component
-  const shoppers = shoppersRaw.map(shopper => ({
-    id: shopper.id,
-    name: shopper.name,
-  }));
+  // TEMPORARILY DISABLED: Xero sync functionality
+  // const unallocatedSalesRaw = await xata.db.Sales
+  //   .filter({ needs_allocation: true })
+  //   .select(['id', 'xero_invoice_number', 'sale_date', 'sale_amount_inc_vat', 'buyer_name', 'internal_notes', 'buyer.name'])
+  //   .getMany();
+  // const unallocatedSales = unallocatedSalesRaw.map(sale => ({
+  //   id: sale.id,
+  //   xero_invoice_number: sale.xero_invoice_number,
+  //   sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
+  //   sale_amount_inc_vat: sale.sale_amount_inc_vat,
+  //   buyer_name: sale.buyer_name,
+  //   internal_notes: sale.internal_notes,
+  //   buyer: sale.buyer ? { name: sale.buyer.name } : null,
+  // }));
+  // const shoppersRaw = await xata.db.Shoppers
+  //   .select(['id', 'name'])
+  //   .sort('name', 'asc')
+  //   .getMany();
+  // const shoppers = shoppersRaw.map(shopper => ({
+  //   id: shopper.id,
+  //   name: shopper.name,
+  // }));
 
   // Fetch recent sales for buyer analysis - limit to 1000
   const allSalesForBuyers = await xata.db.Sales
@@ -493,11 +487,11 @@ export async function OperationsDashboard({
         <MonthPicker />
       </div>
 
-      {/* Xero Sync Controls and Unallocated Invoices */}
-      <DashboardClientWrapper
+      {/* TEMPORARILY DISABLED: Xero Sync Controls and Unallocated Invoices */}
+      {/* <DashboardClientWrapper
         unallocatedSales={unallocatedSales}
         shoppers={shoppers}
-      />
+      /> */}
 
       {/* SECTION 1: Key Metrics Bar */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

@@ -3,7 +3,7 @@ import { XataClient } from "@/src/xata";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { ViewAsSelector } from "@/components/ui/ViewAsSelector";
 import { getMonthDateRange } from "@/lib/dateUtils";
-import { DashboardClientWrapper } from "./DashboardClientWrapper";
+// import { DashboardClientWrapper } from "./DashboardClientWrapper"; // Temporarily disabled
 
 /**
  * Club 19 Sales OS - Superadmin Dashboard
@@ -90,34 +90,28 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   // Get recent 5 sales
   const recentSales = sales.slice(0, 5);
 
-  // Query unallocated sales (for Xero sync system)
-  const unallocatedSalesRaw = await xata.db.Sales
-    .filter({ needs_allocation: true })
-    .select(['id', 'xero_invoice_number', 'sale_date', 'sale_amount_inc_vat', 'buyer_name', 'internal_notes', 'buyer.name'])
-    .getMany();
-
-  // Serialize unallocated sales for client component (convert Date to string)
-  const unallocatedSales = unallocatedSalesRaw.map(sale => ({
-    id: sale.id,
-    xero_invoice_number: sale.xero_invoice_number,
-    sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
-    sale_amount_inc_vat: sale.sale_amount_inc_vat,
-    buyer_name: sale.buyer_name,
-    internal_notes: sale.internal_notes,
-    buyer: sale.buyer ? { name: sale.buyer.name } : null,
-  }));
-
-  // Query all shoppers (for allocation dropdown)
-  const shoppersRaw = await xata.db.Shoppers
-    .select(['id', 'name'])
-    .sort('name', 'asc')
-    .getMany();
-
-  // Serialize shoppers for client component
-  const shoppers = shoppersRaw.map(shopper => ({
-    id: shopper.id,
-    name: shopper.name,
-  }));
+  // TEMPORARILY DISABLED: Xero sync functionality
+  // const unallocatedSalesRaw = await xata.db.Sales
+  //   .filter({ needs_allocation: true })
+  //   .select(['id', 'xero_invoice_number', 'sale_date', 'sale_amount_inc_vat', 'buyer_name', 'internal_notes', 'buyer.name'])
+  //   .getMany();
+  // const unallocatedSales = unallocatedSalesRaw.map(sale => ({
+  //   id: sale.id,
+  //   xero_invoice_number: sale.xero_invoice_number,
+  //   sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
+  //   sale_amount_inc_vat: sale.sale_amount_inc_vat,
+  //   buyer_name: sale.buyer_name,
+  //   internal_notes: sale.internal_notes,
+  //   buyer: sale.buyer ? { name: sale.buyer.name } : null,
+  // }));
+  // const shoppersRaw = await xata.db.Shoppers
+  //   .select(['id', 'name'])
+  //   .sort('name', 'asc')
+  //   .getMany();
+  // const shoppers = shoppersRaw.map(shopper => ({
+  //   id: shopper.id,
+  //   name: shopper.name,
+  // }));
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -237,13 +231,13 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
         </div>
       </div>
 
-      {/* Xero Sync Controls */}
-      <div className="mb-6">
+      {/* TEMPORARILY DISABLED: Xero Sync Controls */}
+      {/* <div className="mb-6">
         <DashboardClientWrapper
           unallocatedSales={unallocatedSales}
           shoppers={shoppers}
         />
-      </div>
+      </div> */}
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
