@@ -114,21 +114,46 @@ function normalizeContact(xeroContact: XeroContactFromAPI): ExtendedContact {
 }
 
 /**
+ * Get the system user ID for Xero operations
+ *
+ * For multi-user systems, Xero is connected once by the organization owner.
+ * All users share the same Xero connection via this system user.
+ */
+function getSystemUserId(): string {
+  const systemUserId = process.env.XERO_SYSTEM_USER_ID;
+
+  if (!systemUserId || systemUserId === "FILL_ME") {
+    throw new Error(
+      "XERO_SYSTEM_USER_ID not configured. Please set this to the Clerk user ID of the organization owner who has connected Xero."
+    );
+  }
+
+  return systemUserId;
+}
+
+/**
  * Fetch all contacts from Xero with pagination
  *
  * Iterates through all pages until no more contacts are returned.
  * This is the foundation for Make-style local searching.
+ *
+ * NOTE: Uses system user's Xero connection, not the requesting user's.
+ * This allows all authenticated users to access Xero contacts.
  */
 async function fetchAllContactsFromXero(userId: string): Promise<ExtendedContact[]> {
   const startTime = Date.now();
   console.log("[XERO CACHE] === Fetching ALL contacts from Xero ===");
+  console.log(`[XERO CACHE] Requesting user: ${userId}`);
 
-  // Get valid OAuth tokens
+  // Get valid OAuth tokens from system user (organization owner)
+  const systemUserId = getSystemUserId();
+  console.log(`[XERO CACHE] Using system user for Xero auth: ${systemUserId}`);
+
   let accessToken: string;
   let tenantId: string;
 
   try {
-    const tokens = await getValidTokens(userId);
+    const tokens = await getValidTokens(systemUserId);
     accessToken = tokens.accessToken;
     tenantId = tokens.tenantId;
     console.log(`[XERO CACHE] ✓ Valid tokens obtained for tenant: ${tenantId}`);
