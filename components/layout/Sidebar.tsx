@@ -8,6 +8,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useNavigationItems, useUserRole } from "@/lib/rbac-client";
 import { ROLE_CONFIG } from "@/lib/rbac";
@@ -81,9 +82,27 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-[#F3DFA2]/20">
-            <div>
-              <h1 className="text-2xl font-bold text-[#F3DFA2]">Club 19</h1>
-              <p className="text-xs text-[#F3DFA2]/60 mt-1">Sales OS</p>
+            <div className="flex items-center gap-3">
+              {/* Club 19 Logo */}
+              <div className="relative h-10 w-10 shrink-0 rounded-full overflow-hidden bg-white/5">
+                <Image
+                  src="/club19-wordmark.png"
+                  alt="Club 19 London"
+                  fill
+                  className="object-contain p-1"
+                  priority
+                />
+              </div>
+
+              {/* Text Lockup */}
+              <div className="flex flex-col leading-tight">
+                <div className="font-serif text-lg font-light leading-tight tracking-wide text-[#F3DFA2]">
+                  CLUB<span className="mx-1 text-[#F3DFA2]/40">|</span>19
+                </div>
+                <div className="font-sans text-[9px] uppercase tracking-[0.15em] text-[#F3DFA2]/60 mt-0.5">
+                  SALES OS
+                </div>
+              </div>
             </div>
             <button
               onClick={onClose}

@@ -7,6 +7,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { type StaffRole, canAccessRoute } from "@/lib/permissions";
 import { getSidebarItemsForRole } from "@/lib/sidebarConfig";
@@ -48,10 +49,29 @@ export function Sidebar({ role }: SidebarProps) {
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
       {/* Logo / Brand */}
-      <div className="h-16 flex items-center justify-center border-b border-gray-200">
-        <h1 className="font-serif text-xl font-semibold tracking-wide text-gray-900">
-          Club 19
-        </h1>
+      <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          {/* Club 19 Circular Wordmark */}
+          <div className="relative h-10 w-10 shrink-0">
+            <Image
+              src="/club19-wordmark.png"
+              alt="Club 19 London"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+
+          {/* Text Lockup */}
+          <div className="flex flex-col leading-tight">
+            <div className="font-serif text-base font-light leading-tight tracking-wide text-gray-900">
+              CLUB<span className="mx-1 text-gray-400">|</span>19
+            </div>
+            <div className="font-sans text-[9px] uppercase tracking-[0.15em] text-gray-500">
+              SALES OS
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
