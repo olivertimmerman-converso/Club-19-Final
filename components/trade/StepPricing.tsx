@@ -133,6 +133,19 @@ export function StepPricing() {
           <p className="text-xs text-gray-600 mt-1">
             Price you&apos;re charging the client (always in GBP)
           </p>
+
+          {/* Real-time margin preview */}
+          {buyPrice && sellPrice && parseFloat(buyPrice) > 0 && parseFloat(sellPrice) > 0 && (
+            <div className="mt-2 text-sm text-gray-600">
+              Gross Margin: <span className="font-semibold text-gray-900">
+                £{((parseFloat(sellPrice) - parseFloat(buyPrice)) * (state.currentItem?.quantity || 1)).toFixed(2)}
+              </span>
+              {" "}
+              <span className="text-gray-500">
+                ({(((parseFloat(sellPrice) - parseFloat(buyPrice)) / parseFloat(sellPrice)) * 100).toFixed(1)}%)
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

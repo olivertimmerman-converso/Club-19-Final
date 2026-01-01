@@ -6,6 +6,7 @@ import { buildTradePayload } from "@/lib/trade-payload";
 import { calculateImpliedCosts } from "@/lib/implied-costs";
 import { TradeItem } from "@/lib/types/invoice";
 import { v4 as uuidv4 } from "uuid";
+import { FileText, CheckCircle } from "lucide-react";
 
 export function StepReview() {
   const {
@@ -519,15 +520,15 @@ export function StepReview() {
             !!successData ||
             state.items.length === 0
           }
-          className={`w-full px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center ${
+          className={`w-full px-8 py-4 rounded-lg text-lg font-semibold transition-all flex items-center justify-center gap-3 ${
             !state.buyer || !state.dueDate || state.isSubmitting || successData || state.items.length === 0
               ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : "bg-black text-white hover:bg-gray-800 shadow-md active:scale-95"
+              : "bg-black text-white hover:bg-gray-800 hover:scale-105 shadow-lg active:scale-100"
           }`}
         >
           {state.isSubmitting ? (
             <>
-              <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-6 w-6" fill="none" viewBox="0 0 24 24">
                 <circle
                   className="opacity-25"
                   cx="12"
@@ -545,9 +546,15 @@ export function StepReview() {
               Creating Invoice...
             </>
           ) : successData ? (
-            "✓ Invoice Created"
+            <>
+              <CheckCircle className="w-6 h-6" />
+              Invoice Created
+            </>
           ) : (
-            "Create Xero Invoice"
+            <>
+              <FileText className="w-6 h-6" />
+              Create Xero Invoice
+            </>
           )}
         </button>
 

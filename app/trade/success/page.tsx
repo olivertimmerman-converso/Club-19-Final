@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -10,6 +10,7 @@ import { useSearchParams } from "next/navigation";
  */
 function SuccessContent() {
   const searchParams = useSearchParams();
+  const [showAnimation, setShowAnimation] = useState(true);
 
   const invoiceId = searchParams.get("invoiceId") || "";
   const invoiceNumber = searchParams.get("invoiceNumber") || "";
@@ -23,13 +24,21 @@ function SuccessContent() {
     currency: currency,
   }).format(parseFloat(total));
 
+  // Trigger animation on mount, remove after 2 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowAnimation(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#F7F3FF] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         {/* Main Success Card - Clean White Premium Design */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           {/* Top Section - Logo & Success Icon */}
-          <div className="px-8 pt-12 pb-8 text-center">
+          <div className="px-8 pt-12 pb-8 text-center relative">
             {/* Club 19 Logo */}
             <div className="mb-8 flex justify-center">
               <Image
@@ -42,10 +51,16 @@ function SuccessContent() {
               />
             </div>
 
-            {/* Success Icon - Small Green Check */}
-            <div className="mx-auto w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6">
+            {/* Success Icon - Animated Green Check */}
+            <div
+              className={`mx-auto w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-6 transition-all duration-500 ${
+                showAnimation
+                  ? "scale-0 rotate-180 opacity-0"
+                  : "scale-100 rotate-0 opacity-100"
+              }`}
+            >
               <svg
-                className="w-10 h-10 text-green-500"
+                className="w-12 h-12 text-green-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -56,9 +71,32 @@ function SuccessContent() {
                   strokeLinejoin="round"
                   strokeWidth={2.5}
                   d="M5 13l4 4L19 7"
+                  className={showAnimation ? "" : "animate-[dash_0.5s_ease-in-out]"}
+                  style={{
+                    strokeDasharray: showAnimation ? "0" : "1000",
+                    strokeDashoffset: showAnimation ? "1000" : "0",
+                  }}
                 />
               </svg>
             </div>
+
+            {/* Celebration particles - Brief animation */}
+            {showAnimation && (
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute top-1/2 left-1/2 w-2 h-2 bg-green-400 rounded-full animate-ping"
+                    style={{
+                      transform: `rotate(${i * 45}deg) translateX(${40 + i * 10}px)`,
+                      animationDelay: `${i * 0.1}s`,
+                      animationDuration: "1s",
+                      opacity: 0.6,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Title - Elegant Serif */}
             <h1 className="text-3xl font-serif font-bold text-black mb-3">
@@ -73,7 +111,11 @@ function SuccessContent() {
 
           {/* Invoice Details Card - Premium Receipt Style */}
           <div className="px-8 pb-8">
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+            <div
+              className={`bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4 transition-all duration-700 ${
+                showAnimation ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
+              }`}
+            >
               {/* Invoice Number - Featured */}
               <div className="pb-4 border-b border-gray-100">
                 <p className="text-sm font-medium text-gray-500 mb-2">Invoice Number</p>

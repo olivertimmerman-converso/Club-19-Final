@@ -284,7 +284,7 @@ export function StepSupplierBuyer() {
 
     if (buyerDebounceTimer.current) clearTimeout(buyerDebounceTimer.current);
 
-    if (value.length >= 2) {
+    if (value.length >= 3) {
       buyerDebounceTimer.current = setTimeout(async () => {
         // Cancel previous request
         if (buyerAbortController.current) {

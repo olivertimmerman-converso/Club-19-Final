@@ -26,6 +26,30 @@ export function WizardShell({ children }: WizardShellProps) {
     }
   }, [state.currentStep]);
 
+  // Keyboard navigation: Enter to advance
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Only trigger if Enter is pressed and Next button is enabled
+      if (event.key === "Enter" && canGoNext) {
+        // Don't trigger if user is in a textarea or the target is a button/link
+        const target = event.target as HTMLElement;
+        if (
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "BUTTON" ||
+          target.tagName === "A"
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        nextStep();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [canGoNext, nextStep]);
+
   const handleConfirmReset = () => {
     resetWizard();
     goToStep(0);
@@ -94,9 +118,9 @@ export function WizardShell({ children }: WizardShellProps) {
                         flex h-8 w-8 min-w-[32px] items-center justify-center rounded-full border-2 text-xs font-semibold transition-all sm:h-10 sm:w-10 sm:text-sm
                         ${
                           isCompleted
-                            ? "border-black bg-black text-white cursor-pointer hover:bg-gray-800 hover:border-gray-800"
+                            ? "border-green-600 bg-green-600 text-white cursor-pointer hover:bg-green-700 hover:border-green-700"
                             : isCurrent
-                              ? "border-black bg-white text-black shadow-md cursor-default"
+                              ? "border-black bg-white text-black shadow-lg cursor-default ring-2 ring-black ring-offset-2 animate-pulse"
                               : canNavigate
                                 ? "border-gray-300 bg-white text-gray-400 cursor-not-allowed opacity-60"
                                 : "border-gray-300 bg-white text-gray-400 cursor-not-allowed opacity-40"
@@ -137,7 +161,7 @@ export function WizardShell({ children }: WizardShellProps) {
                     <div
                       className={`
                         -mt-6 h-0.5 w-full flex-1 transition-all sm:-mt-7
-                        ${isCompleted ? "bg-black" : "bg-gray-300"}
+                        ${isCompleted ? "bg-green-600" : "bg-gray-300"}
                       `}
                       aria-hidden="true"
                     />
@@ -207,7 +231,7 @@ export function WizardShell({ children }: WizardShellProps) {
               onClick={nextStep}
               disabled={!canGoNext}
               className={`
-                w-full rounded-lg px-6 py-2.5 text-sm font-medium transition-all sm:w-auto
+                w-full rounded-lg px-6 py-2.5 text-sm font-medium transition-all sm:w-auto flex items-center justify-center gap-2
                 ${
                   canGoNext
                     ? "bg-black text-white hover:bg-gray-800 shadow-md active:scale-95"
@@ -215,7 +239,16 @@ export function WizardShell({ children }: WizardShellProps) {
                 }
               `}
             >
-              {state.currentStep === STEP_LABELS.length - 1 ? "Review" : "Next"}
+              {state.currentStep < STEP_LABELS.length - 1 ? (
+                <>
+                  Next: {STEP_LABELS[state.currentStep + 1]}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </>
+              ) : (
+                "Review"
+              )}
             </button>
           </div>
         </div>
