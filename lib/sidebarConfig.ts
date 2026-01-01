@@ -63,6 +63,11 @@ const ALL_SIDEBAR_ITEMS: SidebarItem[] = [
     href: "/admin",
     icon: "Shield",
   },
+  {
+    label: "Xero Sync",
+    href: "/admin/sync",
+    icon: "RefreshCw",
+  },
 ];
 
 /**

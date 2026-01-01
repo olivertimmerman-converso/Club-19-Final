@@ -20,6 +20,7 @@ import {
   Shield,
   Archive,
   PlusCircle,
+  RefreshCw,
 } from "lucide-react";
 
 const iconMap = {
@@ -32,6 +33,7 @@ const iconMap = {
   Shield,
   Archive,
   PlusCircle,
+  RefreshCw,
 };
 
 interface SidebarProps {
