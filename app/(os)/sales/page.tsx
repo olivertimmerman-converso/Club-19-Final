@@ -1,20 +1,19 @@
 import Link from "next/link";
-import { XataClient } from "@/src/xata";
+import { getXataClient } from "@/src/xata";
 import { getUserRole } from "@/lib/getUserRole";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMonthDateRange } from "@/lib/dateUtils";
+import { SalesTableClient } from "./SalesTableClient";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Club 19 Sales OS - Sales Overview
  *
- * Displays all sales from the Xata database
+ * Displays all sales from the Xata database with inline shopper editing
  * Shoppers see only their own sales, others see all sales
  */
-
-const xata = new XataClient();
 
 interface SalesPageProps {
   searchParams: Promise<{ month?: string }>;
@@ -22,6 +21,8 @@ interface SalesPageProps {
 
 export default async function SalesPage({ searchParams }: SalesPageProps) {
   try {
+    const xata = getXataClient();
+
     // Get role for filtering
     const role = await getUserRole();
     console.log('[SalesPage] Role:', role);
@@ -34,7 +35,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     const dateRange = getMonthDateRange(monthParam);
     console.log('[SalesPage] Date range:', dateRange);
 
-    // Query Sales table from Xata
+    // Query Sales table from Xata - now including shopper.id for the dropdown
     let query = xata.db.Sales
       .select([
         'id',
@@ -48,6 +49,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
         'invoice_status',
         'currency',
         'buyer.name',
+        'shopper.id',
         'shopper.name',
       ]);
 
@@ -80,47 +82,35 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
 
     console.log('[SalesPage] Executing query...');
     // Limit to 200 recent sales for performance
-    const sales = await query.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
-    console.log('[SalesPage] Sales count:', sales.length);
+    const salesRaw = await query.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
+    console.log('[SalesPage] Sales count:', salesRaw.length);
 
-  // Format currency
-  const formatCurrency = (amount: number | null | undefined, currency: string | null | undefined) => {
-    if (!amount) return '—';
-    const curr = currency || 'GBP';
-    const symbol = curr === 'GBP' ? '£' : curr === 'EUR' ? '€' : '$';
-    return `${symbol}${amount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-  };
+    // Fetch all shoppers for the dropdown
+    const shoppersRaw = await xata.db.Shoppers
+      .select(['id', 'name'])
+      .sort('name', 'asc')
+      .getAll();
 
-  // Format date
-  const formatDate = (date: Date | null | undefined) => {
-    if (!date) return '—';
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
+    // Serialize data for client component
+    const sales = salesRaw.map(sale => ({
+      id: sale.id,
+      sale_reference: sale.sale_reference || null,
+      sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
+      brand: sale.brand || null,
+      item_title: sale.item_title || null,
+      sale_amount_inc_vat: sale.sale_amount_inc_vat || null,
+      gross_margin: sale.gross_margin || null,
+      xero_invoice_number: sale.xero_invoice_number || null,
+      invoice_status: sale.invoice_status || null,
+      currency: sale.currency || null,
+      buyer: sale.buyer ? { name: sale.buyer.name || 'Unknown' } : null,
+      shopper: sale.shopper ? { id: sale.shopper.id, name: sale.shopper.name || 'Unknown' } : null,
+    }));
 
-  // Format status badge
-  const getStatusBadge = (status: string | null | undefined) => {
-    if (!status) return <span className="text-gray-400">—</span>;
-
-    const statusColors: Record<string, string> = {
-      'DRAFT': 'bg-gray-100 text-gray-700',
-      'SUBMITTED': 'bg-blue-100 text-blue-700',
-      'AUTHORISED': 'bg-green-100 text-green-700',
-      'PAID': 'bg-green-100 text-green-700',
-      'VOIDED': 'bg-red-100 text-red-700',
-    };
-
-    const colorClass = statusColors[status] || 'bg-gray-100 text-gray-700';
-
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
-        {status}
-      </span>
-    );
-  };
+    const shoppers = shoppersRaw.map(s => ({
+      id: s.id,
+      name: s.name || 'Unknown',
+    }));
 
   return (
     <div className="p-6">
@@ -199,111 +189,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Sale Ref
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Date
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Buyer
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Brand
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Item
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Sale Amount
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Margin
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Invoice #
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sales.map((sale) => (
-                  <tr
-                    key={sale.id}
-                    className="hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Link
-                        href={`/sales/${sale.id}`}
-                        className="text-sm font-medium text-purple-600 hover:text-purple-900"
-                      >
-                        {sale.sale_reference || '—'}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(sale.sale_date)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {sale.buyer?.name || '—'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {sale.brand || '—'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {sale.item_title || '—'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                      {formatCurrency(sale.sale_amount_inc_vat, sale.currency)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                      {formatCurrency(sale.gross_margin, sale.currency)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {sale.xero_invoice_number || '—'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {getStatusBadge(sale.invoice_status)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <SalesTableClient sales={sales} shoppers={shoppers} />
       )}
     </div>
   );
