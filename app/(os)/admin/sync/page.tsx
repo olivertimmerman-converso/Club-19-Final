@@ -4,6 +4,8 @@ import { getUserRole } from '@/lib/getUserRole';
 import { getXataClient } from '@/src/xata';
 import { SyncPageClient } from './SyncPageClient';
 
+export const dynamic = "force-dynamic";
+
 export default async function SyncPage() {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
