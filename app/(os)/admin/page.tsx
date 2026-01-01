@@ -2,6 +2,7 @@ import Link from "next/link";
 import { XataClient } from "@/src/xata";
 import { getUserRole } from "@/lib/getUserRole";
 import { clerkClient } from "@clerk/nextjs/server";
+import { getTokens } from "@/lib/xero-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -70,11 +71,48 @@ export default async function AdminPage() {
   const isProduction = appUrl.includes('vercel.app') || appUrl.includes('club19');
   const environment = isProduction ? 'Production' : 'Development';
 
-  // Check Xero integration status (basic check)
-  const xeroConnected = !!(
-    process.env.XERO_CLIENT_ID &&
-    process.env.XERO_CLIENT_SECRET
+  // Check Xero integration status (proper check with env vars + OAuth tokens)
+  let xeroConnected = false;
+  let xeroStatus = 'Disconnected';
+
+  // First check: Environment variables
+  const hasXeroEnvVars = !!(
+    process.env.NEXT_PUBLIC_XERO_CLIENT_ID &&
+    process.env.XERO_CLIENT_SECRET &&
+    process.env.XERO_SYSTEM_USER_ID &&
+    process.env.XERO_SYSTEM_USER_ID !== 'FILL_ME'
   );
+
+  if (hasXeroEnvVars) {
+    // Second check: OAuth tokens in Clerk metadata
+    try {
+      const systemUserId = process.env.XERO_SYSTEM_USER_ID!;
+      const tokens = await getTokens(systemUserId);
+
+      if (tokens && tokens.accessToken) {
+        // Check if token is expired
+        const now = Date.now();
+        const expiresAt = tokens.expiresAt;
+
+        if (expiresAt && expiresAt > now) {
+          xeroConnected = true;
+          xeroStatus = 'Connected';
+        } else if (tokens.refreshToken) {
+          xeroStatus = 'Token Expired (will auto-refresh)';
+          xeroConnected = true; // Still functional due to refresh token
+        } else {
+          xeroStatus = 'Token Expired';
+        }
+      } else {
+        xeroStatus = 'Not Authorized (no tokens)';
+      }
+    } catch (error) {
+      console.error('[Admin] Error checking Xero tokens:', error);
+      xeroStatus = 'Not Authorized (no tokens)';
+    }
+  } else {
+    xeroStatus = 'Not Configured (missing env vars)';
+  }
 
   return (
     <div className="p-6">
@@ -310,7 +348,7 @@ export default async function AdminPage() {
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   xeroConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                 }`}>
-                  {xeroConnected ? 'Connected' : 'Disconnected'}
+                  {xeroStatus}
                 </span>
               </div>
               <div className="flex items-center justify-between">
