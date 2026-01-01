@@ -219,20 +219,21 @@ export async function POST() {
           }
 
           const currentDate = new Date();
-          const importNotes = `Auto-imported from Xero on ${safeISOString(currentDate) || currentDate.toString()}. Client: ${contactName}. Needs shopper allocation and cost details.`;
+          const dueDateNote = dueDate ? ` Due: ${safeISOString(dueDate) || 'Unknown'}` : '';
+          const importNotes = `Auto-imported from Xero on ${safeISOString(currentDate) || currentDate.toString()}. Client: ${contactName}.${dueDateNote} Needs shopper allocation and cost details.`;
 
           await xata.db.Sales.create({
             xero_invoice_id: invoice.InvoiceID,
             xero_invoice_number: invoice.InvoiceNumber,
             invoice_status: invoice.Status,
             sale_date: saleDate || currentDate, // Fallback to current date if invalid
-            invoice_due_date: dueDate,
+            // invoice_due_date: dueDate, // TODO: Column exists in schema but not accepted by Xata yet
             sale_amount_inc_vat: total,
             sale_amount_ex_vat: invoice.SubTotal || (total / 1.2), // Use SubTotal or assume 20% VAT
             currency: 'GBP',
             needs_allocation: true, // Requires shopper assignment
             buyer: buyer ? buyer.id : null,
-            buyer_name: contactName,
+            // buyer_name: contactName, // TODO: Column exists in schema but not accepted by Xata yet
             brand: 'Unknown',
             category: 'Unknown',
             item_title: firstItem.Description || 'Imported from Xero',
