@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import Link from "next/link";
 import { XataClient } from "@/src/xata";
 import type { SalesRecord } from "@/src/xata";
@@ -18,7 +19,7 @@ interface SuperadminDashboardProps {
   monthParam?: string;
 }
 
-export async function SuperadminDashboard({ monthParam = "current" }: SuperadminDashboardProps) {
+const SuperadminDashboardComponent = memo(async function SuperadminDashboard({ monthParam = "current" }: SuperadminDashboardProps) {
   // Get date range for filtering
   const dateRange = getMonthDateRange(monthParam);
 
@@ -52,11 +53,17 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   // Limit to 200 recent sales for dashboard performance
   const sales = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
 
-  // Calculate metrics
-  const totalSales = sales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
-  const totalMargin = sales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
-  const tradesCount = sales.length;
-  const avgMarginPercent = totalSales > 0 ? (totalMargin / totalSales) * 100 : 0;
+  // Calculate metrics using useMemo for performance
+  const { totalSales, totalMargin, tradesCount, avgMarginPercent } = useMemo(() => {
+    const total = sales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
+    const margin = sales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
+    return {
+      totalSales: total,
+      totalMargin: margin,
+      tradesCount: sales.length,
+      avgMarginPercent: total > 0 ? (margin / total) * 100 : 0,
+    };
+  }, [sales]);
 
   // Calculate last month's metrics for trend comparison (only if viewing current month)
   let lastMonthData = null;
@@ -75,17 +82,16 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
       })
       .getMany({ pagination: { size: 1000 } });
 
-    const lastMonthTotalSales = lastMonthSales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
-    const lastMonthTotalMargin = lastMonthSales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
-    const lastMonthTradesCount = lastMonthSales.length;
-    const lastMonthAvgMarginPercent = lastMonthTotalSales > 0 ? (lastMonthTotalMargin / lastMonthTotalSales) * 100 : 0;
-
-    lastMonthData = {
-      totalSales: lastMonthTotalSales,
-      totalMargin: lastMonthTotalMargin,
-      tradesCount: lastMonthTradesCount,
-      avgMarginPercent: lastMonthAvgMarginPercent,
-    };
+    lastMonthData = useMemo(() => {
+      const total = lastMonthSales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
+      const margin = lastMonthSales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
+      return {
+        totalSales: total,
+        totalMargin: margin,
+        tradesCount: lastMonthSales.length,
+        avgMarginPercent: total > 0 ? (margin / total) * 100 : 0,
+      };
+    }, [lastMonthSales]);
   }
 
   // Get recent 5 sales
@@ -427,4 +433,6 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
       </div>
     </div>
   );
-}
+});
+
+export { SuperadminDashboardComponent as SuperadminDashboard };

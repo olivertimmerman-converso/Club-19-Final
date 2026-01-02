@@ -7,6 +7,7 @@
  * - Export to bookkeeper
  */
 
+import { memo, useMemo } from 'react';
 import Link from "next/link";
 import { XataClient } from "@/src/xata";
 import { MonthPicker } from "@/components/ui/MonthPicker";
@@ -35,7 +36,7 @@ interface TopClient {
   purchaseCount: number;
 }
 
-export async function FounderDashboard({ monthParam = "current" }: FounderDashboardProps) {
+const FounderDashboardComponent = memo(async function FounderDashboard({ monthParam = "current" }: FounderDashboardProps) {
   try {
     logger.info('DASHBOARD', 'Rendering FounderDashboard', { monthParam });
 
@@ -99,74 +100,80 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
     .getMany({ pagination: { size: 500 } });
   logger.info('DASHBOARD', 'YTD sales fetched', { count: ytdSales.length });
 
-  // Calculate shopper performance
-  const shopperStats = new Map<string, ShopperPerformance>();
+  // Calculate shopper performance using useMemo for performance
+  const shopperPerformance = useMemo(() => {
+    const shopperStats = new Map<string, ShopperPerformance>();
 
-  // Process current month sales - use shopper ID as key for deduplication
-  sales.forEach(sale => {
-    const shopperId = sale.shopper?.id || 'unassigned';
-    const shopperName = sale.shopper?.name || 'Unassigned';
+    // Process current month sales - use shopper ID as key for deduplication
+    sales.forEach(sale => {
+      const shopperId = sale.shopper?.id || 'unassigned';
+      const shopperName = sale.shopper?.name || 'Unassigned';
 
-    if (!shopperStats.has(shopperId)) {
-      shopperStats.set(shopperId, {
-        name: shopperName,
-        thisMonthSales: 0,
-        margin: 0,
-        marginPercent: 0,
-        commission: 0,
-        ytdSales: 0,
-      });
-    }
-    const stats = shopperStats.get(shopperId)!;
-    stats.thisMonthSales += sale.sale_amount_inc_vat || 0;
-    stats.margin += sale.gross_margin || 0;
-    stats.commission += sale.commissionable_margin || 0;
-  });
+      if (!shopperStats.has(shopperId)) {
+        shopperStats.set(shopperId, {
+          name: shopperName,
+          thisMonthSales: 0,
+          margin: 0,
+          marginPercent: 0,
+          commission: 0,
+          ytdSales: 0,
+        });
+      }
+      const stats = shopperStats.get(shopperId)!;
+      stats.thisMonthSales += sale.sale_amount_inc_vat || 0;
+      stats.margin += sale.gross_margin || 0;
+      stats.commission += sale.commissionable_margin || 0;
+    });
 
-  // Add YTD data - use shopper ID for matching
-  ytdSales.forEach(sale => {
-    const shopperId = sale.shopper?.id || 'unassigned';
-    if (shopperStats.has(shopperId)) {
-      shopperStats.get(shopperId)!.ytdSales += sale.sale_amount_inc_vat || 0;
-    }
-  });
+    // Add YTD data - use shopper ID for matching
+    ytdSales.forEach(sale => {
+      const shopperId = sale.shopper?.id || 'unassigned';
+      if (shopperStats.has(shopperId)) {
+        shopperStats.get(shopperId)!.ytdSales += sale.sale_amount_inc_vat || 0;
+      }
+    });
 
-  // Calculate margin percentages
-  shopperStats.forEach(stats => {
-    if (stats.thisMonthSales > 0) {
-      stats.marginPercent = (stats.margin / stats.thisMonthSales) * 100;
-    }
-  });
+    // Calculate margin percentages
+    shopperStats.forEach(stats => {
+      if (stats.thisMonthSales > 0) {
+        stats.marginPercent = (stats.margin / stats.thisMonthSales) * 100;
+      }
+    });
 
-  const shopperPerformance = Array.from(shopperStats.values())
-    .sort((a, b) => b.thisMonthSales - a.thisMonthSales);
+    return Array.from(shopperStats.values())
+      .sort((a, b) => b.thisMonthSales - a.thisMonthSales);
+  }, [sales, ytdSales]);
 
-  // Commission status breakdown
-  const pendingCount = sales.filter(s => !s.commission_locked).length;
-  const lockedCount = sales.filter(s => s.commission_locked && !s.commission_paid).length;
-  const paidCount = sales.filter(s => s.commission_paid).length;
+  // Commission status breakdown using useMemo
+  const { pendingCount, lockedCount, paidCount } = useMemo(() => ({
+    pendingCount: sales.filter(s => !s.commission_locked).length,
+    lockedCount: sales.filter(s => s.commission_locked && !s.commission_paid).length,
+    paidCount: sales.filter(s => s.commission_paid).length,
+  }), [sales]);
 
-  // Top clients this month
-  const clientStats = new Map<string, TopClient>();
-  sales.forEach(sale => {
-    if (!sale.buyer?.id) return;
+  // Top clients this month using useMemo
+  const topClients = useMemo(() => {
+    const clientStats = new Map<string, TopClient>();
+    sales.forEach(sale => {
+      if (!sale.buyer?.id) return;
 
-    if (!clientStats.has(sale.buyer.id)) {
-      clientStats.set(sale.buyer.id, {
-        id: sale.buyer.id,
-        name: sale.buyer.name || 'Unknown Client',
-        totalSpend: 0,
-        purchaseCount: 0,
-      });
-    }
-    const client = clientStats.get(sale.buyer.id)!;
-    client.totalSpend += sale.sale_amount_inc_vat || 0;
-    client.purchaseCount += 1;
-  });
+      if (!clientStats.has(sale.buyer.id)) {
+        clientStats.set(sale.buyer.id, {
+          id: sale.buyer.id,
+          name: sale.buyer.name || 'Unknown Client',
+          totalSpend: 0,
+          purchaseCount: 0,
+        });
+      }
+      const client = clientStats.get(sale.buyer.id)!;
+      client.totalSpend += sale.sale_amount_inc_vat || 0;
+      client.purchaseCount += 1;
+    });
 
-  const topClients = Array.from(clientStats.values())
-    .sort((a, b) => b.totalSpend - a.totalSpend)
-    .slice(0, 5);
+    return Array.from(clientStats.values())
+      .sort((a, b) => b.totalSpend - a.totalSpend)
+      .slice(0, 5);
+  }, [sales]);
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -450,4 +457,6 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
       </div>
     );
   }
-}
+});
+
+export { FounderDashboardComponent as FounderDashboard };
