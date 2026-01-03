@@ -34,11 +34,11 @@ export async function GET() {
       id: trade.id,
       trade_date: trade.trade_date,
       brand: trade.brand || 'null',
-      item_title: trade.item_title || 'null',
-      sale_amount_inc_vat: trade.sale_amount_inc_vat,
-      gross_margin: trade.gross_margin,
-      legacy_client_id: trade.legacy_client_id || 'null',
-      legacy_supplier_id: trade.legacy_supplier_id || 'null',
+      item: trade.item || 'null',  // Correct field name: 'item' not 'item_title'
+      sell_price: trade.sell_price,  // Correct field name: 'sell_price' not 'sale_amount_inc_vat'
+      margin: trade.margin,  // Correct field name: 'margin' not 'gross_margin'
+      client_id: trade.client_id?.id || 'null',  // Link field
+      supplier_id: trade.supplier_id?.id || 'null',  // Link field
     }));
 
     // Sales table comparison
