@@ -5,7 +5,6 @@
  * Shows detailed analytics, insights, and operational metrics
  */
 
-import { memo, useMemo } from 'react';
 import { XataClient } from "@/src/xata";
 import Link from "next/link";
 import { MonthPicker } from "@/components/ui/MonthPicker";
@@ -74,7 +73,7 @@ function getMonthLabel(monthParam: string = "current") {
   });
 }
 
-const OperationsDashboardComponent = memo(async function OperationsDashboard({
+export async function OperationsDashboard({
   monthParam = "current",
 }: OperationsDashboardProps) {
   const dateRange = getDateRange(monthParam);
@@ -209,32 +208,24 @@ const OperationsDashboardComponent = memo(async function OperationsDashboard({
     }
   });
 
-  // Calculate key metrics using useMemo
-  const { totalRevenue, totalMargin, avgMarginPercent, totalTrades } = useMemo(() => {
-    const revenue = sales.reduce((sum, s) => sum + (s.sale_amount_inc_vat || 0), 0);
-    const margin = sales.reduce((sum, s) => sum + (s.gross_margin || 0), 0);
-    return {
-      totalRevenue: revenue,
-      totalMargin: margin,
-      avgMarginPercent: revenue > 0 ? (margin / revenue) * 100 : 0,
-      totalTrades: sales.length,
-    };
-  }, [sales]);
+  // Calculate key metrics
+  const revenue = sales.reduce((sum, s) => sum + (s.sale_amount_inc_vat || 0), 0);
+  const margin = sales.reduce((sum, s) => sum + (s.gross_margin || 0), 0);
+  const totalRevenue = revenue;
+  const totalMargin = margin;
+  const avgMarginPercent = revenue > 0 ? (margin / revenue) * 100 : 0;
+  const totalTrades = sales.length;
 
-  // Calculate outstanding invoices using useMemo
-  const { outstandingInvoices, outstandingAmount } = useMemo(() => {
-    const outstanding = invoices.filter(
-      (inv) =>
-        inv.invoice_status === "AUTHORISED" || inv.invoice_status === "SUBMITTED"
-    );
-    return {
-      outstandingInvoices: outstanding,
-      outstandingAmount: outstanding.reduce(
-        (sum, inv) => sum + (inv.sale_amount_inc_vat || 0),
-        0
-      ),
-    };
-  }, [invoices]);
+  // Calculate outstanding invoices
+  const outstanding = invoices.filter(
+    (inv) =>
+      inv.invoice_status === "AUTHORISED" || inv.invoice_status === "SUBMITTED"
+  );
+  const outstandingInvoices = outstanding;
+  const outstandingAmount = outstanding.reduce(
+    (sum, inv) => sum + (inv.sale_amount_inc_vat || 0),
+    0
+  );
 
   // Calculate overdue invoices (30+ days)
   const now = new Date();
@@ -247,15 +238,13 @@ const OperationsDashboardComponent = memo(async function OperationsDashboard({
     return daysSince > 30;
   });
 
-  // Calculate commission pending using useMemo
-  const commissionPending = useMemo(() => {
-    return sales.reduce((sum, s) => {
-      if (!s.commission_locked && !s.commission_paid) {
-        return sum + (s.commissionable_margin || 0);
-      }
-      return sum;
-    }, 0);
-  }, [sales]);
+  // Calculate commission pending
+  const commissionPending = sales.reduce((sum, s) => {
+    if (!s.commission_locked && !s.commission_paid) {
+      return sum + (s.commissionable_margin || 0);
+    }
+    return sum;
+  }, 0);
 
   // Shopper performance
   interface ShopperPerf {
@@ -272,11 +261,10 @@ const OperationsDashboardComponent = memo(async function OperationsDashboard({
     commissionPending: number;
   }
 
-  // Calculate shopper performance using useMemo
-  const shopperPerfArray = useMemo(() => {
-    const shopperPerformance = new Map<string, ShopperPerf>();
+  // Calculate shopper performance
+  const shopperPerformance = new Map<string, ShopperPerf>();
 
-    sales.forEach((sale) => {
+  sales.forEach((sale) => {
     const shopperId = sale.shopper?.id || "unassigned";
     const shopperName = sale.shopper?.name || "Unassigned";
 
@@ -328,10 +316,9 @@ const OperationsDashboardComponent = memo(async function OperationsDashboard({
     }
   });
 
-    return Array.from(shopperPerformance.values()).sort(
-      (a, b) => b.thisMonthSales - a.thisMonthSales
-    );
-  }, [sales, lastMonthSales, ytdSales]);
+  const shopperPerfArray = Array.from(shopperPerformance.values()).sort(
+    (a, b) => b.thisMonthSales - a.thisMonthSales
+  );
 
   // Sales by brand
   interface BrandStats {
@@ -341,29 +328,27 @@ const OperationsDashboardComponent = memo(async function OperationsDashboard({
     tradeCount: number;
   }
 
-  // Calculate brand stats using useMemo
-  const brandStatsArray = useMemo(() => {
-    const brandStats = new Map<string, BrandStats>();
-    sales.forEach((sale) => {
-      const brand = sale.brand || "Unknown";
-      if (!brandStats.has(brand)) {
-        brandStats.set(brand, {
-          brand,
-          revenue: 0,
-          margin: 0,
-          tradeCount: 0,
-        });
-      }
-      const stats = brandStats.get(brand)!;
-      stats.revenue += sale.sale_amount_inc_vat || 0;
-      stats.margin += sale.gross_margin || 0;
-      stats.tradeCount++;
-    });
+  // Calculate brand stats
+  const brandStats = new Map<string, BrandStats>();
+  sales.forEach((sale) => {
+    const brand = sale.brand || "Unknown";
+    if (!brandStats.has(brand)) {
+      brandStats.set(brand, {
+        brand,
+        revenue: 0,
+        margin: 0,
+        tradeCount: 0,
+      });
+    }
+    const stats = brandStats.get(brand)!;
+    stats.revenue += sale.sale_amount_inc_vat || 0;
+    stats.margin += sale.gross_margin || 0;
+    stats.tradeCount++;
+  });
 
-    return Array.from(brandStats.values()).sort(
-      (a, b) => b.revenue - a.revenue
-    );
-  }, [sales]);
+  const brandStatsArray = Array.from(brandStats.values()).sort(
+    (a, b) => b.revenue - a.revenue
+  );
 
   // Client analysis - top 10 clients this month
   interface ClientStats {
@@ -375,52 +360,45 @@ const OperationsDashboardComponent = memo(async function OperationsDashboard({
     isNew: boolean;
   }
 
-  // Calculate client stats using useMemo
-  const { top10Clients, repeatClientRate } = useMemo(() => {
-    const clientStats = new Map<string, ClientStats>();
-    sales.forEach((sale) => {
-      const buyerId = sale.buyer?.id;
-      const buyerName = sale.buyer?.name || "Unknown";
-      if (!buyerId) return;
+  // Calculate client stats
+  const clientStatsMap = new Map<string, ClientStats>();
+  sales.forEach((sale) => {
+    const buyerId = sale.buyer?.id;
+    const buyerName = sale.buyer?.name || "Unknown";
+    if (!buyerId) return;
 
-      if (!clientStats.has(buyerId)) {
-        const firstPurchase = buyerFirstPurchase.get(buyerId);
-        const isNew =
-          firstPurchase &&
-          firstPurchase >= dateRange.start &&
-          firstPurchase <= dateRange.end;
+    if (!clientStatsMap.has(buyerId)) {
+      const firstPurchase = buyerFirstPurchase.get(buyerId);
+      const isNew =
+        firstPurchase &&
+        firstPurchase >= dateRange.start &&
+        firstPurchase <= dateRange.end;
 
-        clientStats.set(buyerId, {
-          id: buyerId,
-          name: buyerName,
-          totalSpend: 0,
-          marginGenerated: 0,
-          trades: 0,
-          isNew: !!isNew,
-        });
-      }
+      clientStatsMap.set(buyerId, {
+        id: buyerId,
+        name: buyerName,
+        totalSpend: 0,
+        marginGenerated: 0,
+        trades: 0,
+        isNew: !!isNew,
+      });
+    }
 
-      const stats = clientStats.get(buyerId)!;
-      stats.totalSpend += sale.sale_amount_inc_vat || 0;
-      stats.marginGenerated += sale.gross_margin || 0;
-      stats.trades++;
-    });
+    const stats = clientStatsMap.get(buyerId)!;
+    stats.totalSpend += sale.sale_amount_inc_vat || 0;
+    stats.marginGenerated += sale.gross_margin || 0;
+    stats.trades++;
+  });
 
-    const topClients = Array.from(clientStats.values())
-      .sort((a, b) => b.totalSpend - a.totalSpend)
-      .slice(0, 10);
+  const top10Clients = Array.from(clientStatsMap.values())
+    .sort((a, b) => b.totalSpend - a.totalSpend)
+    .slice(0, 10);
 
-    const repeatClients = Array.from(clientStats.values()).filter(
-      (c) => c.trades > 1
-    ).length;
-    const repeatRate =
-      clientStats.size > 0 ? (repeatClients / clientStats.size) * 100 : 0;
-
-    return {
-      top10Clients: topClients,
-      repeatClientRate: repeatRate,
-    };
-  }, [sales, buyerFirstPurchase, dateRange]);
+  const repeatClients = Array.from(clientStatsMap.values()).filter(
+    (c) => c.trades > 1
+  ).length;
+  const repeatClientRate =
+    clientStatsMap.size > 0 ? (repeatClients / clientStatsMap.size) * 100 : 0;
 
   // Invoice status breakdown
   const invoicesByStatus = {
@@ -1246,6 +1224,4 @@ const OperationsDashboardComponent = memo(async function OperationsDashboard({
       )}
     </div>
   );
-});
-
-export { OperationsDashboardComponent as OperationsDashboard };
+}

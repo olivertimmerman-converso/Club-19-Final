@@ -4,7 +4,6 @@
  * Server component that shows shopper's own sales, commissions, and performance
  */
 
-import { memo, useMemo } from 'react';
 import Link from "next/link";
 import { XataClient } from "@/src/xata";
 import { getCurrentUser } from "@/lib/getCurrentUser";
@@ -18,7 +17,7 @@ interface ShopperDashboardProps {
   shopperNameOverride?: string; // For superadmin view-as functionality
 }
 
-const ShopperDashboardComponent = memo(async function ShopperDashboard({
+export async function ShopperDashboard({
   monthParam = "current",
   shopperNameOverride
 }: ShopperDashboardProps) {
@@ -92,38 +91,25 @@ const ShopperDashboardComponent = memo(async function ShopperDashboard({
   // Limit to 100 recent sales for dashboard performance
   const sales = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 100 } });
 
-  // Calculate totals using useMemo
-  const { totalSales, totalRevenue, totalMargin } = useMemo(() => ({
-    totalSales: sales.length,
-    totalRevenue: sales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0),
-    totalMargin: sales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0),
-  }), [sales]);
+  // Calculate totals
+  const totalSales = sales.length;
+  const totalRevenue = sales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
+  const totalMargin = sales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
 
-  // Commission breakdown using useMemo
-  const {
-    pendingCommission,
-    lockedCommission,
-    paidCommission,
-    pendingCommissionAmount,
-    lockedCommissionAmount,
-    paidCommissionAmount,
-  } = useMemo(() => {
-    const pending = sales.filter(s => !s.commission_locked);
-    const locked = sales.filter(s => s.commission_locked && !s.commission_paid);
-    const paid = sales.filter(s => s.commission_paid);
+  // Commission breakdown
+  const pending = sales.filter(s => !s.commission_locked);
+  const locked = sales.filter(s => s.commission_locked && !s.commission_paid);
+  const paid = sales.filter(s => s.commission_paid);
 
-    return {
-      pendingCommission: pending,
-      lockedCommission: locked,
-      paidCommission: paid,
-      pendingCommissionAmount: pending.reduce((sum, s) => sum + (s.commissionable_margin || 0), 0),
-      lockedCommissionAmount: locked.reduce((sum, s) => sum + (s.commissionable_margin || 0), 0),
-      paidCommissionAmount: paid.reduce((sum, s) => sum + (s.commissionable_margin || 0), 0),
-    };
-  }, [sales]);
+  const pendingCommission = pending;
+  const lockedCommission = locked;
+  const paidCommission = paid;
+  const pendingCommissionAmount = pending.reduce((sum, s) => sum + (s.commissionable_margin || 0), 0);
+  const lockedCommissionAmount = locked.reduce((sum, s) => sum + (s.commissionable_margin || 0), 0);
+  const paidCommissionAmount = paid.reduce((sum, s) => sum + (s.commissionable_margin || 0), 0);
 
   // Recent sales (last 10)
-  const recentSales = useMemo(() => sales.slice(0, 10), [sales]);
+  const recentSales = sales.slice(0, 10);
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -321,6 +307,4 @@ const ShopperDashboardComponent = memo(async function ShopperDashboard({
       </div>
     </div>
   );
-});
-
-export { ShopperDashboardComponent as ShopperDashboard };
+}
