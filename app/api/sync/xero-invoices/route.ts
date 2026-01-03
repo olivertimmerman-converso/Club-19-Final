@@ -56,6 +56,7 @@ interface XeroInvoice {
   Status: string;
   Date: string;
   DueDate: string;
+  FullyPaidOnDate?: string;
   Total: number;
   SubTotal: number;
   TotalTax: number;
@@ -209,8 +210,10 @@ export async function POST(request: Request) {
 
         logger.info('XERO_SYNC', 'Processing invoice', {
           invoiceNumber: invoice.InvoiceNumber,
-          date: formattedDate,
-          status: invoice.Status
+          xeroDateRaw: invoice.Date,
+          parsedDate: formattedDate,
+          status: invoice.Status,
+          fullyPaidOnDate: invoice.FullyPaidOnDate || 'N/A'
         });
 
         // Check if invoice already exists
@@ -227,7 +230,8 @@ export async function POST(request: Request) {
             const updates: any = {};
             if (statusChanged) {
               updates.invoice_status = invoice.Status;
-              updates.invoice_paid_date = invoice.Status === 'PAID' ? new Date() : null;
+              // Use actual paid date from Xero if available, otherwise null
+              updates.invoice_paid_date = invoice.FullyPaidOnDate ? safeDate(invoice.FullyPaidOnDate) : null;
             }
             if (dateChanged && fullSync) {
               // Only update dates during full sync to fix historical data
