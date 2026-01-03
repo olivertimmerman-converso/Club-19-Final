@@ -20,7 +20,7 @@ export default async function SyncPage() {
   // Fetch unallocated sales - using wildcard to avoid column selection issues
   const unallocatedRaw = await xata.db.Sales
     .filter({ needs_allocation: true })
-    .select(["*", "buyer.name", "buyer_name"])
+    .select(["*", "buyer.name"])
     .getAll();
 
   // Fetch shoppers
@@ -35,7 +35,7 @@ export default async function SyncPage() {
     xero_invoice_number: sale.xero_invoice_number || null,
     sale_amount_inc_vat: sale.sale_amount_inc_vat || 0,
     sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
-    buyer_name: sale.buyer_name || null,
+    buyer_name: sale.buyer?.name || null,  // Use buyer relationship instead of non-existent field
     internal_notes: sale.internal_notes || null,
     buyer: sale.buyer?.name ? { name: sale.buyer.name } : null,
   }));

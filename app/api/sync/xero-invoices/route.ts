@@ -268,7 +268,7 @@ export async function POST() {
             source: 'xero_import', // Xero sync origin
             needs_allocation: true, // Requires shopper assignment
             buyer: buyer ? buyer.id : null,
-            buyer_name: contactName,
+            // buyer_name removed - use buyer.name relationship instead
             brand: 'Unknown',
             category: 'Unknown',
             item_title: firstItem.Description || 'Imported from Xero',

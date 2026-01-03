@@ -21,6 +21,7 @@ export default async function LegacyXeroPage() {
   // Get all Sales records with source='xero_import'
   const xeroImports = await xata.db.Sales
     .filter({ source: 'xero_import' })
+    .select(["*", "buyer.name"])
     .sort('sale_date', 'desc')
     .getAll();
 
@@ -105,7 +106,7 @@ export default async function LegacyXeroPage() {
                       {sale.xero_invoice_number || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {sale.buyer_name || 'Unknown'}
+                      {sale.buyer?.name || 'Unknown'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
                       {sale.item_title || sale.brand || 'N/A'}
