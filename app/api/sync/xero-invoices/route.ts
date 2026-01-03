@@ -88,7 +88,11 @@ export async function POST(request: Request) {
   const url = new URL(request.url);
   const fullSync = url.searchParams.get('full') === 'true';
 
-  logger.info('XERO_SYNC', 'Starting Xero invoice sync', { fullSync });
+  logger.info('XERO_SYNC', 'Starting Xero invoice sync', {
+    fullSync,
+    rawParam: url.searchParams.get('full'),
+    fullUrl: request.url
+  });
 
   try {
     // 1. Auth check - superadmin, operations, or founder only
@@ -231,6 +235,19 @@ export async function POST(request: Request) {
             !existing.sale_date ||
             existing.sale_date.getTime() !== invoiceDate.getTime()
           );
+
+          // Detailed logging for debugging
+          logger.info('XERO_SYNC', 'Checking existing record for updates', {
+            invoiceNumber: invoice.InvoiceNumber,
+            recordId: existing.id,
+            fullSync,
+            existingDate: existing.sale_date?.toISOString() || 'null',
+            xeroDate: invoiceDate?.toISOString() || 'null',
+            statusChanged,
+            dateChanged,
+            shouldUpdateDate,
+            willUpdate: statusChanged || dateChanged || shouldUpdateDate
+          });
 
           if (statusChanged || dateChanged || shouldUpdateDate) {
             const updates: any = {};
