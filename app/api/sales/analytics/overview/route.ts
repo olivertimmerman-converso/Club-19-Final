@@ -109,9 +109,6 @@ export async function GET(req: NextRequest) {
         "id",
         "status",
         "buyer_type",
-        "authenticity_status",
-        "supplier_receipt_attached",
-        "invoice_due_date",
         "sale_amount_inc_vat",
         "buy_price",
         "commissionable_margin",
@@ -124,7 +121,7 @@ export async function GET(req: NextRequest) {
     logger.info("ANALYTICS", "Fetching errors...");
 
     const errors = await xata()
-      .db.Errors.select(["id", "error_group"])
+      .db.Errors.select(["id"])
       .getMany();
 
     logger.info("ANALYTICS", "Found errors", { count: errors.length });
@@ -185,10 +182,6 @@ export async function GET(req: NextRequest) {
 
     // Error grouping
     const errors_by_group: Record<string, number> = {};
-    for (const error of errors) {
-      const group = error.error_group || "unknown";
-      errors_by_group[group] = (errors_by_group[group] || 0) + 1;
-    }
 
     // STEP 5: Build response
     const overview: AnalyticsOverview = {

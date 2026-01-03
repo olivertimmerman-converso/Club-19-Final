@@ -36,8 +36,7 @@ function xata() {
 interface ErrorGroupsSummary {
   total_errors: number;
   unresolved_errors: number;
-  errors_by_type: Record<string, number>;
-  errors_by_group: Record<string, number>;
+  errors_by_source: Record<string, number>;
   errors_by_severity: Record<string, number>;
 }
 
@@ -80,7 +79,7 @@ export async function GET(req: NextRequest) {
     logger.info("ERROR_GROUPS", "Fetching errors...");
 
     const errors = await xata()
-      .db.Errors.select(["id", "error_type", "error_group", "severity", "resolved"])
+      .db.Errors.select(["id", "source", "severity", "resolved"])
       .getMany();
 
     logger.info("ERROR_GROUPS", `Found ${errors.length} errors`);
@@ -88,8 +87,7 @@ export async function GET(req: NextRequest) {
     // STEP 3: Compute summaries
     let total_errors = errors.length;
     let unresolved_errors = 0;
-    const errors_by_type: Record<string, number> = {};
-    const errors_by_group: Record<string, number> = {};
+    const errors_by_source: Record<string, number> = {};
     const errors_by_severity: Record<string, number> = {};
 
     for (const error of errors) {
@@ -98,13 +96,9 @@ export async function GET(req: NextRequest) {
         unresolved_errors++;
       }
 
-      // Group by type
-      const type = error.error_type || "unknown";
-      errors_by_type[type] = (errors_by_type[type] || 0) + 1;
-
-      // Group by group
-      const group = error.error_group || "unknown";
-      errors_by_group[group] = (errors_by_group[group] || 0) + 1;
+      // Group by source
+      const source = error.source || "unknown";
+      errors_by_source[source] = (errors_by_source[source] || 0) + 1;
 
       // Group by severity
       const severity = error.severity || "unknown";
@@ -115,8 +109,7 @@ export async function GET(req: NextRequest) {
     const summary: ErrorGroupsSummary = {
       total_errors,
       unresolved_errors,
-      errors_by_type,
-      errors_by_group,
+      errors_by_source,
       errors_by_severity,
     };
 

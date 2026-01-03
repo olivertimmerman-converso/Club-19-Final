@@ -152,23 +152,11 @@ export async function POST(req: NextRequest) {
           try {
             await xata().db.Errors.create({
               sale: sale.id,
-              error_type: ERROR_TYPES.LIFECYCLE,
-              error_group: ERROR_GROUPS.PAYMENT_LIFECYCLE,
               severity: "high",
               source: "pay-commissions",
               message: [transitionResult.error || "Failed to pay commission"],
-              metadata: {
-                saleId: sale.id,
-                saleReference: sale.sale_reference,
-                attemptedTransition: "locked -> commission_paid",
-                adminUserEmail,
-              },
-              triggered_by: ERROR_TRIGGERED_BY.BACKEND,
               timestamp: new Date(),
               resolved: false,
-              resolved_by: null,
-              resolved_at: null,
-              resolved_notes: null,
             });
           } catch (logErr) {
             logger.error("COMMISSIONS", "Failed to log error", { saleId: sale.id, error: logErr as any });

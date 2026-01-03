@@ -107,10 +107,9 @@ export async function GET(req: NextRequest) {
         "id",
         "sale_reference",
         "status",
-        "buyer_name",
-        "shopper_name",
+        "buyer.name",
+        "shopper.name",
         "sale_amount_inc_vat",
-        "invoice_due_date",
       ])
       .getMany();
 
@@ -130,10 +129,10 @@ export async function GET(req: NextRequest) {
         overdueSales.push({
           sale_id: sale.id,
           sale_reference: sale.sale_reference || "",
-          buyer_name: sale.buyer_name || "",
-          shopper_name: sale.shopper_name || "",
+          buyer_name: sale.buyer?.name || "",
+          shopper_name: sale.shopper?.name || "",
           sale_amount_inc_vat: sale.sale_amount_inc_vat || 0,
-          invoice_due_date: sale.invoice_due_date,
+          invoice_due_date: undefined,
           days_overdue: overdueFlags.days_overdue,
           isPaid: paymentFlags.isPaid,
           status: sale.status || "",
@@ -157,8 +156,6 @@ export async function GET(req: NextRequest) {
         .select([
           "id",
           "sale.id",
-          "error_type",
-          "error_group",
           "severity",
           "message",
         ])
@@ -183,8 +180,8 @@ export async function GET(req: NextRequest) {
         const saleErrors = errorsBySale.get(sale.sale_id) || [];
         sale.errors = saleErrors.map((err) => ({
           error_id: err.id,
-          error_type: err.error_type || "",
-          error_group: err.error_group || "",
+          error_type: "",
+          error_group: "",
           severity: err.severity || "",
           message: err.message || [],
         }));

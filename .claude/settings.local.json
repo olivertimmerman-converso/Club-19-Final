@@ -35,7 +35,12 @@
       "Bash(npm update:*)",
       "Bash(npm uninstall:*)",
       "Bash(openssl rand:*)",
-      "Bash(git rev-list:*)"
+      "Bash(git rev-list:*)",
+      "Bash(gh api:*)",
+      "Bash(if [ -f vercel.json ])",
+      "Bash([ -f .vercel/project.json ])",
+      "Bash(then echo \"Vercel project detected\")",
+      "Bash(else echo \"No Vercel configuration found\")"
     ],
     "deny": [],
     "ask": []

@@ -109,22 +109,11 @@ export async function POST(req: NextRequest) {
       // Log security incident to Errors table
       try {
         await xata().db.Errors.create({
-          sale: undefined,
-          error_type: ERROR_TYPES.SYSTEM,
           severity: "high",
           source: "xero-webhook",
           message: ["Invalid webhook signature - possible security breach"],
-          metadata: {
-            receivedSignature: signature,
-            timestamp: new Date().toISOString(),
-            headers: Object.fromEntries(req.headers.entries()),
-          },
-          triggered_by: ERROR_TRIGGERED_BY.WEBHOOK,
           timestamp: new Date(),
           resolved: false,
-          resolved_by: null,
-          resolved_at: null,
-          resolved_notes: null,
         });
       } catch (err) {
         logger.error("XERO_WEBHOOKS", "Failed to log security error", { error: err as any });
@@ -265,26 +254,13 @@ export async function POST(req: NextRequest) {
 
           // Log to Errors table
           await xata().db.Errors.create({
-            sale: undefined,
-            error_type: ERROR_TYPES.SYNC,
             severity: "high",
             source: "xero-webhook",
             message: [
               `Xero invoice ${invoice.InvoiceNumber} not matched to any sale`,
             ],
-            metadata: {
-              invoiceNumber: invoice.InvoiceNumber,
-              invoiceId: invoice.InvoiceID,
-              invoiceStatus: invoice.Status,
-              amountDue: invoice.AmountDue,
-              eventId: webhookEvent.eventId || '',
-            },
-            triggered_by: ERROR_TRIGGERED_BY.WEBHOOK,
             timestamp: new Date(),
             resolved: false,
-            resolved_by: null,
-            resolved_at: null,
-            resolved_notes: null,
           });
 
           errorCount++;
@@ -314,23 +290,11 @@ export async function POST(req: NextRequest) {
           // Log error
           await xata().db.Errors.create({
             sale: sale.id,
-            error_type: ERROR_TYPES.WEBHOOK,
             severity: "medium",
             source: "xero-webhook",
             message: [`Failed to update payment status: ${result.error}`],
-            metadata: {
-              saleId: sale.id,
-              invoiceNumber: invoice.InvoiceNumber,
-              invoiceStatus: invoice.Status,
-              amountDue: invoice.AmountDue,
-              errorDetails: result.error,
-            },
-            triggered_by: ERROR_TRIGGERED_BY.WEBHOOK,
             timestamp: new Date(),
             resolved: false,
-            resolved_by: null,
-            resolved_at: null,
-            resolved_notes: null,
           });
         }
       } catch (err: any) {
@@ -340,23 +304,11 @@ export async function POST(req: NextRequest) {
         // Log error
         try {
           await xata().db.Errors.create({
-            sale: undefined,
-            error_type: ERROR_TYPES.WEBHOOK,
             severity: "medium",
             source: "xero-webhook",
             message: [`Event processing error: ${err.message || err}`],
-            metadata: {
-              error: err.message || String(err),
-              stack: err.stack,
-              eventId: webhookEvent.eventId,
-              resourceId: webhookEvent.resourceId,
-            },
-            triggered_by: ERROR_TRIGGERED_BY.WEBHOOK,
             timestamp: new Date(),
             resolved: false,
-            resolved_by: null,
-            resolved_at: null,
-            resolved_notes: null,
           });
         } catch (logErr) {
           logger.error("XERO_WEBHOOKS", "Failed to log error", { error: logErr as any });

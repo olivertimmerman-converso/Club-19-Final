@@ -133,25 +133,13 @@ export async function GET(req: NextRequest) {
           // Log error
           await xata().db.Errors.create({
             sale: sale.id,
-            error_type: ERROR_TYPES.SYNC,
             severity: "medium",
             source: "xero-sync",
             message: [
               `Failed to fetch invoice from Xero: ${invoiceResponse.status} ${invoiceResponse.statusText}`,
             ],
-            metadata: {
-              saleId: sale.id,
-              xeroInvoiceId: sale.xero_invoice_id,
-              xeroInvoiceNumber: sale.xero_invoice_number,
-              httpStatus: invoiceResponse.status,
-              statusText: invoiceResponse.statusText,
-            },
-            triggered_by: ERROR_TRIGGERED_BY.XERO_SYNC,
             timestamp: new Date(),
             resolved: false,
-            resolved_by: null,
-            resolved_at: null,
-            resolved_notes: null,
           });
 
           errorCount++;
@@ -210,23 +198,11 @@ export async function GET(req: NextRequest) {
           // Log error
           await xata().db.Errors.create({
             sale: sale.id,
-            error_type: ERROR_TYPES.SYNC,
             severity: "medium",
             source: "xero-sync",
             message: [`Failed to update payment status: ${result.error}`],
-            metadata: {
-              saleId: sale.id,
-              invoiceNumber: invoice.InvoiceNumber,
-              invoiceStatus: invoice.Status,
-              amountDue: invoice.AmountDue,
-              errorDetails: result.error,
-            },
-            triggered_by: ERROR_TRIGGERED_BY.XERO_SYNC,
             timestamp: new Date(),
             resolved: false,
-            resolved_by: null,
-            resolved_at: null,
-            resolved_notes: null,
           });
         }
       } catch (err: any) {
@@ -240,23 +216,11 @@ export async function GET(req: NextRequest) {
         try {
           await xata().db.Errors.create({
             sale: sale.id,
-            error_type: ERROR_TYPES.SYNC,
             severity: "medium",
             source: "xero-sync",
             message: [`Sale processing error: ${err.message || err}`],
-            metadata: {
-              saleId: sale.id,
-              xeroInvoiceId: sale.xero_invoice_id,
-              xeroInvoiceNumber: sale.xero_invoice_number,
-              error: err.message || String(err),
-              stack: err.stack,
-            },
-            triggered_by: ERROR_TRIGGERED_BY.XERO_SYNC,
             timestamp: new Date(),
             resolved: false,
-            resolved_by: null,
-            resolved_at: null,
-            resolved_notes: null,
           });
         } catch (logErr) {
           logger.error("XERO_SYNC", "Failed to log error", { error: logErr as any } as any);
@@ -284,22 +248,11 @@ export async function GET(req: NextRequest) {
     // Log fatal error
     try {
       await xata().db.Errors.create({
-        sale: undefined,
-        error_type: ERROR_TYPES.SYSTEM,
         severity: "high",
         source: "xero-sync",
         message: [`Cron job fatal error: ${error.message || error}`],
-        metadata: {
-          error: error.message || String(error),
-          stack: error.stack,
-          timestamp: new Date().toISOString(),
-        },
-        triggered_by: ERROR_TRIGGERED_BY.CRON,
         timestamp: new Date(),
         resolved: false,
-        resolved_by: null,
-        resolved_at: null,
-        resolved_notes: null,
       });
     } catch (logErr) {
       logger.error("XERO_SYNC", "Failed to log fatal error", { error: logErr as any });

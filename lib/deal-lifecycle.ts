@@ -110,24 +110,11 @@ export async function transitionSaleStatus(
     try {
       await xata().db.Errors.create({
         sale: saleId,
-        error_type: ERROR_TYPES.LIFECYCLE,
         severity: "medium",
         source: "deal-lifecycle",
         message: [errorMessage],
-        metadata: {
-          saleId,
-          attemptedTransition: {
-            from: currentStatus,
-            to: nextStatus,
-          },
-          validTransitionsFrom: VALID_TRANSITIONS[currentStatus] || [],
-        },
-        triggered_by: ERROR_TRIGGERED_BY.DEAL_LIFECYCLE,
         timestamp: new Date(),
         resolved: false,
-        resolved_by: null,
-        resolved_at: null,
-        resolved_notes: null,
       });
       logger.info('LIFECYCLE', 'Error logged to Errors table');
     } catch (err) {

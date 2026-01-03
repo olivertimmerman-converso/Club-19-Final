@@ -139,14 +139,11 @@ export async function GET(req: NextRequest) {
         "id",
         "sale_reference",
         "status",
-        "buyer_name",
-        "supplier_name",
-        "shopper_name",
-        "introducer_name",
+        "buyer.name",
+        "supplier.name",
+        "shopper.name",
+        "introducer.name",
         "buyer_type",
-        "authenticity_status",
-        "supplier_receipt_attached",
-        "invoice_due_date",
         "xero_payment_date",
         "commission_amount",
         "commission_split_introducer",
@@ -169,13 +166,9 @@ export async function GET(req: NextRequest) {
       .db.Errors.select([
         "id",
         "sale.id",
-        "error_type",
-        "error_group",
         "severity",
         "source",
         "message",
-        "metadata",
-        "triggered_by",
         "timestamp",
         "resolved",
       ])
@@ -215,13 +208,13 @@ export async function GET(req: NextRequest) {
       for (const err of saleErrors) {
         const errorRecord: ErrorRecord = {
           id: err.id,
-          error_type: err.error_type || "",
-          error_group: err.error_group || "",
+          error_type: "",
+          error_group: "",
           severity: err.severity || "",
           source: err.source || "",
           message: err.message || [],
-          metadata: err.metadata || {},
-          triggered_by: err.triggered_by || "",
+          metadata: {},
+          triggered_by: "",
           timestamp: err.timestamp || new Date(),
           resolved: err.resolved || false,
         };
@@ -237,33 +230,29 @@ export async function GET(req: NextRequest) {
 
       // Count errors by group
       const error_groups: Record<string, number> = {};
-      for (const err of saleErrors) {
-        const group = err.error_group || "unknown";
-        error_groups[group] = (error_groups[group] || 0) + 1;
-      }
 
       return {
         sale_id: sale.id,
         sale_reference: sale.sale_reference || "",
 
         // Parties
-        buyer_name: sale.buyer_name || "",
-        supplier_name: sale.supplier_name || "",
-        shopper_name: sale.shopper_name || "",
-        introducer_name: sale.introducer_name || "",
+        buyer_name: sale.buyer?.name || "",
+        supplier_name: sale.supplier?.name || "",
+        shopper_name: sale.shopper?.name || "",
+        introducer_name: sale.introducer?.name || "",
 
         // Classification
         buyer_type: sale.buyer_type || "",
-        authenticity_status: sale.authenticity_status || "not_verified",
+        authenticity_status: "not_verified",
         authenticity_risk: authenticityRisk,
-        supplier_receipt_attached: sale.supplier_receipt_attached || false,
+        supplier_receipt_attached: false,
 
         // Status & Lifecycle
         status: sale.status || "",
         ...paymentFlags,
 
         // Dates
-        invoice_due_date: sale.invoice_due_date,
+        invoice_due_date: undefined,
         xero_payment_date: sale.xero_payment_date,
         ...overdueFlags,
 

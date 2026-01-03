@@ -9,7 +9,7 @@
  */
 
 import { xata } from "@/lib/xata-sales";
-import type { legacy_tradesRecord, legacy_clientsRecord, legacy_suppliersRecord } from "@/src/xata";
+import type { LegacyTradesRecord, LegacyClientsRecord, LegacySuppliersRecord } from "@/src/xata";
 import * as logger from "./logger";
 
 // Legacy tables are now active in Xata

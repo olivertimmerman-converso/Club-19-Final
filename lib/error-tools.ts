@@ -46,8 +46,6 @@ export async function resolveError(
     await xata().db.Errors.update(errorId, {
       resolved: true,
       resolved_by: adminEmail,
-      resolved_at: new Date(),
-      resolved_notes: notes || undefined,
     });
 
     logger.info('ERRORS', `Error ${errorId} resolved`);
@@ -171,7 +169,7 @@ export async function getErrorCountsByType(): Promise<
     const counts: Record<string, number> = {};
 
     for (const error of errors) {
-      const type = error.error_type || "unknown";
+      const type = error.source || "unknown";
       counts[type] = (counts[type] || 0) + 1;
     }
 

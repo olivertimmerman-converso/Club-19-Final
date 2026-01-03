@@ -115,12 +115,9 @@ export async function POST(req: NextRequest) {
         "id",
         "sale_reference",
         "status",
-        "invoice_due_date",
         "sale_amount_inc_vat",
         "buy_price",
         "commissionable_margin",
-        "authenticity_status",
-        "supplier_receipt_attached",
       ])
       .getMany();
 
@@ -199,27 +196,11 @@ export async function POST(req: NextRequest) {
         try {
           await xata().db.Errors.create({
             sale: sale.id,
-            error_type: ERROR_TYPES.VALIDATION,
-            error_group: ERROR_GROUPS.ECONOMICS_SANITY,
             severity: "medium",
             source: "daily-maintenance",
             message: [warning.message],
-            metadata: {
-              saleId: sale.id,
-              saleReference: sale.sale_reference,
-              warningType: warning.type,
-              saleAmount: sale.sale_amount_inc_vat,
-              buyPrice: sale.buy_price,
-              margin: sale.commissionable_margin,
-              marginPercent: marginMetrics.margin_percent,
-              maintenanceRun: new Date().toISOString(),
-            },
-            triggered_by: ERROR_TRIGGERED_BY.BACKEND,
             timestamp: new Date(),
             resolved: false,
-            resolved_by: null,
-            resolved_at: null,
-            resolved_notes: null,
           });
 
           warningsCreated.push({
@@ -257,24 +238,11 @@ export async function POST(req: NextRequest) {
         try {
           await xata().db.Errors.create({
             sale: sale.id,
-            error_type: ERROR_TYPES.VALIDATION,
-            error_group: ERROR_GROUPS.AUTHENTICITY,
             severity: "high",
             source: "daily-maintenance",
             message: ["Authenticity verification not performed - high risk"],
-            metadata: {
-              saleId: sale.id,
-              saleReference: sale.sale_reference,
-              authenticityStatus: sale.authenticity_status,
-              supplierReceiptAttached: sale.supplier_receipt_attached,
-              maintenanceRun: new Date().toISOString(),
-            },
-            triggered_by: ERROR_TRIGGERED_BY.BACKEND,
             timestamp: new Date(),
             resolved: false,
-            resolved_by: null,
-            resolved_at: null,
-            resolved_notes: null,
           });
 
           authenticityWarningsCreated++;

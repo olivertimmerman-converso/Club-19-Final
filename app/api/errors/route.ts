@@ -88,25 +88,18 @@ export async function GET(req: NextRequest) {
       "sale.sale_reference",
       "sale.brand",
       "sale.category",
-      "error_type",
       "severity",
       "source",
       "message",
-      "metadata",
-      "triggered_by",
       "timestamp",
       "resolved",
       "resolved_by",
-      "resolved_at",
-      "resolved_notes",
     ]);
 
     // Apply filters
     const filters: Record<string, string | boolean> = {};
 
-    if (type) {
-      filters.error_type = type;
-    }
+    // Note: error_type and triggered_by fields don't exist in schema, removed filter logic
 
     if (severity) {
       filters.severity = severity;
@@ -118,10 +111,6 @@ export async function GET(req: NextRequest) {
 
     if (resolved !== null && resolved !== undefined) {
       filters.resolved = resolved === "true";
-    }
-
-    if (triggeredBy) {
-      filters.triggered_by = triggeredBy;
     }
 
     // Apply filters if any exist

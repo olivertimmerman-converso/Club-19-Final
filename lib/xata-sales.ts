@@ -514,24 +514,11 @@ export async function createSaleFromAppPayload(
       try {
         await xata().db.Errors.create({
           sale: sale.id,
-          error_type: ERROR_TYPES.VALIDATION,
-          error_group: ERROR_GROUPS.ECONOMICS_SANITY,
           severity: "medium",
           source: "economics-sanity-check",
           message: [`Low margin alert: End client sale with only ${marginPercent.toFixed(2)}% margin (£${economics.commissionable_margin.toFixed(2)})`],
-          metadata: {
-            saleId: sale.id,
-            buyerType: sanitizedPayload.buyerType,
-            marginPercent: marginPercent,
-            commissionableMargin: economics.commissionable_margin,
-            saleAmount: sanitizedPayload.sale_amount_inc_vat,
-          },
-          triggered_by: ERROR_TRIGGERED_BY.VALIDATION,
           timestamp: new Date(),
           resolved: false,
-          resolved_by: null,
-          resolved_at: null,
-          resolved_notes: null,
         });
         logger.warn("XATA", "Economics sanity warning logged: End client low margin");
       } catch (err) {
@@ -544,24 +531,11 @@ export async function createSaleFromAppPayload(
       try {
         await xata().db.Errors.create({
           sale: sale.id,
-          error_type: ERROR_TYPES.VALIDATION,
-          error_group: ERROR_GROUPS.ECONOMICS_SANITY,
           severity: "medium",
           source: "economics-sanity-check",
           message: [`High margin alert: B2B sale with ${marginPercent.toFixed(2)}% margin (£${economics.commissionable_margin.toFixed(2)}) - verify pricing`],
-          metadata: {
-            saleId: sale.id,
-            buyerType: sanitizedPayload.buyerType,
-            marginPercent: marginPercent,
-            commissionableMargin: economics.commissionable_margin,
-            saleAmount: sanitizedPayload.sale_amount_inc_vat,
-          },
-          triggered_by: ERROR_TRIGGERED_BY.VALIDATION,
           timestamp: new Date(),
           resolved: false,
-          resolved_by: null,
-          resolved_at: null,
-          resolved_notes: null,
         });
         logger.warn("XATA", "Economics sanity warning logged: B2B high margin");
       } catch (err) {
@@ -576,26 +550,11 @@ export async function createSaleFromAppPayload(
       const errorMessage = commissionResult.errors.join("; ");
       await xata().db.Errors.create({
         sale: sale.id,
-        error_type: ERROR_TYPES.COMMISSION,
-        error_group: ERROR_GROUPS.COMMISSION_CALC,
         severity: "high",
         source: "commission-engine",
         message: [errorMessage],
-        metadata: {
-          saleId: sale.id,
-          commissionErrors: commissionResult.errors,
-          payload: {
-            sale_reference: sanitizedPayload.sale_reference,
-            brand: sanitizedPayload.brand,
-            category: sanitizedPayload.category,
-          },
-        },
-        triggered_by: ERROR_TRIGGERED_BY.COMMISSION_ENGINE,
         timestamp: new Date(),
         resolved: false,
-        resolved_by: null,
-        resolved_at: null,
-        resolved_notes: null,
       });
       logger.warn("XATA", "Commission error logged to Errors table");
     } catch (err) {
@@ -618,29 +577,11 @@ export async function createSaleFromAppPayload(
       // Log to Errors table
       await xata().db.Errors.create({
         sale: sale.id,
-        error_type: ERROR_TYPES.VALIDATION,
-        error_group: ERROR_GROUPS.DATA_VALIDATION,
         severity: "high",
         source: "validation",
         message: [validationErrorMessage],
-        metadata: {
-          saleId: sale.id,
-          validationErrors: validation.errors,
-          validationWarnings: validation.warnings,
-          payload: {
-            sale_reference: sanitizedPayload.sale_reference,
-            brand: sanitizedPayload.brand,
-            category: sanitizedPayload.category,
-            buyerName: sanitizedPayload.buyerName,
-            supplierName: sanitizedPayload.supplierName,
-          },
-        },
-        triggered_by: ERROR_TRIGGERED_BY.VALIDATION,
         timestamp: new Date(),
         resolved: false,
-        resolved_by: null,
-        resolved_at: null,
-        resolved_notes: null,
       });
 
       logger.warn("XATA", "Validation errors logged to Errors table");
