@@ -16,8 +16,8 @@ interface ViewAsOption {
 }
 
 const VIEW_AS_OPTIONS: ViewAsOption[] = [
-  { value: "superadmin", label: "Superadmin" },
-  { value: "founder", label: "Founder" },
+  { value: "superadmin", label: "Superadmin (Ollie)" },
+  { value: "founder", label: "Founder (Sophie)" },
   { value: "operations", label: "Operations (Alys)" },
   { value: "shopper-hope", label: "Shopper (Hope)" },
   { value: "shopper-mc", label: "Shopper (MC)" },
@@ -45,7 +45,7 @@ export function ViewAsSelector() {
   // Get current label
   const getCurrentLabel = () => {
     const option = VIEW_AS_OPTIONS.find((opt) => opt.value === currentView);
-    return option?.label || "Superadmin";
+    return option?.label || "Superadmin (Ollie)";
   };
 
   return (
