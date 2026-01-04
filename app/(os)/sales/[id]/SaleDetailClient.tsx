@@ -568,7 +568,7 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
               <div className="flex-1">
                 <h2 className="text-lg font-semibold text-blue-900 mb-1">Link to Xero Invoice</h2>
                 <p className="text-sm text-blue-700 mb-4">
-                  This sale was created via Sales Atelier. If there's a duplicate invoice in Xero that was sent manually, you can link this record to that invoice for payment tracking.
+                  This sale was created via Sales Atelier. If there&apos;s a duplicate invoice in Xero that was sent manually, you can link this record to that invoice for payment tracking.
                 </p>
 
                 {linkSuccess && (
