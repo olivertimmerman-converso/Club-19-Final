@@ -88,6 +88,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
     direct_costs: sale.direct_costs || 0,
     gross_margin: sale.gross_margin || 0,
     commissionable_margin: sale.commissionable_margin || null,
+    branding_theme: sale.branding_theme || null,
     invoice_status: sale.invoice_status || null,
     invoice_paid_date: sale.invoice_paid_date ? sale.invoice_paid_date.toISOString() : null,
     xero_payment_date: sale.xero_payment_date ? sale.xero_payment_date.toISOString() : null,

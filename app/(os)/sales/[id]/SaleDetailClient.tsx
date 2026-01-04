@@ -25,6 +25,7 @@ interface Sale {
   direct_costs: number;
   gross_margin: number;
   commissionable_margin: number | null;
+  branding_theme: string | null;
   invoice_status: string | null;
   invoice_paid_date: string | null;
   xero_payment_date: string | null;
@@ -57,6 +58,66 @@ interface SaleDetailClientProps {
   shoppers: Shopper[];
   userRole: string | null;
   unallocatedXeroImports: XeroImport[];
+}
+
+/**
+ * Helper function to interpret branding_theme and provide VAT logic explanation
+ */
+function getVATLogicExplanation(brandingTheme: string | null, effectiveVATPercent: number) {
+  if (!brandingTheme) {
+    return {
+      accountCode: null,
+      treatment: "Unknown",
+      explanation: "No branding theme specified",
+      expectedVAT: null,
+      hasDiscrepancy: false,
+    };
+  }
+
+  let accountCode: string;
+  let treatment: string;
+  let explanation: string;
+  let expectedVAT: number | null;
+
+  switch (brandingTheme) {
+    case "CN 20% VAT":
+      accountCode = "425";
+      treatment = "UK Domestic Sale";
+      explanation = "Standard 20% VAT applies to this UK domestic retail sale. The item and client are both in the UK.";
+      expectedVAT = 20.0;
+      break;
+
+    case "CN Margin Scheme":
+      accountCode = "424";
+      treatment = "VAT Margin Scheme";
+      explanation = "VAT Margin Scheme applies. VAT is only charged on the profit margin, not the full sale price. Used for second-hand goods purchased without VAT.";
+      expectedVAT = 0.0; // Margin scheme shows zero-rated on invoice
+      break;
+
+    case "CN Export Sales":
+      accountCode = "423";
+      treatment = "Export Sale (Zero-Rated)";
+      explanation = "Zero-rated export sale. The client is outside the UK, so no UK VAT applies to this transaction.";
+      expectedVAT = 0.0;
+      break;
+
+    default:
+      accountCode = "Unknown";
+      treatment = "Unknown Branding Theme";
+      explanation = `Unrecognized branding theme: "${brandingTheme}"`;
+      expectedVAT = null;
+  }
+
+  // Check for discrepancy (allow 0.5% tolerance for rounding)
+  const hasDiscrepancy = expectedVAT !== null && Math.abs(effectiveVATPercent - expectedVAT) > 0.5;
+
+  return {
+    accountCode,
+    treatment,
+    explanation,
+    expectedVAT,
+    hasDiscrepancy,
+  };
 }
 
 export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImports }: SaleDetailClientProps) {
@@ -178,6 +239,12 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
 
   // Calculate total costs
   const totalCosts = sale.buy_price + sale.shipping_cost + sale.card_fees + sale.direct_costs;
+
+  // Calculate effective VAT percentage and get VAT logic explanation
+  const effectiveVATPercent = sale.sale_amount_ex_vat > 0
+    ? (((sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) / sale.sale_amount_ex_vat) * 100)
+    : 0;
+  const vatLogic = getVATLogicExplanation(sale.branding_theme, effectiveVATPercent);
 
   // Format status badge
   const getStatusBadge = (status: string | null | undefined) => {
@@ -408,9 +475,17 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-3">Tax Treatment</h3>
               <dl className="space-y-2">
+                {vatLogic.accountCode && (
+                  <div>
+                    <dt className="text-sm text-gray-600">Account Code</dt>
+                    <dd className="text-sm font-medium text-gray-900">
+                      {vatLogic.accountCode}
+                    </dd>
+                  </div>
+                )}
                 <div>
-                  <dt className="text-sm text-gray-600">VAT Rate</dt>
-                  <dd className="text-sm font-medium text-gray-900">20% UK Standard Rate</dd>
+                  <dt className="text-sm text-gray-600">Tax Treatment</dt>
+                  <dd className="text-sm font-medium text-gray-900">{vatLogic.treatment}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-600">Currency</dt>
@@ -427,7 +502,7 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
               </dl>
             </div>
 
-            {/* Additional Info */}
+            {/* VAT Analysis */}
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-3">VAT Analysis</h3>
               <dl className="space-y-2">
@@ -435,23 +510,49 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
                   <dt className="text-sm text-gray-600">Effective VAT %</dt>
                   <dd className="text-sm font-medium text-gray-900">
                     {sale.sale_amount_ex_vat > 0
-                      ? `${(((sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) / sale.sale_amount_ex_vat) * 100).toFixed(1)}%`
+                      ? `${effectiveVATPercent.toFixed(1)}%`
                       : '—'}
                   </dd>
                 </div>
+                {vatLogic.expectedVAT !== null && (
+                  <div>
+                    <dt className="text-sm text-gray-600">Expected VAT %</dt>
+                    <dd className="text-sm font-medium text-gray-900">
+                      {vatLogic.expectedVAT.toFixed(1)}%
+                    </dd>
+                  </div>
+                )}
                 <div>
-                  <dt className="text-sm text-gray-600">VAT Treatment</dt>
+                  <dt className="text-sm text-gray-600">Status</dt>
                   <dd className="text-sm font-medium text-gray-900">
-                    {Math.abs(sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) < 0.01
-                      ? 'No VAT Applied'
-                      : Math.abs(((sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) / sale.sale_amount_ex_vat) - 0.2) < 0.01
-                      ? 'Standard 20% VAT'
-                      : 'Custom VAT Rate'}
+                    {vatLogic.hasDiscrepancy ? (
+                      <span className="text-red-600">⚠️ Discrepancy</span>
+                    ) : (
+                      <span className="text-green-600">✓ Correct</span>
+                    )}
                   </dd>
                 </div>
               </dl>
             </div>
           </div>
+
+          {/* VAT Logic Explanation */}
+          {vatLogic.explanation && (
+            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-900">
+                <span className="font-semibold">VAT Logic:</span> {vatLogic.explanation}
+              </p>
+            </div>
+          )}
+
+          {/* VAT Discrepancy Warning */}
+          {vatLogic.hasDiscrepancy && (
+            <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-800">
+                <span className="font-semibold">⚠️ VAT Discrepancy:</span> The effective VAT rate ({effectiveVATPercent.toFixed(1)}%) does not match the expected rate ({vatLogic.expectedVAT?.toFixed(1)}%) for this tax treatment. This may indicate an error in the sale record.
+              </p>
+            </div>
+          )}
 
           {/* VAT Warning if inc_vat = ex_vat */}
           {Math.abs(sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) < 0.01 && (
