@@ -226,6 +226,30 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Handle introducer (referral partner) if present
+      let introducerRecord = null;
+      if (trade.introducer?.hasIntroducer && trade.introducer.introducerXataId) {
+        try {
+          introducerRecord = await xata.db.Introducers.read(trade.introducer.introducerXataId);
+          if (introducerRecord) {
+            logger.info('TRADE_CREATE', 'Introducer linked to sale', {
+              introducerId: introducerRecord.id,
+              introducerName: introducerRecord.name,
+              commissionPercent: trade.introducer.introducerSharePercent
+            });
+          } else {
+            logger.warn('TRADE_CREATE', 'Introducer ID provided but not found', {
+              introducerId: trade.introducer.introducerXataId
+            });
+          }
+        } catch (introducerError) {
+          logger.error('TRADE_CREATE', 'Failed to fetch introducer', {
+            error: introducerError as any,
+            introducerId: trade.introducer.introducerXataId
+          });
+        }
+      }
+
       // Calculate totals
       const totalBuyPrice = trade.items.reduce((sum, item) =>
         sum + (item.buyPriceGBP || item.buyPrice), 0
@@ -283,6 +307,12 @@ export async function POST(request: NextRequest) {
 
         // Supplier (link to Suppliers table) - only if supplier exists
         supplier: supplier?.id || undefined,
+
+        // Introducer (link to Introducers table) - only if introducer exists
+        introducer: introducerRecord?.id || undefined,
+        introducer_commission_percent: introducerRecord
+          ? (trade.introducer?.introducerSharePercent || 0)
+          : undefined,
 
         // Item details (from first item)
         brand: firstItem.brand,

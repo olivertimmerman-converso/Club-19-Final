@@ -44,7 +44,9 @@ export function StepSupplierBuyer() {
     setCurrentSupplier,
     setBuyer,
     setCurrentPaymentMethod,
-    setDeliveryCountry
+    setDeliveryCountry,
+    setHasIntroducer,
+    setIntroducer
   } = useTrade();
 
   // === SUPPLIER STATE ===
@@ -86,6 +88,13 @@ export function StepSupplierBuyer() {
   const [deliveryCountry, setDeliveryCountryState] = useState(
     state.deliveryCountry || "United Kingdom"
   );
+
+  // === INTRODUCER STATE ===
+  const [hasIntroducerLocal, setHasIntroducerLocal] = useState(state.hasIntroducer || false);
+  const [introducers, setIntroducers] = useState<Array<{ id: string; name: string; commissionPercent: number }>>([]);
+  const [selectedIntroducerId, setSelectedIntroducerId] = useState(state.introducerId || "");
+  const [introducerCommissionPercent, setIntroducerCommissionPercent] = useState(state.introducerSharePercent || 0);
+  const [loadingIntroducers, setLoadingIntroducers] = useState(false);
 
   // Check for Xero connection status on mount
   useEffect(() => {
@@ -350,6 +359,70 @@ export function StepSupplierBuyer() {
   useEffect(() => {
     setDeliveryCountry(deliveryCountry);
   }, [deliveryCountry, setDeliveryCountry]);
+
+  // === FETCH INTRODUCERS ON MOUNT ===
+  useEffect(() => {
+    const fetchIntroducers = async () => {
+      setLoadingIntroducers(true);
+      try {
+        const response = await fetch('/api/introducers');
+        if (!response.ok) {
+          throw new Error('Failed to fetch introducers');
+        }
+        const data = await response.json();
+        setIntroducers(data);
+      } catch (error) {
+        logger.error('TRADE_UI', 'Failed to fetch introducers', { error: error as any } as any);
+      } finally {
+        setLoadingIntroducers(false);
+      }
+    };
+
+    fetchIntroducers();
+  }, []);
+
+  // === INTRODUCER HANDLERS ===
+  const handleIntroducerToggle = (checked: boolean) => {
+    setHasIntroducerLocal(checked);
+    setHasIntroducer(checked);
+
+    if (!checked) {
+      // Clear introducer data when toggled off
+      setSelectedIntroducerId("");
+      setIntroducerCommissionPercent(0);
+      setIntroducer(undefined, undefined, undefined);
+    }
+  };
+
+  const handleIntroducerSelect = (introducerId: string) => {
+    setSelectedIntroducerId(introducerId);
+
+    const selectedIntroducer = introducers.find(i => i.id === introducerId);
+    if (selectedIntroducer) {
+      // Auto-populate commission percent from introducer record
+      const defaultCommission = selectedIntroducer.commissionPercent || 0;
+      setIntroducerCommissionPercent(defaultCommission);
+
+      setIntroducer(
+        selectedIntroducer.id,
+        selectedIntroducer.name,
+        defaultCommission
+      );
+    }
+  };
+
+  const handleCommissionPercentChange = (percent: number) => {
+    setIntroducerCommissionPercent(percent);
+
+    const selectedIntroducer = introducers.find(i => i.id === selectedIntroducerId);
+    if (selectedIntroducer) {
+      setIntroducer(
+        selectedIntroducer.id,
+        selectedIntroducer.name,
+        percent
+      );
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -707,6 +780,87 @@ export function StepSupplierBuyer() {
             </div>
 
           </div>
+        </div>
+
+        {/* Introducer / Referral Partner Section */}
+        <div className="pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-medium text-gray-900">
+              Is a referral partner involved in this sale?
+            </label>
+            <button
+              type="button"
+              onClick={() => handleIntroducerToggle(!hasIntroducerLocal)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 ${
+                hasIntroducerLocal ? 'bg-purple-600' : 'bg-gray-200'
+              }`}
+              role="switch"
+              aria-checked={hasIntroducerLocal}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  hasIntroducerLocal ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Show introducer fields when toggle is on */}
+          {hasIntroducerLocal && (
+            <div className="space-y-4 mt-4">
+              {/* Introducer Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Select Referral Partner <span className="text-red-600">*</span>
+                </label>
+                {loadingIntroducers ? (
+                  <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-500">
+                    Loading introducers...
+                  </div>
+                ) : (
+                  <select
+                    value={selectedIntroducerId}
+                    onChange={(e) => handleIntroducerSelect(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required={hasIntroducerLocal}
+                  >
+                    <option value="">-- Select a referral partner --</option>
+                    {introducers.map((introducer) => (
+                      <option key={introducer.id} value={introducer.id}>
+                        {introducer.name} ({introducer.commissionPercent}%)
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p className="text-xs text-gray-600 mt-1">
+                  Who referred this client?
+                </p>
+              </div>
+
+              {/* Commission Percentage */}
+              {selectedIntroducerId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Commission Share (%) <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={introducerCommissionPercent}
+                    onChange={(e) => handleCommissionPercentChange(parseFloat(e.target.value) || 0)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required={hasIntroducerLocal}
+                  />
+                  <p className="text-xs text-gray-600 mt-1">
+                    Percentage of commissionable margin to share with referral partner
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

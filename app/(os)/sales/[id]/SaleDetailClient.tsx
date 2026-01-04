@@ -34,6 +34,7 @@ interface Sale {
   commission_paid: boolean;
   commission_amount: number | null;
   internal_notes: string | null;
+  introducer_commission_percent: number | null;
   buyer: { id: string; name: string } | null;
   shopper: { id: string; name: string } | null;
   supplier: { id: string; name: string } | null;
@@ -426,12 +427,6 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
               </dd>
             </div>
 
-            {sale.introducer?.name && (
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Introducer</dt>
-                <dd className="mt-1 text-sm text-gray-900">{sale.introducer.name}</dd>
-              </div>
-            )}
           </dl>
 
           {/* Action Buttons */}
@@ -686,6 +681,60 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
             </div>
           </div>
         </div>
+
+        {/* Referral Partner Card - Only show if introducer exists */}
+        {sale.introducer && (
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 lg:col-span-2">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Referral Partner</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Introducer Details */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-3">Partner Information</h3>
+                <dl className="space-y-2">
+                  <div>
+                    <dt className="text-sm text-gray-600">Partner Name</dt>
+                    <dd className="text-sm font-medium text-gray-900 mt-1">
+                      {sale.introducer.name}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-600">Commission Share</dt>
+                    <dd className="text-sm font-medium text-gray-900 mt-1">
+                      {sale.introducer_commission_percent ? `${sale.introducer_commission_percent}%` : 'Not specified'}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Commission Calculation */}
+              {sale.commissionable_margin && sale.introducer_commission_percent && (
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <h3 className="text-sm font-medium text-blue-900 mb-3">Commission Calculation</h3>
+                  <dl className="space-y-2">
+                    <div className="flex justify-between">
+                      <dt className="text-sm text-blue-800">Commissionable Margin</dt>
+                      <dd className="text-sm font-medium text-blue-900">
+                        {formatCurrency(sale.commissionable_margin)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-sm text-blue-800">Share %</dt>
+                      <dd className="text-sm font-medium text-blue-900">
+                        {sale.introducer_commission_percent}%
+                      </dd>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-blue-300">
+                      <dt className="text-sm font-semibold text-blue-900">Partner Commission</dt>
+                      <dd className="text-lg font-bold text-blue-900">
+                        {formatCurrency((sale.commissionable_margin * sale.introducer_commission_percent) / 100)}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Invoice & Payment Card */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 lg:col-span-2">
