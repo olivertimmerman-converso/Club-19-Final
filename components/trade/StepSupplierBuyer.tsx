@@ -93,7 +93,6 @@ export function StepSupplierBuyer() {
   const [hasIntroducerLocal, setHasIntroducerLocal] = useState(state.hasIntroducer || false);
   const [introducers, setIntroducers] = useState<Array<{ id: string; name: string; commissionPercent: number }>>([]);
   const [selectedIntroducerId, setSelectedIntroducerId] = useState(state.introducerId || "");
-  const [introducerCommissionPercent, setIntroducerCommissionPercent] = useState(state.introducerSharePercent || 0);
   const [loadingIntroducers, setLoadingIntroducers] = useState(false);
 
   // Check for Xero connection status on mount
@@ -389,7 +388,6 @@ export function StepSupplierBuyer() {
     if (!checked) {
       // Clear introducer data when toggled off
       setSelectedIntroducerId("");
-      setIntroducerCommissionPercent(0);
       setIntroducer(undefined, undefined, undefined);
     }
   };
@@ -399,27 +397,11 @@ export function StepSupplierBuyer() {
 
     const selectedIntroducer = introducers.find(i => i.id === introducerId);
     if (selectedIntroducer) {
-      // Auto-populate commission percent from introducer record
-      const defaultCommission = selectedIntroducer.commissionPercent || 0;
-      setIntroducerCommissionPercent(defaultCommission);
-
+      // Save introducer without commission percent (will be added manually in Sales OS)
       setIntroducer(
         selectedIntroducer.id,
         selectedIntroducer.name,
-        defaultCommission
-      );
-    }
-  };
-
-  const handleCommissionPercentChange = (percent: number) => {
-    setIntroducerCommissionPercent(percent);
-
-    const selectedIntroducer = introducers.find(i => i.id === selectedIntroducerId);
-    if (selectedIntroducer) {
-      setIntroducer(
-        selectedIntroducer.id,
-        selectedIntroducer.name,
-        percent
+        undefined  // No commission percent at creation time
       );
     }
   };
@@ -782,86 +764,6 @@ export function StepSupplierBuyer() {
           </div>
         </div>
 
-        {/* Introducer / Referral Partner Section */}
-        <div className="pt-4 border-t border-gray-200">
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-medium text-gray-900">
-              Is a referral partner involved in this sale?
-            </label>
-            <button
-              type="button"
-              onClick={() => handleIntroducerToggle(!hasIntroducerLocal)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 ${
-                hasIntroducerLocal ? 'bg-purple-600' : 'bg-gray-200'
-              }`}
-              role="switch"
-              aria-checked={hasIntroducerLocal}
-            >
-              <span
-                aria-hidden="true"
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  hasIntroducerLocal ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Show introducer fields when toggle is on */}
-          {hasIntroducerLocal && (
-            <div className="space-y-4 mt-4">
-              {/* Introducer Dropdown */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Select Referral Partner <span className="text-red-600">*</span>
-                </label>
-                {loadingIntroducers ? (
-                  <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-500">
-                    Loading introducers...
-                  </div>
-                ) : (
-                  <select
-                    value={selectedIntroducerId}
-                    onChange={(e) => handleIntroducerSelect(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required={hasIntroducerLocal}
-                  >
-                    <option value="">-- Select a referral partner --</option>
-                    {introducers.map((introducer) => (
-                      <option key={introducer.id} value={introducer.id}>
-                        {introducer.name} ({introducer.commissionPercent}%)
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <p className="text-xs text-gray-600 mt-1">
-                  Who referred this client?
-                </p>
-              </div>
-
-              {/* Commission Percentage */}
-              {selectedIntroducerId && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Commission Share (%) <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={introducerCommissionPercent}
-                    onChange={(e) => handleCommissionPercentChange(parseFloat(e.target.value) || 0)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required={hasIntroducerLocal}
-                  />
-                  <p className="text-xs text-gray-600 mt-1">
-                    Percentage of commissionable margin to share with referral partner
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Delivery Country Card - Blue */}
@@ -898,6 +800,59 @@ export function StepSupplierBuyer() {
             Where will the item be delivered? (Used for shipping cost estimation)
           </p>
         </div>
+      </div>
+
+      {/* Referral Partner Card - Orange */}
+      <div className="border-t-4 border-orange-600 bg-orange-50 p-4 rounded-lg space-y-4">
+        <h3 className="font-semibold text-gray-900">Referral Partner</h3>
+        <p className="text-sm text-gray-600">
+          Select if someone introduced this client
+        </p>
+
+        {/* Toggle */}
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="hasIntroducer"
+            checked={hasIntroducerLocal}
+            onChange={(e) => handleIntroducerToggle(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+          />
+          <label htmlFor="hasIntroducer" className="text-sm font-medium text-gray-700">
+            A referral partner is involved in this sale
+          </label>
+        </div>
+
+        {/* Introducer Dropdown - Show only when toggle is on */}
+        {hasIntroducerLocal && (
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select Referral Partner <span className="text-red-600">*</span>
+            </label>
+            {loadingIntroducers ? (
+              <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-500">
+                Loading introducers...
+              </div>
+            ) : (
+              <select
+                value={selectedIntroducerId}
+                onChange={(e) => handleIntroducerSelect(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required={hasIntroducerLocal}
+              >
+                <option value="">-- Select a referral partner --</option>
+                {introducers.map((introducer) => (
+                  <option key={introducer.id} value={introducer.id}>
+                    {introducer.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <p className="text-xs text-gray-600 mt-1">
+              Commission amount will be added manually in Sales OS
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

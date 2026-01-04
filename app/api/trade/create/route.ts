@@ -309,10 +309,8 @@ export async function POST(request: NextRequest) {
         supplier: supplier?.id || undefined,
 
         // Introducer (link to Introducers table) - only if introducer exists
+        // Note: commission_percent is NOT set at creation - will be added manually in Sales OS
         introducer: introducerRecord?.id || undefined,
-        introducer_commission_percent: introducerRecord
-          ? (trade.introducer?.introducerSharePercent || 0)
-          : undefined,
 
         // Item details (from first item)
         brand: firstItem.brand,

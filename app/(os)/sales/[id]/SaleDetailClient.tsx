@@ -686,52 +686,20 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
         {sale.introducer && (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 lg:col-span-2">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Referral Partner</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Introducer Details */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-3">Partner Information</h3>
-                <dl className="space-y-2">
-                  <div>
-                    <dt className="text-sm text-gray-600">Partner Name</dt>
-                    <dd className="text-sm font-medium text-gray-900 mt-1">
-                      {sale.introducer.name}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-600">Commission Share</dt>
-                    <dd className="text-sm font-medium text-gray-900 mt-1">
-                      {sale.introducer_commission_percent ? `${sale.introducer_commission_percent}%` : 'Not specified'}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-
-              {/* Commission Calculation */}
-              {sale.commissionable_margin && sale.introducer_commission_percent && (
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <h3 className="text-sm font-medium text-blue-900 mb-3">Commission Calculation</h3>
-                  <dl className="space-y-2">
-                    <div className="flex justify-between">
-                      <dt className="text-sm text-blue-800">Commissionable Margin</dt>
-                      <dd className="text-sm font-medium text-blue-900">
-                        {formatCurrency(sale.commissionable_margin)}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-sm text-blue-800">Share %</dt>
-                      <dd className="text-sm font-medium text-blue-900">
-                        {sale.introducer_commission_percent}%
-                      </dd>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t border-blue-300">
-                      <dt className="text-sm font-semibold text-blue-900">Partner Commission</dt>
-                      <dd className="text-lg font-bold text-blue-900">
-                        {formatCurrency((sale.commissionable_margin * sale.introducer_commission_percent) / 100)}
-                      </dd>
-                    </div>
-                  </dl>
+            <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+              <dl className="space-y-2">
+                <div>
+                  <dt className="text-sm font-medium text-gray-600">Partner Name</dt>
+                  <dd className="text-base font-semibold text-gray-900 mt-1">
+                    {sale.introducer.name}
+                  </dd>
                 </div>
-              )}
+                <div className="mt-3 pt-3 border-t border-orange-300">
+                  <p className="text-sm text-gray-600">
+                    Commission amount will be added manually before month-end sign-off
+                  </p>
+                </div>
+              </dl>
             </div>
           </div>
         )}
