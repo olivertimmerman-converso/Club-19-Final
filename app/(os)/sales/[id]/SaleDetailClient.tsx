@@ -7,8 +7,10 @@ import { useRouter } from 'next/navigation';
 interface Sale {
   id: string;
   sale_reference: string | null;
+  source: string | null;
   xero_invoice_number: string | null;
   xero_invoice_url: string | null;
+  xero_invoice_id: string | null;
   sale_date: string | null;
   sale_amount_inc_vat: number;
   sale_amount_ex_vat: number;
@@ -41,17 +43,34 @@ interface Shopper {
   name: string;
 }
 
+interface XeroImport {
+  id: string;
+  xero_invoice_number: string;
+  sale_date: string | null;
+  sale_amount_inc_vat: number;
+  currency: string;
+  buyer_name: string;
+}
+
 interface SaleDetailClientProps {
   sale: Sale;
   shoppers: Shopper[];
+  userRole: string | null;
+  unallocatedXeroImports: XeroImport[];
 }
 
-export function SaleDetailClient({ sale, shoppers }: SaleDetailClientProps) {
+export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImports }: SaleDetailClientProps) {
   const router = useRouter();
   const [selectedShopperId, setSelectedShopperId] = useState(sale.shopper?.id || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Xero linking state
+  const [selectedXeroImportId, setSelectedXeroImportId] = useState('');
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkSuccess, setLinkSuccess] = useState(false);
 
   const hasChanges = selectedShopperId !== (sale.shopper?.id || '');
 
@@ -96,6 +115,44 @@ export function SaleDetailClient({ sale, shoppers }: SaleDetailClientProps) {
     setSelectedShopperId(sale.shopper?.id || '');
     setSaveError(null);
     setSaveSuccess(false);
+  };
+
+  const handleLinkXero = async () => {
+    if (!selectedXeroImportId) return;
+
+    setIsLinking(true);
+    setLinkError(null);
+    setLinkSuccess(false);
+
+    try {
+      const response = await fetch(`/api/sales/${sale.id}/link-xero`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          xeroImportId: selectedXeroImportId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to link Xero invoice');
+      }
+
+      const data = await response.json();
+      setLinkSuccess(true);
+
+      // Refresh the page data after a short delay to show success message
+      setTimeout(() => {
+        router.refresh();
+      }, 1500);
+    } catch (error) {
+      console.error('Error linking Xero invoice:', error);
+      setLinkError(error instanceof Error ? error.message : 'Failed to link Xero invoice');
+    } finally {
+      setIsLinking(false);
+    }
   };
 
   // Format currency
@@ -498,6 +555,78 @@ export function SaleDetailClient({ sale, shoppers }: SaleDetailClientProps) {
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 lg:col-span-2">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Internal Notes</h2>
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{sale.internal_notes}</p>
+          </div>
+        )}
+
+        {/* Link to Xero Invoice (Superadmin only, Atelier sales without Xero link) */}
+        {userRole === 'superadmin' && sale.source === 'atelier' && !sale.xero_invoice_id && unallocatedXeroImports.length > 0 && (
+          <div className="bg-blue-50 rounded-lg border border-blue-200 shadow-sm p-6 lg:col-span-2">
+            <div className="flex items-start gap-3 mb-4">
+              <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-blue-900 mb-1">Link to Xero Invoice</h2>
+                <p className="text-sm text-blue-700 mb-4">
+                  This sale was created via Sales Atelier. If there's a duplicate invoice in Xero that was sent manually, you can link this record to that invoice for payment tracking.
+                </p>
+
+                {linkSuccess && (
+                  <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-sm font-medium text-green-800">Successfully linked to Xero invoice! The duplicate has been removed from reporting.</p>
+                  </div>
+                )}
+                {linkError && (
+                  <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-sm font-medium text-red-800">{linkError}</p>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <select
+                    value={selectedXeroImportId}
+                    onChange={(e) => {
+                      setSelectedXeroImportId(e.target.value);
+                      setLinkError(null);
+                      setLinkSuccess(false);
+                    }}
+                    className="flex-1 rounded-md border-blue-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                    disabled={isLinking}
+                  >
+                    <option value="">Select Xero Invoice...</option>
+                    {unallocatedXeroImports.map((imp) => (
+                      <option key={imp.id} value={imp.id}>
+                        {imp.xero_invoice_number} - {imp.buyer_name} - £{imp.sale_amount_inc_vat.toLocaleString('en-GB')} ({formatDate(imp.sale_date)})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleLinkXero}
+                    disabled={!selectedXeroImportId || isLinking}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isLinking ? 'Linking...' : 'Link Invoice'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Linked Xero Invoice Status (Atelier sales with Xero link) */}
+        {sale.source === 'atelier' && sale.xero_invoice_id && (
+          <div className="bg-green-50 rounded-lg border border-green-200 shadow-sm p-6 lg:col-span-2">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h2 className="text-lg font-semibold text-green-900 mb-1">Linked Xero Invoice</h2>
+                <p className="text-sm text-green-700">
+                  This Atelier sale is linked to Xero invoice: <span className="font-medium">{sale.xero_invoice_number}</span>
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
