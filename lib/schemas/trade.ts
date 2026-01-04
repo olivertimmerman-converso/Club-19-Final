@@ -86,6 +86,17 @@ export const ImpliedCostsSchema = z.object({
 });
 
 // ============================================================================
+// INTRODUCER
+// ============================================================================
+
+export const IntroducerSchema = z.object({
+  hasIntroducer: z.boolean(),
+  introducerName: z.string().optional(),
+  introducerXataId: z.string().optional(), // Link to Introducers table
+  introducerSharePercent: z.number().min(0).max(100).optional(),
+});
+
+// ============================================================================
 // TRADE
 // ============================================================================
 
@@ -101,6 +112,9 @@ export const TradeSchema = z.object({
     .array(TradeItemSchema)
     .min(1, "At least one item is required")
     .max(MAX_ITEMS_PER_TRADE, `Maximum ${MAX_ITEMS_PER_TRADE} items per trade`),
+
+  // Introducer (optional)
+  introducer: IntroducerSchema.optional(),
 
   // Payment & logistics
   paymentMethod: PaymentMethodSchema,
@@ -145,3 +159,4 @@ export type TradeSchemaType = z.infer<typeof TradeSchema>;
 export type TradeItemSchemaType = z.infer<typeof TradeItemSchema>;
 export type BuyerSchemaType = z.infer<typeof BuyerSchema>;
 export type SupplierSchemaType = z.infer<typeof SupplierSchema>;
+export type IntroducerSchemaType = z.infer<typeof IntroducerSchema>;
