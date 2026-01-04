@@ -226,28 +226,10 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Handle introducer (referral partner) if present
-      let introducerRecord = null;
-      if (trade.introducer?.hasIntroducer && trade.introducer.introducerXataId) {
-        try {
-          introducerRecord = await xata.db.Introducers.read(trade.introducer.introducerXataId);
-          if (introducerRecord) {
-            logger.info('TRADE_CREATE', 'Introducer linked to sale', {
-              introducerId: introducerRecord.id,
-              introducerName: introducerRecord.name,
-              commissionPercent: trade.introducer.introducerSharePercent
-            });
-          } else {
-            logger.warn('TRADE_CREATE', 'Introducer ID provided but not found', {
-              introducerId: trade.introducer.introducerXataId
-            });
-          }
-        } catch (introducerError) {
-          logger.error('TRADE_CREATE', 'Failed to fetch introducer', {
-            error: introducerError as any,
-            introducerId: trade.introducer.introducerXataId
-          });
-        }
+      // Note: Introducer is now a boolean flag only - details will be added in Sales OS
+      const hasIntroducer = trade.introducer?.hasIntroducer || false;
+      if (hasIntroducer) {
+        logger.info('TRADE_CREATE', 'Sale marked as having referral partner (details to be added in Sales OS)');
       }
 
       // Calculate totals
@@ -308,9 +290,8 @@ export async function POST(request: NextRequest) {
         // Supplier (link to Suppliers table) - only if supplier exists
         supplier: supplier?.id || undefined,
 
-        // Introducer (link to Introducers table) - only if introducer exists
-        // Note: commission_percent is NOT set at creation - will be added manually in Sales OS
-        introducer: introducerRecord?.id || undefined,
+        // Note: Introducer link is NOT set at creation - will be added manually in Sales OS
+        // introducer: null (implicitly null, details added later)
 
         // Item details (from first item)
         brand: firstItem.brand,

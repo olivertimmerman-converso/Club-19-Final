@@ -45,8 +45,7 @@ export function StepSupplierBuyer() {
     setBuyer,
     setCurrentPaymentMethod,
     setDeliveryCountry,
-    setHasIntroducer,
-    setIntroducer
+    setHasIntroducer
   } = useTrade();
 
   // === SUPPLIER STATE ===
@@ -89,11 +88,8 @@ export function StepSupplierBuyer() {
     state.deliveryCountry || "United Kingdom"
   );
 
-  // === INTRODUCER STATE ===
+  // === INTRODUCER STATE (boolean flag only) ===
   const [hasIntroducerLocal, setHasIntroducerLocal] = useState(state.hasIntroducer || false);
-  const [introducers, setIntroducers] = useState<Array<{ id: string; name: string; commissionPercent: number }>>([]);
-  const [selectedIntroducerId, setSelectedIntroducerId] = useState(state.introducerId || "");
-  const [loadingIntroducers, setLoadingIntroducers] = useState(false);
 
   // Check for Xero connection status on mount
   useEffect(() => {
@@ -359,51 +355,10 @@ export function StepSupplierBuyer() {
     setDeliveryCountry(deliveryCountry);
   }, [deliveryCountry, setDeliveryCountry]);
 
-  // === FETCH INTRODUCERS ON MOUNT ===
-  useEffect(() => {
-    const fetchIntroducers = async () => {
-      setLoadingIntroducers(true);
-      try {
-        const response = await fetch('/api/introducers');
-        if (!response.ok) {
-          throw new Error('Failed to fetch introducers');
-        }
-        const data = await response.json();
-        setIntroducers(data);
-      } catch (error) {
-        logger.error('TRADE_UI', 'Failed to fetch introducers', { error: error as any } as any);
-      } finally {
-        setLoadingIntroducers(false);
-      }
-    };
-
-    fetchIntroducers();
-  }, []);
-
-  // === INTRODUCER HANDLERS ===
+  // === INTRODUCER HANDLER (checkbox only) ===
   const handleIntroducerToggle = (checked: boolean) => {
     setHasIntroducerLocal(checked);
     setHasIntroducer(checked);
-
-    if (!checked) {
-      // Clear introducer data when toggled off
-      setSelectedIntroducerId("");
-      setIntroducer(undefined, undefined, undefined);
-    }
-  };
-
-  const handleIntroducerSelect = (introducerId: string) => {
-    setSelectedIntroducerId(introducerId);
-
-    const selectedIntroducer = introducers.find(i => i.id === introducerId);
-    if (selectedIntroducer) {
-      // Save introducer without commission percent (will be added manually in Sales OS)
-      setIntroducer(
-        selectedIntroducer.id,
-        selectedIntroducer.name,
-        undefined  // No commission percent at creation time
-      );
-    }
   };
 
   return (
@@ -806,7 +761,7 @@ export function StepSupplierBuyer() {
       <div className="border-t-4 border-orange-600 bg-orange-50 p-4 rounded-lg space-y-4">
         <h3 className="font-semibold text-gray-900">Referral Partner</h3>
         <p className="text-sm text-gray-600">
-          Select if someone introduced this client
+          Check if someone introduced this client
         </p>
 
         {/* Toggle */}
@@ -823,36 +778,9 @@ export function StepSupplierBuyer() {
           </label>
         </div>
 
-        {/* Introducer Dropdown - Show only when toggle is on */}
-        {hasIntroducerLocal && (
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select Referral Partner <span className="text-red-600">*</span>
-            </label>
-            {loadingIntroducers ? (
-              <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-500">
-                Loading introducers...
-              </div>
-            ) : (
-              <select
-                value={selectedIntroducerId}
-                onChange={(e) => handleIntroducerSelect(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                required={hasIntroducerLocal}
-              >
-                <option value="">-- Select a referral partner --</option>
-                {introducers.map((introducer) => (
-                  <option key={introducer.id} value={introducer.id}>
-                    {introducer.name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <p className="text-xs text-gray-600 mt-1">
-              Commission amount will be added manually in Sales OS
-            </p>
-          </div>
-        )}
+        <p className="text-xs text-gray-600 mt-2">
+          Introducer details and commission will be added in Sales OS before month-end
+        </p>
       </div>
     </div>
   );
