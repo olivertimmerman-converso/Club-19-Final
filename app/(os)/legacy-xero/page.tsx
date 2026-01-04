@@ -1,7 +1,7 @@
 /**
- * Club 19 Sales OS - Legacy Xero Data Page
+ * Club 19 Sales OS - Legacy Xero Data Dashboard
  *
- * Shows historical xero_import Sales records (before source tracking)
+ * Analytics dashboard for historical xero_import Sales records
  * Restricted: Superadmin, Operations, Admin, Finance
  */
 
@@ -9,134 +9,64 @@ export const dynamic = "force-dynamic";
 
 import { getUserRole } from "@/lib/getUserRole";
 import { assertLegacyAccess } from "@/lib/assertAccess";
-import { getXataClient } from "@/src/xata";
+import {
+  getXeroSummary,
+  getXeroMonthlySales,
+  getTopXeroClients,
+  getInvoiceStatusBreakdown,
+  getRecentXeroInvoices,
+} from "@/lib/xeroLegacyData";
+import { XeroSummaryCards } from "@/components/xero-legacy/XeroSummaryCards";
+import { XeroSalesChart } from "@/components/xero-legacy/XeroSalesChart";
+import { XeroTopClientsTable } from "@/components/xero-legacy/XeroTopClientsTable";
+import { XeroStatusChart } from "@/components/xero-legacy/XeroStatusChart";
+import { XeroMonthlyTable } from "@/components/xero-legacy/XeroMonthlyTable";
+import { XeroRecentInvoicesTable } from "@/components/xero-legacy/XeroRecentInvoicesTable";
 
 export default async function LegacyXeroPage() {
   // Check permissions
   const role = await getUserRole();
-  assertLegacyAccess(role); // Same permissions as legacy data page
+  assertLegacyAccess(role);
 
-  const xata = getXataClient();
-
-  // Get all Sales records with source='xero_import'
-  const xeroImports = await xata.db.Sales
-    .filter({
-      $all: [
-        { source: 'xero_import' },
-        { deleted_at: { $is: null } }
-      ]
-    })
-    .select(["*", "buyer.name"])
-    .sort('sale_date', 'desc')
-    .getAll();
-
-  // Calculate summary stats
-  const totalRecords = xeroImports.length;
-  const totalSales = xeroImports.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
-  const recordsNeedingAllocation = xeroImports.filter(s => s.needs_allocation).length;
+  // Fetch all analytics data in parallel
+  const [summary, monthlySales, topClients, statusBreakdown, recentInvoices] =
+    await Promise.all([
+      getXeroSummary(),
+      getXeroMonthlySales(),
+      getTopXeroClients(10),
+      getInvoiceStatusBreakdown(),
+      getRecentXeroInvoices(20),
+    ]);
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Legacy Xero Data</h1>
+    <div className="p-8 space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Legacy Xero Data
+        </h1>
         <p className="text-gray-600">
-          Historical Xero-imported sales records (source=&apos;xero_import&apos;)
+          Analytics dashboard for historical Xero-imported sales records
         </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm font-medium text-gray-600 mb-1">Total Records</div>
-          <div className="text-3xl font-bold text-gray-900">{totalRecords}</div>
-        </div>
+      <XeroSummaryCards summary={summary} />
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm font-medium text-gray-600 mb-1">Total Sales</div>
-          <div className="text-3xl font-bold text-gray-900">
-            £{totalSales.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-        </div>
+      {/* Charts Row 1 - Sales Over Time */}
+      <XeroSalesChart data={monthlySales} />
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm font-medium text-gray-600 mb-1">Needs Allocation</div>
-          <div className="text-3xl font-bold text-orange-600">{recordsNeedingAllocation}</div>
-        </div>
+      {/* Charts Row 2 - Status and Clients */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <XeroStatusChart data={statusBreakdown} />
+        <XeroTopClientsTable data={topClients} />
       </div>
 
-      {/* Records Table */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">All Records</h2>
-        </div>
+      {/* Monthly Performance Table */}
+      <XeroMonthlyTable data={monthlySales} />
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Invoice #
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Buyer
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Item
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {xeroImports.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    No legacy Xero data found
-                  </td>
-                </tr>
-              ) : (
-                xeroImports.map((sale) => (
-                  <tr key={sale.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {sale.sale_date ? new Date(sale.sale_date).toLocaleDateString('en-GB') : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {sale.xero_invoice_number || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {sale.buyer?.name || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {sale.item_title || sale.brand || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      £{(sale.sale_amount_inc_vat || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {sale.needs_allocation ? (
-                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
-                          Needs Allocation
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                          Complete
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Recent Invoices */}
+      <XeroRecentInvoicesTable data={recentInvoices} />
     </div>
   );
 }
