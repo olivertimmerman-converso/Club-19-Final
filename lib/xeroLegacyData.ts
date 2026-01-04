@@ -33,6 +33,7 @@ export interface InvoiceStatusData {
   status: string;
   count: number;
   value: number;
+  [key: string]: string | number;  // Index signature for Recharts compatibility
 }
 
 export interface RecentXeroInvoice {
