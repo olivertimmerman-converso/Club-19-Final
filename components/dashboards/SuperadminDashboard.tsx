@@ -22,11 +22,16 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   // Get date range for filtering
   const dateRange = getMonthDateRange(monthParam);
 
+  // Get current month name for display
+  const currentDate = dateRange ? dateRange.start : new Date();
+  const monthName = currentDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
   // Query Sales table for metrics (exclude xero_import records)
   let salesQuery = xata.db.Sales
     .select([
       'sale_amount_inc_vat',
       'gross_margin',
+      'commissionable_margin',
       'currency',
       'sale_date',
       'brand',
@@ -36,6 +41,12 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
       'commission_paid',
       'commission_locked',
       'shopper.name',
+      'shopper.id',
+      'buyer.name',
+      'xero_invoice_number',
+      'xero_payment_date',
+      'invoice_paid_date',
+      'needs_allocation',
       'id',
     ])
     .filter({
@@ -101,6 +112,49 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
 
   // Get recent 5 sales
   const recentSales = sales.slice(0, 5);
+
+  // Calculate metrics for new sections
+  // Sales needing attention: DRAFT status OR needs_allocation OR overdue (>30 days AUTHORISED)
+  const salesNeedingAttention = sales.filter(sale => {
+    if (sale.invoice_status === 'DRAFT' || sale.needs_allocation) return true;
+    if (sale.invoice_status === 'AUTHORISED') {
+      const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+      if (saleDate) {
+        const daysOld = Math.floor((Date.now() - saleDate.getTime()) / (1000 * 60 * 60 * 24));
+        return daysOld > 30;
+      }
+    }
+    return false;
+  });
+
+  // Unpaid invoices: AUTHORISED status
+  const unpaidInvoices = sales.filter(sale => sale.invoice_status === 'AUTHORISED');
+  const unpaidTotal = unpaidInvoices.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
+
+  // Shopper leaderboard (this month only)
+  const shopperStats = sales.reduce((acc: any, sale) => {
+    const shopperId = sale.shopper?.id;
+    const shopperName = sale.shopper?.name || 'Unknown';
+    if (!shopperId) return acc;
+
+    if (!acc[shopperId]) {
+      acc[shopperId] = {
+        id: shopperId,
+        name: shopperName,
+        salesCount: 0,
+        totalMargin: 0,
+      };
+    }
+
+    acc[shopperId].salesCount++;
+    acc[shopperId].totalMargin += (sale.commissionable_margin || sale.gross_margin || 0);
+
+    return acc;
+  }, {});
+
+  const shopperLeaderboard = Object.values(shopperStats)
+    .sort((a: any, b: any) => b.totalMargin - a.totalMargin)
+    .slice(0, 5);
 
   // TEMPORARILY DISABLED: Xero sync functionality
   // const unallocatedSalesRaw = await xata.db.Sales
@@ -195,7 +249,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
     } else if (normalizedStatus === 'AUTHORISED') {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-          Pending
+          Awaiting Payment
         </span>
       );
     } else {
@@ -215,7 +269,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
             Dashboard
           </h1>
           <p className="text-gray-600">
-            Full system access and administration
+            Full system access and administration • {monthName}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -257,7 +311,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
           <h3 className="text-sm font-medium text-gray-500 mb-2">Total Sales</h3>
           <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalSales)}</p>
           {getTrendIndicator(totalSales, lastMonthData?.totalSales || null) || (
-            <p className="text-xs text-gray-500 mt-1">{tradesCount} {tradesCount === 1 ? 'trade' : 'trades'}</p>
+            <p className="text-xs text-gray-500 mt-1">{tradesCount} {tradesCount === 1 ? 'sale' : 'sales'}</p>
           )}
         </div>
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
@@ -268,7 +322,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
           )}
         </div>
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Trades</h3>
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Sales</h3>
           <p className="text-2xl font-bold text-gray-900">{tradesCount}</p>
           {getTrendIndicator(tradesCount, lastMonthData?.tradesCount || null) || (
             <p className="text-xs text-gray-500 mt-1">Completed</p>
@@ -423,6 +477,132 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
             </table>
           </div>
         )}
+      </div>
+
+      {/* New Sections Grid - 3 columns */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Sales Needing Attention */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Sales Needing Attention</h3>
+            {salesNeedingAttention.length > 0 && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                {salesNeedingAttention.length}
+              </span>
+            )}
+          </div>
+          {salesNeedingAttention.length === 0 ? (
+            <p className="text-sm text-gray-500">All sales are up to date</p>
+          ) : (
+            <div className="space-y-3">
+              {salesNeedingAttention.slice(0, 3).map((sale) => (
+                <Link
+                  key={sale.id}
+                  href={`/sales/${sale.id}`}
+                  className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {sale.sale_reference || sale.xero_invoice_number || 'Unknown'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">{sale.brand || 'No brand'}</p>
+                    </div>
+                    <div className="ml-2">
+                      {sale.invoice_status === 'DRAFT' && (
+                        <span className="text-xs text-gray-600">Draft</span>
+                      )}
+                      {sale.needs_allocation && (
+                        <span className="text-xs text-orange-600">Needs allocation</span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+              {salesNeedingAttention.length > 3 && (
+                <Link
+                  href="/sales"
+                  className="block text-center text-sm font-medium text-purple-600 hover:text-purple-900 pt-2"
+                >
+                  View all {salesNeedingAttention.length} →
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Unpaid Invoices */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Unpaid Invoices</h3>
+            <p className="text-2xl font-bold text-yellow-600">{formatCurrency(unpaidTotal)}</p>
+            <p className="text-xs text-gray-500 mt-1">{unpaidInvoices.length} {unpaidInvoices.length === 1 ? 'invoice' : 'invoices'}</p>
+          </div>
+          {unpaidInvoices.length === 0 ? (
+            <p className="text-sm text-gray-500">No unpaid invoices</p>
+          ) : (
+            <div className="space-y-2">
+              {unpaidInvoices.slice(0, 3).map((sale) => {
+                const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+                const daysOld = saleDate ? Math.floor((Date.now() - saleDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+                return (
+                  <Link
+                    key={sale.id}
+                    href={`/sales/${sale.id}`}
+                    className="block p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">
+                          {sale.xero_invoice_number || sale.sale_reference}
+                        </p>
+                        <p className="text-xs text-gray-500">{sale.buyer?.name || 'Unknown'}</p>
+                      </div>
+                      <div className="ml-2 text-right">
+                        <p className="font-medium text-gray-900">{formatCurrency(sale.sale_amount_inc_vat || 0)}</p>
+                        <p className="text-xs text-gray-500">{daysOld}d old</p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Shopper Leaderboard */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Shopper Leaderboard</h3>
+            <p className="text-xs text-gray-500">Top performers this month</p>
+          </div>
+          {shopperLeaderboard.length === 0 ? (
+            <p className="text-sm text-gray-500">No sales this month</p>
+          ) : (
+            <div className="space-y-3">
+              {shopperLeaderboard.map((shopper: any, index: number) => (
+                <div key={shopper.id} className="flex items-center gap-3">
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                    index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                    index === 1 ? 'bg-gray-100 text-gray-700' :
+                    index === 2 ? 'bg-orange-100 text-orange-700' :
+                    'bg-gray-50 text-gray-600'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{shopper.name}</p>
+                    <p className="text-xs text-gray-500">{shopper.salesCount} {shopper.salesCount === 1 ? 'sale' : 'sales'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-green-600">{formatCurrency(shopper.totalMargin)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* System Status - Compact Status Bar */}
