@@ -86,14 +86,39 @@ export async function POST(
     const vatRateDecimal = vatRate / 100;
 
     // Calculate correct VAT amounts
-    const saleAmountExVat = sale.sale_amount_ex_vat || 0;
+    let saleAmountExVat: number;
     let saleAmountIncVat: number;
 
     if (vatRate === 0) {
-      // Zero-rated: inc VAT = ex VAT
-      saleAmountIncVat = saleAmountExVat;
+      // Zero-rated (export/margin scheme): inc VAT = ex VAT (no VAT)
+      //
+      // Special case: If the record was created with the bug, it has:
+      // - sale_amount_inc_vat = user's entered amount (the true total, e.g., £68,000)
+      // - sale_amount_ex_vat = inc_vat / 1.2 (incorrectly calculated, e.g., £56,667)
+      //
+      // To detect this, check if inc_vat ≈ ex_vat * 1.2
+      const currentIncVat = sale.sale_amount_inc_vat || 0;
+      const currentExVat = sale.sale_amount_ex_vat || 0;
+      const looksLikeBug = Math.abs(currentIncVat - currentExVat * 1.2) < 1;
+
+      if (looksLikeBug) {
+        // Bug detected: inc_vat has the correct total, ex_vat was wrongly calculated
+        // The user entered inc_vat as the sale price (which for 0% VAT IS the ex_vat amount)
+        saleAmountExVat = currentIncVat; // User's original input
+        saleAmountIncVat = currentIncVat; // Same for 0% VAT
+        logger.info('FIX_VAT', 'Detected VAT bug - using inc_vat as base', {
+          originalIncVat: currentIncVat,
+          originalExVat: currentExVat,
+          correctedBoth: saleAmountIncVat
+        });
+      } else {
+        // Already correct or different issue - use ex_vat as base
+        saleAmountExVat = currentExVat;
+        saleAmountIncVat = currentExVat;
+      }
     } else {
-      // Standard rate: add VAT
+      // Standard rate: add VAT to ex_vat amount
+      saleAmountExVat = sale.sale_amount_ex_vat || 0;
       saleAmountIncVat = saleAmountExVat * (1 + vatRateDecimal);
     }
 
@@ -108,8 +133,9 @@ export async function POST(
       changed: Math.abs((sale.sale_amount_inc_vat || 0) - saleAmountIncVat) > 0.01
     });
 
-    // Update the sale record
+    // Update the sale record (update both ex_vat and inc_vat for zero-rated sales)
     const updatedSale = await xata.db.Sales.update(id, {
+      sale_amount_ex_vat: saleAmountExVat,
       sale_amount_inc_vat: saleAmountIncVat,
     });
 
