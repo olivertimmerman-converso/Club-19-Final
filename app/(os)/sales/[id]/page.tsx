@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
 import { getXataClient } from '@/src/xata';
+import { getUserRole } from '@/lib/getUserRole';
 import { SaleDetailClient } from './SaleDetailClient';
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
  * Club 19 Sales OS - Sale Detail Page
  *
  * Displays full information about a specific sale with editable shopper assignment
+ * Superadmin can link Atelier sales to existing Xero invoices
  */
 
 export default async function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,6 +19,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
 
   const { id } = await params;
   const xata = getXataClient();
+  const role = await getUserRole();
 
   // Fetch sale record from Xata with all related data
   const sale = await xata.db.Sales
@@ -41,12 +44,36 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
     .sort('name', 'asc')
     .getAll();
 
+  // Fetch unallocated Xero imports for superadmin linking (if Atelier sale without Xero link)
+  const unallocatedXeroImports = (role === 'superadmin' && sale.source === 'atelier' && !sale.xero_invoice_id)
+    ? await xata.db.Sales
+        .filter({
+          $all: [
+            { source: 'xero_import' },
+            { needs_allocation: true },
+            { $not: { $exists: 'deleted_at' } }
+          ]
+        })
+        .select([
+          'id',
+          'xero_invoice_number',
+          'sale_date',
+          'sale_amount_inc_vat',
+          'currency',
+          'buyer.name',
+        ])
+        .sort('sale_date', 'desc')
+        .getAll()
+    : [];
+
   // Serialize data for client component
   const serializedSale = {
     id: sale.id,
     sale_reference: sale.sale_reference || null,
+    source: sale.source || null,
     xero_invoice_number: sale.xero_invoice_number || null,
     xero_invoice_url: sale.xero_invoice_url || null,
+    xero_invoice_id: sale.xero_invoice_id || null,
     sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
     sale_amount_inc_vat: sale.sale_amount_inc_vat || 0,
     sale_amount_ex_vat: sale.sale_amount_ex_vat || 0,
@@ -91,11 +118,22 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
     name: s.name || 'Unknown',
   }));
 
+  const serializedXeroImports = unallocatedXeroImports.map(imp => ({
+    id: imp.id,
+    xero_invoice_number: imp.xero_invoice_number || 'Unknown',
+    sale_date: imp.sale_date ? imp.sale_date.toISOString() : null,
+    sale_amount_inc_vat: imp.sale_amount_inc_vat || 0,
+    currency: imp.currency || 'GBP',
+    buyer_name: imp.buyer?.name || 'Unknown',
+  }));
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <SaleDetailClient
         sale={serializedSale}
         shoppers={serializedShoppers}
+        userRole={role}
+        unallocatedXeroImports={serializedXeroImports}
       />
     </div>
   );
