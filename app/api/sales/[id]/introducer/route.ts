@@ -44,18 +44,11 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { introducerId, commissionPercent } = body;
+    const { introducerId } = body;
 
     if (!introducerId) {
       return NextResponse.json(
         { error: 'introducerId is required' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof commissionPercent !== 'number' || commissionPercent < 0 || commissionPercent > 100) {
-      return NextResponse.json(
-        { error: 'commissionPercent must be a number between 0 and 100' },
         { status: 400 }
       );
     }
@@ -71,10 +64,9 @@ export async function PUT(
       );
     }
 
-    // Update sale record
+    // Update sale record - link introducer only (commission will be added manually later)
     const updatedSale = await xata.db.Sales.update(id, {
       introducer: introducerId,
-      introducer_commission_percent: commissionPercent,
     });
 
     if (!updatedSale) {
@@ -88,7 +80,6 @@ export async function PUT(
       saleId: id,
       introducerId,
       introducerName: introducer.name,
-      commissionPercent
     });
 
     return NextResponse.json({
@@ -97,7 +88,6 @@ export async function PUT(
       introducer: {
         id: introducer.id,
         name: introducer.name,
-        commissionPercent,
       },
     });
   } catch (error) {
@@ -157,7 +147,6 @@ export async function DELETE(
     // Update sale record - remove introducer
     const updatedSale = await xata.db.Sales.update(id, {
       introducer: null,
-      introducer_commission_percent: null,
     });
 
     logger.info('SALE_INTRODUCER', 'Introducer removed from sale', {
