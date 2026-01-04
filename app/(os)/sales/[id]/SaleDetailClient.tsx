@@ -375,6 +375,94 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
           )}
         </div>
 
+        {/* VAT & Tax Information Card */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 lg:col-span-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">VAT & Tax Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* VAT Breakdown */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-3">VAT Breakdown</h3>
+              <dl className="space-y-2">
+                <div className="flex justify-between">
+                  <dt className="text-sm text-gray-600">Sale (inc VAT)</dt>
+                  <dd className="text-sm font-medium text-gray-900">
+                    {formatCurrency(sale.sale_amount_inc_vat)}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm text-gray-600">Sale (ex VAT)</dt>
+                  <dd className="text-sm font-medium text-gray-900">
+                    {formatCurrency(sale.sale_amount_ex_vat)}
+                  </dd>
+                </div>
+                <div className="flex justify-between pt-2 border-t border-gray-200">
+                  <dt className="text-sm font-semibold text-gray-700">VAT Amount (20%)</dt>
+                  <dd className="text-sm font-semibold text-gray-900">
+                    {formatCurrency(sale.sale_amount_inc_vat - sale.sale_amount_ex_vat)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            {/* Tax Treatment */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-3">Tax Treatment</h3>
+              <dl className="space-y-2">
+                <div>
+                  <dt className="text-sm text-gray-600">VAT Rate</dt>
+                  <dd className="text-sm font-medium text-gray-900">20% UK Standard Rate</dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-gray-600">Currency</dt>
+                  <dd className="text-sm font-medium text-gray-900">{sale.currency}</dd>
+                </div>
+                {sale.source && (
+                  <div>
+                    <dt className="text-sm text-gray-600">Source</dt>
+                    <dd className="text-sm font-medium text-gray-900">
+                      {sale.source === 'atelier' ? 'Sales Atelier' : sale.source === 'xero_import' ? 'Xero Import' : sale.source}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+
+            {/* Additional Info */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-3">VAT Analysis</h3>
+              <dl className="space-y-2">
+                <div>
+                  <dt className="text-sm text-gray-600">Effective VAT %</dt>
+                  <dd className="text-sm font-medium text-gray-900">
+                    {sale.sale_amount_ex_vat > 0
+                      ? `${(((sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) / sale.sale_amount_ex_vat) * 100).toFixed(1)}%`
+                      : '—'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-gray-600">VAT Treatment</dt>
+                  <dd className="text-sm font-medium text-gray-900">
+                    {Math.abs(sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) < 0.01
+                      ? 'No VAT Applied'
+                      : Math.abs(((sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) / sale.sale_amount_ex_vat) - 0.2) < 0.01
+                      ? 'Standard 20% VAT'
+                      : 'Custom VAT Rate'}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          {/* VAT Warning if inc_vat = ex_vat */}
+          {Math.abs(sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) < 0.01 && (
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-sm text-amber-800">
+                <span className="font-semibold">Note:</span> Sale amounts (inc VAT) and (ex VAT) are identical. This may indicate that VAT has not been calculated for this sale.
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Financial Breakdown Card */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 lg:col-span-2">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Financial Breakdown</h2>
