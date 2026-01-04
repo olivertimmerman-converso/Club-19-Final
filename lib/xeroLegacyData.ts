@@ -253,11 +253,11 @@ export async function getRecentXeroInvoices(limit = 20): Promise<RecentXeroInvoi
 
   return records.records.map(r => ({
     id: r.id,
-    date: r.sale_date,
-    invoiceNumber: r.xero_invoice_number,
+    date: r.sale_date ?? null,
+    invoiceNumber: r.xero_invoice_number ?? null,
     clientName: r.buyer?.name || 'Unknown',
     amount: r.sale_amount_inc_vat || 0,
-    status: r.invoice_status,
-    itemTitle: r.item_title,
+    status: r.invoice_status ?? null,
+    itemTitle: r.item_title ?? null,
   }));
 }
