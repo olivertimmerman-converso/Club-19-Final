@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 const xata = new XataClient();
 
-// Client with calculated stats (hybrid: lifetime + 2026)
+// Client with calculated stats (hybrid: lifetime + 2026 + pipeline)
 interface ClientWithStats {
   id: string;
   name: string;
@@ -28,6 +28,8 @@ interface ClientWithStats {
   margin2026: number;
   trades2026: number;
   has2026Activity: boolean;
+  // Pipeline (unpaid invoices)
+  pipelineValue: number;
 }
 
 export default async function ClientsPage() {
@@ -123,6 +125,14 @@ export default async function ClientsPage() {
         }, null as Date | null)
       : null;
 
+    // Calculate pipeline (unpaid invoices: AUTHORISED status)
+    const unpaidSales = buyerSales.filter(sale =>
+      sale.invoice_status?.toUpperCase() === 'AUTHORISED'
+    );
+    const pipelineValue = unpaidSales.reduce((sum, sale) =>
+      sum + (sale.sale_amount_inc_vat || 0), 0
+    );
+
     return {
       id: buyer.id,
       name: buyer.name || 'Unnamed Client',
@@ -135,6 +145,7 @@ export default async function ClientsPage() {
       margin2026,
       trades2026,
       has2026Activity: trades2026 > 0,
+      pipelineValue,
     };
   });
 
@@ -165,6 +176,11 @@ export default async function ClientsPage() {
   );
   const totalMargin2026 = clientsWithStats.reduce((sum, client) =>
     sum + client.margin2026, 0
+  );
+
+  // Calculate pipeline (unpaid) summary stats
+  const totalPipeline = clientsWithStats.reduce((sum, client) =>
+    sum + client.pipelineValue, 0
   );
 
   // Format currency
@@ -213,8 +229,8 @@ export default async function ClientsPage() {
         </Link>
       </div>
 
-      {/* Summary Stats - Hybrid: Lifetime + 2026 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      {/* Summary Stats - Hybrid: Lifetime + 2026 + Pipeline */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Total Clients</h3>
           <p className="text-2xl font-bold text-gray-900">{totalClients}</p>
@@ -234,6 +250,11 @@ export default async function ClientsPage() {
           <h3 className="text-sm font-medium text-gray-500 mb-2">2026 Margin</h3>
           <p className="text-2xl font-bold text-green-600">{formatCurrency(totalMargin2026)}</p>
           <p className="text-xs text-gray-500 mt-1">Atelier sales only</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Awaiting Payment</h3>
+          <p className="text-2xl font-bold text-yellow-600">{formatCurrency(totalPipeline)}</p>
+          <p className="text-xs text-gray-500 mt-1">Unpaid invoices</p>
         </div>
       </div>
 
@@ -311,6 +332,12 @@ export default async function ClientsPage() {
                   </th>
                   <th
                     scope="col"
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Pipeline
+                  </th>
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Last Purchase
@@ -363,6 +390,9 @@ export default async function ClientsPage() {
                       ) : (
                         <span className="text-gray-400">{client.tradesCount}</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-yellow-600 text-right font-medium">
+                      {client.pipelineValue > 0 ? formatCurrency(client.pipelineValue) : '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(client.lastPurchaseDate)}
