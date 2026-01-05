@@ -207,8 +207,26 @@ export function SyncPageClient({ unallocatedSales, shoppers }: Props) {
         </div>
 
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-            {error}
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800 mb-1">Sync Error</p>
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+              {/* Show Reconnect button if error suggests auth issue */}
+              {(error.toLowerCase().includes('xero') &&
+                (error.toLowerCase().includes('expired') ||
+                 error.toLowerCase().includes('connect') ||
+                 error.toLowerCase().includes('unauthorized') ||
+                 error.toLowerCase().includes('token'))) && (
+                <a
+                  href="/api/xero/oauth/authorize"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors whitespace-nowrap"
+                >
+                  Reconnect Xero
+                </a>
+              )}
+            </div>
           </div>
         )}
       </div>
