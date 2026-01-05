@@ -18,6 +18,8 @@ interface Sale {
   currency: string | null;
   buyer: { name: string } | null;
   shopper: { id: string; name: string } | null;
+  is_payment_plan: boolean;
+  payment_plan_instalments: number | null;
 }
 
 interface Shopper {
@@ -278,7 +280,14 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
                     {sale.xero_invoice_number || '—'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {getStatusBadge(sale.invoice_status)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(sale.invoice_status)}
+                      {sale.is_payment_plan && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Payment Plan {sale.payment_plan_instalments ? `(${sale.payment_plan_instalments})` : ''}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   {userRole === 'superadmin' && !isDeletedSection && (
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">

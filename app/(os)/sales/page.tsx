@@ -56,6 +56,8 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
         'shopper.id',
         'shopper.name',
         'deleted_at',
+        'is_payment_plan',
+        'payment_plan_instalments',
       ]);
 
     // Filter for shoppers - only show their own sales
@@ -139,6 +141,8 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       currency: sale.currency || null,
       buyer: sale.buyer ? { name: sale.buyer.name || 'Unknown' } : null,
       shopper: sale.shopper ? { id: sale.shopper.id, name: sale.shopper.name || 'Unknown' } : null,
+      is_payment_plan: (sale as any).is_payment_plan || false,
+      payment_plan_instalments: (sale as any).payment_plan_instalments || null,
     }));
 
     const deletedSales = deletedSalesRaw.map(sale => ({
@@ -154,6 +158,8 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       currency: sale.currency || null,
       buyer: sale.buyer ? { name: sale.buyer.name || 'Unknown' } : null,
       shopper: sale.shopper ? { id: sale.shopper.id, name: sale.shopper.name || 'Unknown' } : null,
+      is_payment_plan: (sale as any).is_payment_plan || false,
+      payment_plan_instalments: (sale as any).payment_plan_instalments || null,
     }));
 
     const shoppers = shoppersRaw.map(s => ({
