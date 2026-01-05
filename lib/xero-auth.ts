@@ -37,29 +37,62 @@ interface XeroTokenResponse {
 }
 
 /**
- * Get Xero tokens from Clerk metadata
- * @throws Error if Xero is not connected
+ * Get Xero tokens from Clerk metadata with shared connection fallback
+ *
+ * Strategy:
+ * 1. Try to get tokens from the current user
+ * 2. If not found, fall back to finding any team member with Xero connected
+ * 3. This allows all authorized team members to use Xero features without individual OAuth
+ *
+ * @throws Error if no one on the team has Xero connected
  */
 export async function getTokens(userId: string): Promise<XeroTokens> {
   logger.info('XERO_AUTH', `Getting tokens for user: ${userId}`);
 
+  // Try current user first
   const user = await clerkClient.users.getUser(userId);
   const meta = user.privateMetadata as XeroMetadata;
 
-  if (!meta.xero?.accessToken || !meta.xero?.refreshToken || !meta.xero?.tenantId) {
-    logger.error('XERO_AUTH', 'Xero not connected - missing tokens in metadata');
-    throw new Error("Xero not connected. Please connect your Xero account.");
+  if (meta.xero?.accessToken && meta.xero?.refreshToken && meta.xero?.tenantId) {
+    logger.info('XERO_AUTH', `Tokens found for current user, tenant: ${meta.xero.tenantId}`);
+    return {
+      accessToken: meta.xero.accessToken,
+      refreshToken: meta.xero.refreshToken,
+      expiresAt: meta.xero.expiresAt,
+      tenantId: meta.xero.tenantId,
+      tenantName: meta.xero.tenantName,
+    };
   }
 
-  logger.info('XERO_AUTH', `Tokens found for tenant: ${meta.xero.tenantId}`);
+  // Current user doesn't have Xero connected, try shared connection
+  logger.info('XERO_AUTH', `Current user has no Xero connection, looking for shared connection...`);
 
-  return {
-    accessToken: meta.xero.accessToken,
-    refreshToken: meta.xero.refreshToken,
-    expiresAt: meta.xero.expiresAt,
-    tenantId: meta.xero.tenantId,
-    tenantName: meta.xero.tenantName,
-  };
+  try {
+    // Get all users and find one with Xero connected
+    const userList = await clerkClient.users.getUserList({ limit: 100 });
+
+    for (const teamUser of userList.data) {
+      const teamMeta = teamUser.privateMetadata as XeroMetadata;
+
+      if (teamMeta.xero?.accessToken && teamMeta.xero?.refreshToken && teamMeta.xero?.tenantId) {
+        logger.info('XERO_AUTH', `Found shared Xero connection from user ${teamUser.id}, tenant: ${teamMeta.xero.tenantId}`);
+
+        return {
+          accessToken: teamMeta.xero.accessToken,
+          refreshToken: teamMeta.xero.refreshToken,
+          expiresAt: teamMeta.xero.expiresAt,
+          tenantId: teamMeta.xero.tenantId,
+          tenantName: teamMeta.xero.tenantName,
+        };
+      }
+    }
+  } catch (error) {
+    logger.error('XERO_AUTH', 'Error looking for shared connection', { error: error as any });
+  }
+
+  // No Xero connection found anywhere
+  logger.error('XERO_AUTH', 'No Xero connection found for user or team');
+  throw new Error("Xero not connected. Please ask an admin to connect Xero.");
 }
 
 /**
@@ -85,15 +118,47 @@ export async function saveTokens(userId: string, tokens: XeroTokens): Promise<vo
 }
 
 /**
+ * Find which user owns the Xero connection
+ * @returns userId of the user who has Xero tokens, or null if none
+ */
+async function findXeroOwner(): Promise<string | null> {
+  try {
+    const userList = await clerkClient.users.getUserList({ limit: 100 });
+
+    for (const user of userList.data) {
+      const meta = user.privateMetadata as XeroMetadata;
+      if (meta.xero?.accessToken && meta.xero?.refreshToken && meta.xero?.tenantId) {
+        return user.id;
+      }
+    }
+  } catch (error) {
+    logger.error('XERO_AUTH', 'Error finding Xero owner', { error: error as any });
+  }
+
+  return null;
+}
+
+/**
  * Refresh Xero access token using refresh token
  * Automatically updates Clerk metadata with new tokens
+ *
+ * With shared connection: saves refreshed tokens back to the user who owns them
+ *
  * @throws Error if refresh fails
  */
 export async function refreshTokens(userId: string): Promise<XeroTokens> {
   logger.info('XERO_AUTH', `Refreshing tokens for user: ${userId}`);
 
-  // Get current tokens
+  // Get current tokens (may come from shared connection)
   const currentTokens = await getTokens(userId);
+
+  // Find who actually owns the Xero connection
+  const ownerId = await findXeroOwner();
+  if (!ownerId) {
+    throw new Error("Cannot find Xero connection owner for refresh");
+  }
+
+  logger.info('XERO_AUTH', `Xero connection owned by user: ${ownerId}`);
 
   // Validate environment
   const clientId = process.env.NEXT_PUBLIC_XERO_CLIENT_ID;
@@ -126,9 +191,9 @@ export async function refreshTokens(userId: string): Promise<XeroTokens> {
         error: errorText,
       });
 
-      // If refresh token is invalid (401/400), user needs to reconnect
+      // If refresh token is invalid (401/400), owner needs to reconnect
       if (refreshResponse.status === 400 || refreshResponse.status === 401) {
-        throw new Error("Xero session expired. Please reconnect your Xero account.");
+        throw new Error("Xero session expired. Please ask an admin to reconnect Xero.");
       }
 
       throw new Error(`Failed to refresh Xero token: ${errorText}`);
@@ -148,8 +213,9 @@ export async function refreshTokens(userId: string): Promise<XeroTokens> {
       tenantName: currentTokens.tenantName,
     };
 
-    // Save to Clerk
-    await saveTokens(userId, newTokens);
+    // Save to the OWNER's account (not necessarily the requesting user)
+    await saveTokens(ownerId, newTokens);
+    logger.info('XERO_AUTH', `Refreshed tokens saved to owner: ${ownerId}`);
 
     return newTokens;
   } catch (error: any) {
