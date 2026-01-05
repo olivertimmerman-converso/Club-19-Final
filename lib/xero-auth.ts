@@ -259,20 +259,51 @@ export async function getValidTokens(userId: string): Promise<XeroTokens> {
 }
 
 /**
- * Check if user has Xero connected (without throwing error)
+ * Check if user has access to Xero (either their own connection OR shared team connection)
  * Useful for UI to determine whether to show "Connect Xero" button
+ *
+ * Returns true if:
+ * 1. Current user has Xero tokens, OR
+ * 2. Any team member has Xero tokens (shared connection)
  */
 export async function hasXeroConnection(userId: string): Promise<boolean> {
   try {
+    // First check: Does current user have Xero connection?
     const user = await clerkClient.users.getUser(userId);
     const meta = user.privateMetadata as XeroMetadata;
-    const hasConnection = !!(
+    const hasOwnConnection = !!(
       meta.xero?.accessToken &&
       meta.xero?.refreshToken &&
       meta.xero?.tenantId
     );
-    logger.info('XERO_AUTH', `Connection check for ${userId}: ${hasConnection}`);
-    return hasConnection;
+
+    if (hasOwnConnection) {
+      logger.info('XERO_AUTH', `User ${userId} has own Xero connection`);
+      return true;
+    }
+
+    // Second check: Does team have a shared Xero connection?
+    logger.info('XERO_AUTH', `User ${userId} has no personal connection, checking for shared team connection...`);
+
+    try {
+      const userList = await clerkClient.users.getUserList({ limit: 100 });
+      for (const teamUser of userList.data) {
+        const teamMeta = teamUser.privateMetadata as XeroMetadata;
+        if (
+          teamMeta.xero?.accessToken &&
+          teamMeta.xero?.refreshToken &&
+          teamMeta.xero?.tenantId
+        ) {
+          logger.info('XERO_AUTH', `Found shared Xero connection from user ${teamUser.id}`);
+          return true;
+        }
+      }
+    } catch (error) {
+      logger.error('XERO_AUTH', 'Error checking for shared connection', { error });
+    }
+
+    logger.info('XERO_AUTH', `No Xero connection found for user ${userId} or team`);
+    return false;
   } catch (error) {
     logger.error('XERO_AUTH', 'Error checking connection', { error: error as any });
     return false;
