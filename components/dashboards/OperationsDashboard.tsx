@@ -81,16 +81,10 @@ export async function OperationsDashboard({
 
   // Fetch comprehensive sales data for this month (exclude xero_import records)
   const salesQuery = xata.db.Sales.filter({
-    $all: [
-      {
-        sale_date: {
-          $ge: dateRange.start,
-          $le: dateRange.end,
-        }
-      },
-      { source: { $isNot: 'xero_import' } },
-      { deleted_at: { $is: null } }
-    ]
+    sale_date: {
+      $ge: dateRange.start,
+      $le: dateRange.end,
+    }
   }).select([
     "id",
     "sale_date",
@@ -114,10 +108,17 @@ export async function OperationsDashboard({
     "shopper.name",
     "buyer.id",
     "buyer.name",
+    "source",
+    "deleted_at",
   ]);
 
-  // Limit to 200 sales for dashboard performance
-  const sales = await salesQuery.sort("sale_date", "desc").getMany({ pagination: { size: 200 } });
+  // Fetch sales and filter in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
+  const allSalesRaw = await salesQuery.sort("sale_date", "desc").getMany({ pagination: { size: 200 } });
+
+  // Filter out xero_import and deleted sales in JavaScript
+  const sales = allSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deleted_at
+  );
 
   // Fetch last month's data for comparison
   const lastMonthStart = new Date(dateRange.start);
@@ -127,67 +128,72 @@ export async function OperationsDashboard({
   lastMonthEnd.setHours(23, 59, 59);
 
   // Limit to 200 for comparison
-  const lastMonthSales = await xata.db.Sales
+  const lastMonthSalesRaw = await xata.db.Sales
     .filter({
-      $all: [
-        {
-          sale_date: {
-            $ge: lastMonthStart,
-            $le: lastMonthEnd,
-          }
-        },
-        { source: { $isNot: 'xero_import' } },
-        { deleted_at: { $is: null } }
-      ]
+      sale_date: {
+        $ge: lastMonthStart,
+        $le: lastMonthEnd,
+      }
     })
     .select([
       "sale_amount_inc_vat",
       "gross_margin",
       "shopper.id",
       "shopper.name",
+      "source",
+      "deleted_at",
     ])
     .getMany({ pagination: { size: 200 } });
 
+  // Filter in JavaScript
+  const lastMonthSales = lastMonthSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deleted_at
+  );
+
   // Fetch YTD data - limit to 500
   const ytdStart = new Date(dateRange.start.getFullYear(), 0, 1);
-  const ytdSales = await xata.db.Sales
+  const ytdSalesRaw = await xata.db.Sales
     .filter({
-      $all: [
-        {
-          sale_date: {
-            $ge: ytdStart,
-            $le: dateRange.end,
-          }
-        },
-        { source: { $isNot: 'xero_import' } },
-        { deleted_at: { $is: null } }
-      ]
+      sale_date: {
+        $ge: ytdStart,
+        $le: dateRange.end,
+      }
     })
     .select([
       "sale_amount_inc_vat",
       "gross_margin",
       "shopper.id",
       "shopper.name",
+      "source",
+      "deleted_at",
     ])
     .getMany({ pagination: { size: 500 } });
 
+  // Filter in JavaScript
+  const ytdSales = ytdSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deleted_at
+  );
+
   // Fetch recent invoices to calculate outstanding amounts - limit to 500
-  const invoices = await xata.db.Sales
+  const invoicesRaw = await xata.db.Sales
     .filter({
-      $all: [
-        { xero_invoice_number: { $isNot: null } },
-        { source: { $isNot: 'xero_import' } },
-        { deleted_at: { $is: null } }
-      ]
+      xero_invoice_number: { $isNot: null }
     })
     .select([
       "xero_invoice_number",
       "invoice_status",
       "sale_amount_inc_vat",
       "sale_date",
+      "source",
+      "deleted_at",
     ])
     .sort("sale_date", "desc")
     .getMany({ pagination: { size: 500 } });
+
+  // Filter in JavaScript
+  const invoices = invoicesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deleted_at
+  );
 
   // Fetch buyers - limit to 200
   const allBuyers = await xata.db.Buyers.select(["id", "name"]).getMany({ pagination: { size: 200 } });
@@ -217,16 +223,15 @@ export async function OperationsDashboard({
   // }));
 
   // Fetch recent sales for buyer analysis - limit to 1000
-  const allSalesForBuyers = await xata.db.Sales
-    .filter({
-      $all: [
-        { source: { $isNot: 'xero_import' } },
-        { deleted_at: { $is: null } }
-      ]
-    })
-    .select(["buyer.id", "sale_date"])
+  const allSalesForBuyersRaw = await xata.db.Sales
+    .select(["buyer.id", "sale_date", "source", "deleted_at"])
     .sort("sale_date", "asc")
     .getMany({ pagination: { size: 1000 } });
+
+  // Filter in JavaScript
+  const allSalesForBuyers = allSalesForBuyersRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deleted_at
+  );
 
   allSalesForBuyers.forEach((sale) => {
     if (sale.buyer?.id && sale.sale_date) {

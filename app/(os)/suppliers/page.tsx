@@ -29,18 +29,20 @@ export default async function SuppliersPage() {
     .getMany({ pagination: { size: 200 } });
 
   // Fetch sales - limit to last 1000 for performance (still covers recent supplier activity)
-  const sales = await xata.db.Sales
+  const salesRaw = await xata.db.Sales
     .select([
       'supplier.id',
       'buy_price',
       'gross_margin',
       'sale_date',
       'invoice_status',
+      'deleted_at',
+      'source',
     ])
-    .filter({
-      deleted_at: { $is: null }
-    })
     .getMany({ pagination: { size: 1000 } });
+
+  // Filter out deleted sales in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
+  const sales = salesRaw.filter(sale => !sale.deleted_at);
 
   // Calculate stats for each supplier
   const suppliersWithStats: SupplierWithStats[] = suppliers.map(supplier => {

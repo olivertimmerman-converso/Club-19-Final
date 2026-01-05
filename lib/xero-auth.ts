@@ -299,7 +299,7 @@ export async function hasXeroConnection(userId: string): Promise<boolean> {
         }
       }
     } catch (error) {
-      logger.error('XERO_AUTH', 'Error checking for shared connection', { error });
+      logger.error('XERO_AUTH', 'Error checking for shared connection', { error: error as any });
     }
 
     logger.info('XERO_AUTH', `No Xero connection found for user ${userId} or team`);

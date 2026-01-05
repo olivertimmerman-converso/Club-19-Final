@@ -27,7 +27,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   }
 
   // Fetch all sales for this client (show all in table, but filter for metrics)
-  const sales = await xata.db.Sales
+  const allSalesRaw = await xata.db.Sales
     .select([
       'id',
       'sale_date',
@@ -39,15 +39,16 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       'invoice_status',
       'currency',
       'deleted_at',
+      'source',
     ])
     .filter({
-      $all: [
-        { 'buyer.id': id },
-        { deleted_at: { $is: null } }
-      ]
+      'buyer.id': id
     })
     .sort('sale_date', 'desc')
     .getAll();
+
+  // Filter out deleted sales in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
+  const sales = allSalesRaw.filter(sale => !sale.deleted_at);
 
   // Filter to PAID invoices only for metrics
   const paidSales = sales.filter(sale =>

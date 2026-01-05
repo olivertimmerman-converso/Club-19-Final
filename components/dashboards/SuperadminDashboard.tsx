@@ -26,7 +26,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   const currentDate = dateRange ? dateRange.start : new Date();
   const monthName = currentDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
-  // Query Sales table for metrics (exclude xero_import records)
+  // Query Sales table for metrics (will filter deleted in JavaScript)
   let salesQuery = xata.db.Sales
     .select([
       'sale_amount_inc_vat',
@@ -48,13 +48,9 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
       'invoice_paid_date',
       'needs_allocation',
       'id',
-    ])
-    .filter({
-      $all: [
-        { source: { $isNot: 'xero_import' } },
-        { deleted_at: { $is: null } }
-      ]
-    });
+      'source',
+      'deleted_at',
+    ]);
 
   // Apply date range filter if specified
   if (dateRange) {
@@ -66,8 +62,13 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
     });
   }
 
-  // Limit to 200 recent sales for dashboard performance
-  const sales = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
+  // Fetch sales and filter in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
+  const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
+
+  // Filter out xero_import and deleted sales in JavaScript
+  const sales = allSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deleted_at
+  );
 
   // Calculate metrics
   const total = sales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
@@ -84,21 +85,20 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const lastMonthSales = await xata.db.Sales
-      .select(['sale_amount_inc_vat', 'gross_margin'])
+    const lastMonthSalesRaw = await xata.db.Sales
+      .select(['sale_amount_inc_vat', 'gross_margin', 'source', 'deleted_at'])
       .filter({
-        $all: [
-          {
-            sale_date: {
-              $ge: lastMonthStart,
-              $le: lastMonthEnd,
-            }
-          },
-          { source: { $isNot: 'xero_import' } },
-          { deleted_at: { $is: null } }
-        ]
+        sale_date: {
+          $ge: lastMonthStart,
+          $le: lastMonthEnd,
+        }
       })
       .getMany({ pagination: { size: 1000 } });
+
+    // Filter in JavaScript
+    const lastMonthSales = lastMonthSalesRaw.filter(sale =>
+      sale.source !== 'xero_import' && !sale.deleted_at
+    );
 
     const lastTotal = lastMonthSales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
     const lastMargin = lastMonthSales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);

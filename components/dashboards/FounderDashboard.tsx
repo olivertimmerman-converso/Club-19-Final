@@ -67,13 +67,9 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
       'buyer.name',
       'xero_invoice_number',
       'invoice_status',
-    ])
-    .filter({
-      $all: [
-        { source: { $isNot: 'xero_import' } },
-        { deleted_at: { $is: null } }
-      ]
-    });
+      'source',
+      'deleted_at',
+    ]);
 
   // Apply date range filter
   if (dateRange) {
@@ -86,30 +82,34 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
   }
 
   logger.info('DASHBOARD', 'Fetching sales');
-  // Limit to 200 recent sales for dashboard performance
-  const sales = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
-  logger.info('DASHBOARD', 'Sales fetched', { count: sales.length });
+  // Fetch sales and filter in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
+  const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
+
+  // Filter out xero_import and deleted sales in JavaScript
+  const sales = allSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deleted_at
+  );
+  logger.info('DASHBOARD', 'Sales fetched and filtered', { count: sales.length });
 
   // Get YTD sales for comparison (Jan 1 to now) - limit to 500
   logger.info('DASHBOARD', 'Fetching YTD sales');
   const now = new Date();
   const ytdStart = new Date(now.getFullYear(), 0, 1);
-  const ytdSales = await xata.db.Sales
-    .select(['sale_amount_inc_vat', 'shopper.id', 'shopper.name'])
+  const ytdSalesRaw = await xata.db.Sales
+    .select(['sale_amount_inc_vat', 'shopper.id', 'shopper.name', 'source', 'deleted_at'])
     .filter({
-      $all: [
-        {
-          sale_date: {
-            $ge: ytdStart,
-            $le: now,
-          }
-        },
-        { source: { $isNot: 'xero_import' } },
-        { deleted_at: { $is: null } }
-      ]
+      sale_date: {
+        $ge: ytdStart,
+        $le: now,
+      }
     })
     .getMany({ pagination: { size: 500 } });
-  logger.info('DASHBOARD', 'YTD sales fetched', { count: ytdSales.length });
+
+  // Filter in JavaScript
+  const ytdSales = ytdSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deleted_at
+  );
+  logger.info('DASHBOARD', 'YTD sales fetched and filtered', { count: ytdSales.length });
 
   // Calculate shopper performance
   const shopperStats = new Map<string, ShopperPerformance>();

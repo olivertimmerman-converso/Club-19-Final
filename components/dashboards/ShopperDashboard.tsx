@@ -75,13 +75,11 @@ export async function ShopperDashboard({
       'commission_locked',
       'commission_paid',
       'buyer.name',
+      'source',
+      'deleted_at',
     ])
     .filter({
-      $all: [
-        { shopper: shopper.id },
-        { source: { $isNot: 'xero_import' } },
-        { deleted_at: { $is: null } }
-      ]
+      shopper: shopper.id
     });
 
   // Apply date range filter if specified
@@ -94,8 +92,13 @@ export async function ShopperDashboard({
     });
   }
 
-  // Limit to 100 recent sales for dashboard performance
-  const sales = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 100 } });
+  // Fetch sales and filter in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
+  const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 100 } });
+
+  // Filter out xero_import and deleted sales in JavaScript
+  const sales = allSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deleted_at
+  );
 
   // Calculate totals
   const totalSales = sales.length;
