@@ -63,7 +63,17 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     }
 
     // ============================================
-    // 3. FETCH USER AND EXTRACT ROLE
+    // 3. SKIP RBAC FOR API ROUTES
+    // ============================================
+    // API routes handle their own authentication via auth() in route handlers
+    // Middleware only enforces RBAC on page routes
+    if (pathname.startsWith("/api/")) {
+      console.log(`[Middleware] 🔓 API route - skipping RBAC, allowing through`);
+      return NextResponse.next();
+    }
+
+    // ============================================
+    // 4. FETCH USER AND EXTRACT ROLE (for page routes)
     // ============================================
     console.log("[Middleware] 📡 Fetching full user object for metadata");
     const client = await clerkClient();
@@ -80,7 +90,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     console.log(`[Middleware] ✅ Resolved role: "${role}"`);
 
     // ============================================
-    // 4. CHECK RBAC PERMISSIONS
+    // 5. CHECK RBAC PERMISSIONS (page routes only)
     // ============================================
     const hasAccess = canAccessRoute(role, pathname);
     console.log(`[Middleware] 🔐 RBAC check: hasAccess=${hasAccess}`);
