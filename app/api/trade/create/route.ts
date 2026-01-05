@@ -372,6 +372,23 @@ export async function POST(request: NextRequest) {
         vatAmount: saleAmountIncVat - saleAmountExVat
       });
 
+      // Calculate margins server-side for accuracy
+      // gross_margin = sale_amount_ex_vat - (buy_price + shipping_cost + card_fees + direct_costs)
+      const grossMargin = saleAmountExVat - (totalBuyPrice + trade.impliedCosts.shipping + trade.impliedCosts.cardFees + trade.impliedCosts.total);
+
+      // commissionable_margin = gross_margin (introducer commission will be deducted later if applicable)
+      const commissionableMargin = grossMargin;
+
+      logger.info('TRADE_CREATE', 'Margins calculated', {
+        saleAmountExVat,
+        totalBuyPrice,
+        shipping: trade.impliedCosts.shipping,
+        cardFees: trade.impliedCosts.cardFees,
+        directCosts: trade.impliedCosts.total,
+        grossMargin,
+        commissionableMargin
+      });
+
       // Create Sales record
       const saleRecord = await xata.db.Sales.create({
         // Metadata
@@ -407,9 +424,9 @@ export async function POST(request: NextRequest) {
         shipping_cost: trade.impliedCosts.shipping,
         direct_costs: trade.impliedCosts.total,
 
-        // Margins
-        gross_margin: trade.grossMarginGBP,
-        commissionable_margin: trade.commissionableMarginGBP,
+        // Margins (calculated server-side for accuracy)
+        gross_margin: grossMargin,
+        commissionable_margin: commissionableMargin,
 
         // Xero integration
         xero_invoice_number: makeData.invoiceNumber,
