@@ -214,13 +214,18 @@ export async function POST() {
       duration: `${duration}ms`,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
+    const errorName = error instanceof Error ? error.name : undefined;
+
+    // Properly serialize error for logging
     logger.error('PAYMENT_SYNC', 'Fatal error', {
-      error: error as any,
       message: errorMessage,
-      stack: errorStack
+      stack: errorStack,
+      name: errorName,
+      type: typeof error,
     });
+
     return NextResponse.json({
       error: 'Sync failed',
       details: errorMessage,

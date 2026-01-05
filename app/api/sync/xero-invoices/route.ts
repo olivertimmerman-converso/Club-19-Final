@@ -161,8 +161,20 @@ export async function POST(request: Request) {
 
     logger.info('XERO_SYNC', 'Using system user', { systemUserId });
 
-    const tokens = await getValidTokens(systemUserId);
-    logger.info('XERO_SYNC', 'Got valid Xero tokens');
+    // 2a. Get Xero tokens (with detailed error handling)
+    logger.info('XERO_SYNC', 'Attempting to get Xero tokens...');
+    let tokens;
+    try {
+      tokens = await getValidTokens(systemUserId);
+      logger.info('XERO_SYNC', 'Successfully got valid Xero tokens');
+    } catch (tokenError) {
+      logger.error('XERO_SYNC', 'Failed to get Xero tokens', {
+        message: tokenError instanceof Error ? tokenError.message : String(tokenError),
+        stack: tokenError instanceof Error ? tokenError.stack : undefined,
+        name: tokenError instanceof Error ? tokenError.name : undefined,
+      });
+      throw tokenError; // Re-throw to be caught by outer try-catch
+    }
 
     // 3. Fetch all invoices from Xero with pagination
     // Include ALL statuses (DRAFT, SUBMITTED, AUTHORISED, PAID, etc.)
@@ -194,15 +206,31 @@ export async function POST(request: Request) {
         ? `https://api.xero.com/api.xro/2.0/Invoices?where=${encodeURIComponent(dateFilter)}&page=${page}`
         : `https://api.xero.com/api.xro/2.0/Invoices?page=${page}`;
 
-      logger.info('XERO_SYNC', 'Fetching page', { page });
+      logger.info('XERO_SYNC', 'Fetching page from Xero API', { page, url: xeroUrl });
 
-      const xeroResponse = await fetch(xeroUrl, {
-        headers: {
-          'Authorization': `Bearer ${tokens.accessToken}`,
-          'Xero-Tenant-Id': tokens.tenantId,
-          'Accept': 'application/json',
-        },
-      });
+      let xeroResponse;
+      try {
+        xeroResponse = await fetch(xeroUrl, {
+          headers: {
+            'Authorization': `Bearer ${tokens.accessToken}`,
+            'Xero-Tenant-Id': tokens.tenantId,
+            'Accept': 'application/json',
+          },
+        });
+        logger.info('XERO_SYNC', 'Xero API response received', {
+          page,
+          status: xeroResponse.status,
+          ok: xeroResponse.ok
+        });
+      } catch (fetchError) {
+        logger.error('XERO_SYNC', 'Xero API fetch failed', {
+          page,
+          message: fetchError instanceof Error ? fetchError.message : String(fetchError),
+          stack: fetchError instanceof Error ? fetchError.stack : undefined,
+          name: fetchError instanceof Error ? fetchError.name : undefined,
+        });
+        throw fetchError;
+      }
 
       if (!xeroResponse.ok) {
         const errorText = await xeroResponse.text();
@@ -437,13 +465,18 @@ export async function POST(request: Request) {
       duration: `${duration}ms`,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
+    const errorName = error instanceof Error ? error.name : undefined;
+
+    // Properly serialize error for logging
     logger.error('XERO_SYNC', 'Fatal error during sync', {
-      error: error as any,
       message: errorMessage,
-      stack: errorStack
+      stack: errorStack,
+      name: errorName,
+      type: typeof error,
     });
+
     return NextResponse.json({
       error: 'Sync failed',
       details: errorMessage,
