@@ -113,6 +113,8 @@ const tables = [
       { name: "commission_clawback", type: "bool" },
       { name: "commission_clawback_date", type: "datetime" },
       { name: "commission_clawback_reason", type: "text" },
+      { name: "shipping_method", type: "text" },
+      { name: "shipping_cost_confirmed", type: "bool" },
     ],
     revLinks: [
       { column: "sale", table: "Errors" },
