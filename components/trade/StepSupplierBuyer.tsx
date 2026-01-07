@@ -301,7 +301,14 @@ export function StepSupplierBuyer() {
 
         try {
           const results = await fetchXeroBuyers(value);
+          console.log('[CLIENT_SEARCH] Results received:', results);
+          console.log('[CLIENT_SEARCH] Results length:', results.length);
+          console.log('[CLIENT_SEARCH] Setting results in state...');
           setBuyerDropdownResults(results);
+          // Ensure dropdown stays visible even after loading finishes
+          if (results.length > 0) {
+            setIsBuyerSearchActive(true);
+          }
           setXeroError(null); // Clear error on successful search
         } catch (error: any) {
           // Ignore AbortError - it just means we cancelled the request
@@ -311,6 +318,7 @@ export function StepSupplierBuyer() {
           }
 
           logger.error('TRADE_UI', 'Xero buyer search failed', { error: error as any } as any);
+          console.log('[CLIENT_SEARCH] Error occurred:', error);
           setBuyerDropdownResults([]);
           // Only show error if it's a connection issue
           if (error.message && error.message.includes("Xero not connected")) {
@@ -318,6 +326,7 @@ export function StepSupplierBuyer() {
           }
         } finally {
           setLoadingBuyers(false);
+          console.log('[CLIENT_SEARCH] Loading finished');
         }
       }, 300);
     } else {
