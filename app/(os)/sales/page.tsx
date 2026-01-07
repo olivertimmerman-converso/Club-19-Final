@@ -58,6 +58,8 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
         'deleted_at',
         'is_payment_plan',
         'payment_plan_instalments',
+        'shipping_method',
+        'shipping_cost_confirmed',
       ]);
 
     // Filter for shoppers - only show their own sales

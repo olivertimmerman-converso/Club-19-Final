@@ -50,6 +50,8 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
       'id',
       'source',
       'deleted_at',
+      'shipping_method',
+      'shipping_cost_confirmed',
     ]);
 
   // Apply date range filter if specified
@@ -114,9 +116,16 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   const recentSales = sales.slice(0, 5);
 
   // Calculate metrics for new sections
-  // Sales needing attention: DRAFT status OR needs_allocation OR overdue (>30 days AUTHORISED)
+  // Pending shipping count
+  const pendingShippingSales = sales.filter(sale =>
+    sale.shipping_method === 'to_be_shipped' && !sale.shipping_cost_confirmed
+  );
+  const pendingShippingCount = pendingShippingSales.length;
+
+  // Sales needing attention: DRAFT status OR needs_allocation OR overdue (>30 days AUTHORISED) OR pending shipping
   const salesNeedingAttention = sales.filter(sale => {
     if (sale.invoice_status === 'DRAFT' || sale.needs_allocation) return true;
+    if (sale.shipping_method === 'to_be_shipped' && !sale.shipping_cost_confirmed) return true;
     if (sale.invoice_status === 'AUTHORISED') {
       const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
       if (saleDate) {
@@ -336,6 +345,31 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
           )}
         </div>
       </div>
+
+      {/* Pending Shipping Alert */}
+      {pendingShippingCount > 0 && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📦</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-900">
+                  {pendingShippingCount} {pendingShippingCount === 1 ? 'sale' : 'sales'} awaiting shipping cost confirmation
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Margins are preliminary until shipping costs are confirmed
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/sales"
+              className="px-4 py-2 text-sm font-medium text-amber-900 hover:text-amber-700 transition-colors"
+            >
+              View Sales →
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Recent Sales Section */}
       <div className="mb-8">

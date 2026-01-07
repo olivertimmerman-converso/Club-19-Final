@@ -20,6 +20,8 @@ interface Sale {
   shopper: { id: string; name: string } | null;
   is_payment_plan: boolean;
   payment_plan_instalments: number | null;
+  shipping_method: string | null;
+  shipping_cost_confirmed: boolean | null;
 }
 
 interface Shopper {
@@ -231,12 +233,22 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
                   className="hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Link
-                      href={`/sales/${sale.id}`}
-                      className="text-sm font-medium text-purple-600 hover:text-purple-900"
-                    >
-                      {sale.sale_reference || '—'}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/sales/${sale.id}`}
+                        className="text-sm font-medium text-purple-600 hover:text-purple-900"
+                      >
+                        {sale.sale_reference || '—'}
+                      </Link>
+                      {sale.shipping_method === 'to_be_shipped' && !sale.shipping_cost_confirmed && (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800"
+                          title="Shipping cost pending confirmation"
+                        >
+                          📦 Shipping TBC
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(sale.sale_date)}
