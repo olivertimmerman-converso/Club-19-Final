@@ -197,7 +197,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            Create New Sale
+            Create Invoice
           </Link>
         </div>
       </div>
