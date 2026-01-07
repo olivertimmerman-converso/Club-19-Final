@@ -1,14 +1,24 @@
 /**
  * Club 19 Sales OS - Xero Webhook Handler
  *
- * High-security webhook endpoint for receiving Xero payment notifications
+ * High-security webhook endpoint for receiving Xero invoice events
  * Uses HMAC-SHA256 signature verification to ensure authenticity
  *
  * Handles:
- * - Signature verification with XERO_WEBHOOK_SECRET
- * - Invoice payment events
- * - Status transitions from "invoiced" to "paid"
- * - Error logging for invalid requests
+ * - Signature verification with XERO_WEBHOOK_KEY
+ * - Intent to Receive validation handshake from Xero
+ * - Invoice CREATE and UPDATE events
+ * - Automatic payment status updates when invoices are paid
+ * - Updates existing Sales records based on xero_invoice_id
+ * - Error logging and structured logging for debugging
+ *
+ * Event flow:
+ * 1. Xero sends POST with x-xero-signature header
+ * 2. Validate HMAC-SHA256 signature
+ * 3. For validation requests (empty payload), return 200 OK
+ * 4. For invoice events, fetch full invoice data from Xero API
+ * 5. Find matching Sale by xero_invoice_id
+ * 6. Update invoice_status and invoice_paid_date fields
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -49,15 +59,15 @@ function xata() {
  * @returns true if signature is valid, false otherwise
  */
 function verifyXeroSignature(rawBody: string, signature: string): boolean {
-  const webhookSecret = process.env.XERO_WEBHOOK_SECRET;
+  const webhookKey = process.env.XERO_WEBHOOK_KEY;
 
-  if (!webhookSecret || webhookSecret === "FILL_ME") {
-    logger.error("XERO_WEBHOOKS", "XERO_WEBHOOK_SECRET not configured or is placeholder");
+  if (!webhookKey || webhookKey === "FILL_ME") {
+    logger.error("XERO_WEBHOOKS", "XERO_WEBHOOK_KEY not configured or is placeholder");
     return false;
   }
 
   try {
-    const hmac = crypto.createHmac("sha256", webhookSecret);
+    const hmac = crypto.createHmac("sha256", webhookKey);
     hmac.update(rawBody);
     const computedSignature = hmac.digest("base64");
 
@@ -66,7 +76,10 @@ function verifyXeroSignature(rawBody: string, signature: string): boolean {
     if (isValid) {
       logger.info("XERO_WEBHOOKS", "Signature verified");
     } else {
-      logger.error("XERO_WEBHOOKS", "Invalid signature");
+      logger.error("XERO_WEBHOOKS", "Invalid signature", {
+        computed: computedSignature.substring(0, 10) + "...",
+        received: signature.substring(0, 10) + "..."
+      });
     }
 
     return isValid;
@@ -123,10 +136,11 @@ export async function POST(req: NextRequest) {
     }
 
     // STEP 4: Handle Xero validation handshake
-    // Xero sends empty events array to verify endpoint
-    if (rawBody.includes('"events":[]') || rawBody === '{"events":[]}') {
-      logger.info("XERO_WEBHOOKS", "Handshake validation request");
-      return NextResponse.json({ status: "ok" }, { status: 200 });
+    // Xero sends an "Intent to Receive" request with valid signature but empty/minimal payload
+    // We must respond with 200 OK to confirm the endpoint is valid
+    if (!rawBody || rawBody.trim() === '' || rawBody.includes('"events":[]') || rawBody === '{"events":[]}') {
+      logger.info("XERO_WEBHOOKS", "Validation handshake - Intent to Receive");
+      return new Response(null, { status: 200 });
     }
 
     // STEP 5: Parse JSON payload
@@ -135,10 +149,8 @@ export async function POST(req: NextRequest) {
       payload = JSON.parse(rawBody);
     } catch (err) {
       logger.error("XERO_WEBHOOKS", "Invalid JSON", { error: err as any });
-      return NextResponse.json(
-        { error: "Invalid JSON payload" },
-        { status: 400 }
-      );
+      // For validation requests that aren't valid JSON, still return 200 if signature was valid
+      return new Response(null, { status: 200 });
     }
 
     logger.info("XERO_WEBHOOKS", "Processing events", {
@@ -152,24 +164,28 @@ export async function POST(req: NextRequest) {
 
     for (const event of events) {
       const webhookEvent = event as {
-        resourceType?: string;
-        eventType?: string;
+        resourceUrl?: string;
         resourceId?: string;
-        eventId?: string;
+        eventDateUtc?: string;
+        eventType?: string;
+        eventCategory?: string;
+        tenantId?: string;
+        tenantType?: string;
       };
 
       try {
 
         // Only process invoice events
-        if (webhookEvent.resourceType !== "invoices") {
+        if (webhookEvent.eventCategory !== "INVOICE") {
           logger.info("XERO_WEBHOOKS", "Skipping non-invoice event", {
-            resourceType: webhookEvent.resourceType,
+            eventCategory: webhookEvent.eventCategory,
           });
           continue;
         }
 
         logger.info("XERO_WEBHOOKS", "Processing invoice event", {
           eventType: webhookEvent.eventType,
+          resourceId: webhookEvent.resourceId,
         });
 
         // Get invoice details from event
@@ -228,75 +244,55 @@ export async function POST(req: NextRequest) {
 
         logger.info("XERO_WEBHOOKS", "Invoice fetched", {
           invoiceNumber: invoice.InvoiceNumber,
+          invoiceId: invoice.InvoiceID,
           status: invoice.Status,
           amountDue: invoice.AmountDue,
         });
 
-        // Check if invoice is paid
-        const isPaid =
-          invoice.Status === "PAID" ||
-          (invoice.AmountDue !== undefined && invoice.AmountDue === 0);
-
-        if (!isPaid) {
-          logger.info("XERO_WEBHOOKS", "Invoice not paid yet - skipping", {
-            invoiceNumber: invoice.InvoiceNumber,
-          });
-          continue;
-        }
-
-        // Find corresponding sale in Xata
-        const sale = await findSaleByInvoiceNumber(invoice.InvoiceNumber);
+        // Find corresponding sale in Xata by xero_invoice_id (more reliable than invoice number)
+        const sale = await xata().db.Sales
+          .filter({ xero_invoice_id: invoice.InvoiceID })
+          .getFirst();
 
         if (!sale) {
-          logger.error("XERO_WEBHOOKS", "No sale found for invoice", {
+          logger.info("XERO_WEBHOOKS", "No sale found for invoice - may be unallocated", {
             invoiceNumber: invoice.InvoiceNumber,
+            invoiceId: invoice.InvoiceID,
           });
-
-          // Log to Errors table
-          await xata().db.Errors.create({
-            severity: "high",
-            source: "xero-webhook",
-            message: [
-              `Xero invoice ${invoice.InvoiceNumber} not matched to any sale`,
-            ],
-            timestamp: new Date(),
-            resolved: false,
-          });
-
-          errorCount++;
+          // This is normal for new invoices or unallocated invoices
+          // They will be picked up by the regular sync process
           continue;
         }
 
-        // Update sale payment status
-        const result = await updateSalePaymentStatusFromXero(sale.id, {
-          Status: invoice.Status,
-          AmountDue: invoice.AmountDue,
-          PaidDate: invoice.DateString || invoice.UpdatedDateUTC,
+        logger.info("XERO_WEBHOOKS", "Found matching sale", {
+          saleId: sale.id,
+          currentStatus: sale.invoice_status,
+          newStatus: invoice.Status,
         });
 
-        if (result.success) {
-          logger.info("XERO_WEBHOOKS", "Sale marked as paid", {
+        // Update sale with latest invoice data
+        const updateData: any = {
+          invoice_status: invoice.Status,
+        };
+
+        // If invoice is now paid, set the paid date
+        if (invoice.Status === "PAID" && !sale.invoice_paid_date) {
+          updateData.invoice_paid_date = new Date();
+          logger.info("XERO_WEBHOOKS", "Marking invoice as paid", {
             saleId: sale.id,
             invoiceNumber: invoice.InvoiceNumber,
           });
-          processedCount++;
-        } else {
-          logger.error("XERO_WEBHOOKS", "Failed to update sale", {
-            saleId: sale.id,
-            error: result.error,
-          });
-          errorCount++;
-
-          // Log error
-          await xata().db.Errors.create({
-            sale: sale.id,
-            severity: "medium",
-            source: "xero-webhook",
-            message: [`Failed to update payment status: ${result.error}`],
-            timestamp: new Date(),
-            resolved: false,
-          });
         }
+
+        // Update the sale
+        await xata().db.Sales.update(sale.id, updateData);
+
+        logger.info("XERO_WEBHOOKS", "Sale updated successfully", {
+          saleId: sale.id,
+          invoiceNumber: invoice.InvoiceNumber,
+          status: invoice.Status,
+        });
+        processedCount++;
       } catch (err: any) {
         logger.error("XERO_WEBHOOKS", "Error processing event", { error: err as any });
         errorCount++;
