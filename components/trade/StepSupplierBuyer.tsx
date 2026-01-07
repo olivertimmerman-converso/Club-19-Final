@@ -320,8 +320,13 @@ export function StepSupplierBuyer() {
           logger.error('TRADE_UI', 'Xero buyer search failed', { error: error as any } as any);
           console.log('[CLIENT_SEARCH] Error occurred:', error);
           setBuyerDropdownResults([]);
-          // Only show error if it's a connection issue
-          if (error.message && error.message.includes("Xero not connected")) {
+          // Show error for any Xero authentication issue (expired token, not connected, etc.)
+          if (error.message && (
+            error.message.includes("Xero") ||
+            error.message.includes("expired") ||
+            error.message.includes("reconnect") ||
+            error.message.includes("token")
+          )) {
             setXeroError(error.message);
           }
         } finally {
