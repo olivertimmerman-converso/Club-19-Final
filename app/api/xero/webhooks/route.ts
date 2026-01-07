@@ -67,22 +67,61 @@ function verifyXeroSignature(rawBody: string, signature: string): boolean {
   }
 
   try {
-    const hmac = crypto.createHmac("sha256", webhookKey);
-    hmac.update(rawBody);
-    const computedSignature = hmac.digest("base64");
+    // Debug: Log key and payload info
+    logger.info("XERO_WEBHOOKS", "Signature verification debug", {
+      keyPrefix: webhookKey.substring(0, 5) + "...",
+      keySuffix: "..." + webhookKey.substring(webhookKey.length - 5),
+      keyLength: webhookKey.length,
+      payloadLength: rawBody.length,
+      payloadPreview: rawBody.substring(0, 100),
+    });
 
-    const isValid = computedSignature === signature;
+    // Method 1: Use key as-is (string)
+    const hash1 = crypto.createHmac("sha256", webhookKey)
+      .update(rawBody)
+      .digest("base64");
 
-    if (isValid) {
-      logger.info("XERO_WEBHOOKS", "Signature verified");
-    } else {
-      logger.error("XERO_WEBHOOKS", "Invalid signature", {
-        computed: computedSignature.substring(0, 10) + "...",
-        received: signature.substring(0, 10) + "..."
-      });
+    // Method 2: Decode key from base64 first (Xero keys are often base64-encoded)
+    let hash2: string | null = null;
+    try {
+      const decodedKey = Buffer.from(webhookKey, "base64");
+      hash2 = crypto.createHmac("sha256", decodedKey)
+        .update(rawBody)
+        .digest("base64");
+    } catch (decodeErr) {
+      logger.warn("XERO_WEBHOOKS", "Failed to decode key as base64", { error: decodeErr as any });
     }
 
-    return isValid;
+    logger.info("XERO_WEBHOOKS", "Signature comparison", {
+      method1_raw_key: hash1.substring(0, 10) + "...",
+      method2_decoded_key: hash2 ? hash2.substring(0, 10) + "..." : "N/A",
+      received: signature.substring(0, 10) + "...",
+      method1_full: hash1,
+      method2_full: hash2 || "N/A",
+      received_full: signature,
+    });
+
+    // Check both methods
+    const isValidMethod1 = hash1 === signature;
+    const isValidMethod2 = hash2 === signature;
+
+    if (isValidMethod1) {
+      logger.info("XERO_WEBHOOKS", "Signature verified using method 1 (raw key)");
+      return true;
+    }
+
+    if (isValidMethod2) {
+      logger.info("XERO_WEBHOOKS", "Signature verified using method 2 (decoded key)");
+      return true;
+    }
+
+    logger.error("XERO_WEBHOOKS", "Invalid signature - both methods failed", {
+      method1: hash1.substring(0, 15) + "...",
+      method2: hash2 ? hash2.substring(0, 15) + "..." : "N/A",
+      received: signature.substring(0, 15) + "...",
+    });
+
+    return false;
   } catch (err) {
     logger.error("XERO_WEBHOOKS", "Signature verification error", { error: err as any });
     return false;
