@@ -364,13 +364,49 @@ export async function POST(request: NextRequest) {
         saleAmountIncVat = saleAmountExVat * (1 + vatRateDecimal);
       }
 
+      const vatAmount = saleAmountIncVat - saleAmountExVat;
+
       logger.info('TRADE_CREATE', 'VAT amounts calculated', {
         totalSellPrice,
         vatRate,
         saleAmountExVat,
         saleAmountIncVat,
-        vatAmount: saleAmountIncVat - saleAmountExVat
+        vatAmount
       });
+
+      // CRITICAL VALIDATION: Ensure VAT rate matches expected VAT
+      // This catches bugs where export sales incorrectly have 20% VAT applied
+      if (vatRate === 0 && vatAmount > 0.01) {
+        logger.error('TRADE_CREATE', 'VAT CALCULATION ERROR: Zero-rated sale has non-zero VAT!', {
+          brandTheme: firstItem.brandTheme,
+          themeName: brandingThemeMapping.name,
+          treatment: brandingThemeMapping.treatment,
+          expectedVAT: vatRate,
+          actualVATAmount: vatAmount,
+          saleAmountExVat,
+          saleAmountIncVat
+        });
+        throw new Error(`VAT calculation error: ${brandingThemeMapping.treatment} should have 0% VAT but calculated ${vatAmount.toFixed(2)} VAT. Check branding theme configuration.`);
+      }
+
+      if (vatRate === 20) {
+        const expectedVAT = saleAmountExVat * 0.20;
+        const vatDifference = Math.abs(vatAmount - expectedVAT);
+        if (vatDifference > 0.01) {
+          logger.error('TRADE_CREATE', 'VAT CALCULATION ERROR: Standard rate VAT mismatch!', {
+            brandTheme: firstItem.brandTheme,
+            themeName: brandingThemeMapping.name,
+            treatment: brandingThemeMapping.treatment,
+            expectedVAT: vatRate,
+            expectedVATAmount: expectedVAT,
+            actualVATAmount: vatAmount,
+            difference: vatDifference,
+            saleAmountExVat,
+            saleAmountIncVat
+          });
+          throw new Error(`VAT calculation error: Expected ${expectedVAT.toFixed(2)} VAT for 20% rate but calculated ${vatAmount.toFixed(2)}. Check amounts.`);
+        }
+      }
 
       // Calculate margins server-side for accuracy
       // gross_margin = sale_amount_ex_vat - (buy_price + shipping_cost + card_fees + direct_costs)
