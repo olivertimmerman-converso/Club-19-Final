@@ -1001,8 +1001,10 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
             </div>
           )}
 
-          {/* VAT Warning if inc_vat = ex_vat */}
-          {Math.abs(sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) < 0.01 && (
+          {/* VAT Warning if inc_vat = ex_vat (but only when VAT should have been applied) */}
+          {Math.abs(sale.sale_amount_inc_vat - sale.sale_amount_ex_vat) < 0.01 &&
+           vatLogic.expectedVAT !== null &&
+           vatLogic.expectedVAT > 0 && (
             <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
               <p className="text-sm text-amber-800">
                 <span className="font-semibold">Note:</span> Sale amounts (inc VAT) and (ex VAT) are identical. This may indicate that VAT has not been calculated for this sale.
