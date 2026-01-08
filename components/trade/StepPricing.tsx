@@ -10,15 +10,37 @@ export function StepPricing() {
   const [buyPrice, setBuyPrice] = useState(state.currentItem?.buyPrice?.toString() || "");
   const [sellPrice, setSellPrice] = useState(state.currentItem?.sellPrice?.toString() || "");
 
-  // Sync to context whenever prices change
+  // Sync FROM context TO local state when context changes (e.g., navigating back to this step)
+  // This ensures local state reflects any changes made elsewhere
+  useEffect(() => {
+    if (state.currentItem?.buyPrice !== undefined) {
+      const contextBuyStr = state.currentItem.buyPrice.toString();
+      // Only update if significantly different (avoid micro-updates from floating point drift)
+      if (buyPrice !== contextBuyStr && Math.abs(parseFloat(buyPrice || "0") - state.currentItem.buyPrice) > 0.001) {
+        setBuyPrice(contextBuyStr);
+      }
+    }
+    if (state.currentItem?.sellPrice !== undefined) {
+      const contextSellStr = state.currentItem.sellPrice.toString();
+      // Only update if significantly different (avoid micro-updates from floating point drift)
+      if (sellPrice !== contextSellStr && Math.abs(parseFloat(sellPrice || "0") - state.currentItem.sellPrice) > 0.001) {
+        setSellPrice(contextSellStr);
+      }
+    }
+  }, [state.currentItem?.buyPrice, state.currentItem?.sellPrice, buyPrice, sellPrice]);
+
+  // Sync TO context whenever local prices change
   // Important: Only update if values actually changed to prevent infinite loop and floating point drift
   useEffect(() => {
     if (state.currentItem && buyPrice && sellPrice) {
       const newBuyPrice = parseFloat(buyPrice) || undefined;
       const newSellPrice = parseFloat(sellPrice) || undefined;
 
-      // Only update if values have actually changed
-      if (state.currentItem.buyPrice !== newBuyPrice || state.currentItem.sellPrice !== newSellPrice) {
+      // Only update if values have actually changed (using small tolerance for floating point comparison)
+      const buyChanged = newBuyPrice !== undefined && Math.abs((state.currentItem.buyPrice || 0) - newBuyPrice) > 0.001;
+      const sellChanged = newSellPrice !== undefined && Math.abs((state.currentItem.sellPrice || 0) - newSellPrice) > 0.001;
+
+      if (buyChanged || sellChanged) {
         setCurrentItem({
           ...state.currentItem,
           buyPrice: newBuyPrice,
