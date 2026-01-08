@@ -247,12 +247,12 @@ export async function getValidTokens(userId: string): Promise<XeroTokens> {
     return await refreshTokens(userId);
   }
 
-  // Check if token needs refresh (5 minutes before expiry for proactive refresh)
+  // Check if token needs refresh (10 minutes before expiry for proactive refresh)
   // This ensures tokens are always fresh and prevents expiry during API calls
   const now = Date.now();
   const expiresIn = tokens.expiresAt - now;
-  const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
-  const needsRefresh = expiresIn < fiveMinutes;
+  const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+  const needsRefresh = expiresIn < tenMinutes;
 
   logger.info('XERO_AUTH', 'Token status', {
     now: new Date(now).toISOString(),
