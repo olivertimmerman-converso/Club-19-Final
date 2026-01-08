@@ -94,6 +94,8 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
     quantity: sale.quantity || 1,
     buy_price: sale.buy_price || 0,
     shipping_cost: sale.shipping_cost || 0,
+    shipping_method: (sale as any).shipping_method || null,
+    shipping_cost_confirmed: (sale as any).shipping_cost_confirmed || false,
     card_fees: sale.card_fees || 0,
     direct_costs: sale.direct_costs || 0,
     gross_margin: sale.gross_margin || 0,
