@@ -681,10 +681,10 @@ export function StepLogisticsTax() {
             />
             <div className="flex-1">
               <span className="text-sm font-medium text-gray-900">
-                I confirm shipping has been factored into the client's price
+                I confirm shipping has been factored into the client&apos;s price
               </span>
               <p className="text-xs text-gray-500 mt-1">
-                Check this if you've already included shipping costs in your quote to the client
+                Check this if you&apos;ve already included shipping costs in your quote to the client
               </p>
             </div>
           </label>
