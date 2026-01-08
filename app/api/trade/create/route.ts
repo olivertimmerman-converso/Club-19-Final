@@ -6,6 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import * as logger from "@/lib/logger";
 import { getBrandingThemeMapping, XERO_BRANDING_THEMES } from "@/lib/branding-theme-mappings";
 import { getValidTokens } from "@/lib/xero-auth";
+import { createXeroInvoice } from "@/lib/xero";
 
 // Initialize Xata client
 const xata = new XataClient();
@@ -207,64 +208,121 @@ export async function POST(request: NextRequest) {
       throw err;
     }
 
-    // Get Make.com webhook URL from environment
-    const makeWebhookUrl = process.env.MAKE_TRADE_WEBHOOK_URL;
-    if (!makeWebhookUrl) {
-      logger.error("TRADE_CREATE", "MAKE_TRADE_WEBHOOK_URL not configured");
+    // Get Xero tokens for direct API integration
+    logger.info('TRADE_CREATE', 'Getting Xero tokens for direct API integration');
+    let xeroTokens;
+    try {
+      xeroTokens = await getValidTokens(authUserId);
+      logger.info('TRADE_CREATE', 'Xero tokens obtained successfully');
+    } catch (error: any) {
+      logger.error("TRADE_CREATE", "Failed to get Xero tokens", {
+        error: error.message,
+        userId: authUserId
+      });
       return NextResponse.json(
         {
-          error: "SERVER_CONFIGURATION_ERROR",
-          message: "Trade webhook not configured",
+          error: "XERO_AUTH_ERROR",
+          message: "Failed to authenticate with Xero. Please reconnect your Xero account.",
+          action: "reconnect_xero",
         },
-        { status: 500 },
+        { status: 401 },
       );
     }
 
-    // Forward to Make.com
-    const makeResponse = await fetch(makeWebhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(trade),
+    // Build invoice description from trade items
+    const firstItem = trade.items[0];
+    const invoiceDescription = trade.items.length === 1
+      ? `${firstItem.brand} ${firstItem.category} - ${firstItem.description}${firstItem.quantity > 1 ? ` (x${firstItem.quantity})` : ''}`
+      : `Multi-item trade: ${trade.items.map(item => `${item.brand} ${item.category}`).join(', ')}`;
+
+    // Calculate total sell price (sum of all items)
+    const totalSellPrice = trade.items.reduce((sum, item) =>
+      sum + (item.sellPriceGBP || item.sellPrice), 0
+    );
+
+    // Get branding theme and tax info from first item
+    const brandingThemeMapping = getBrandingThemeMapping(firstItem.brandTheme);
+    if (!brandingThemeMapping) {
+      logger.error('TRADE_CREATE', 'Unknown branding theme - cannot create invoice', {
+        brandTheme: firstItem.brandTheme,
+        availableThemes: Object.keys(XERO_BRANDING_THEMES)
+      });
+      return NextResponse.json(
+        {
+          error: "VALIDATION_ERROR",
+          message: `Unknown branding theme: ${firstItem.brandTheme}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    // Validate buyer contact ID exists
+    if (!trade.buyer.xeroContactId) {
+      logger.error('TRADE_CREATE', 'Buyer missing Xero contact ID', {
+        buyerName: trade.buyer.name
+      });
+      return NextResponse.json(
+        {
+          error: "VALIDATION_ERROR",
+          message: "Buyer must have a Xero contact ID",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Create invoice directly in Xero
+    logger.info('TRADE_CREATE', 'Creating invoice directly in Xero', {
+      buyerName: trade.buyer.name,
+      buyerContactId: trade.buyer.xeroContactId,
+      totalAmount: totalSellPrice,
+      currency: firstItem.sellCurrency || 'GBP',
+      brandingTheme: brandingThemeMapping.name,
+      accountCode: brandingThemeMapping.accountCode,
+      taxType: firstItem.taxType,
     });
 
-    if (!makeResponse.ok) {
-      const errorText = await makeResponse.text();
-      logger.error("TRADE_CREATE", "Make.com webhook failed", {
-        status: makeResponse.status,
-        statusText: makeResponse.statusText,
-        errorText
+    let xeroInvoice;
+    try {
+      xeroInvoice = await createXeroInvoice(
+        xeroTokens.tenantId,
+        xeroTokens.accessToken,
+        {
+          buyerContactId: trade.buyer.xeroContactId,
+          description: invoiceDescription,
+          finalPrice: totalSellPrice,
+          accountCode: brandingThemeMapping.accountCode,
+          taxType: firstItem.taxType,
+          brandingThemeId: brandingThemeMapping.id,
+          currency: firstItem.sellCurrency || 'GBP',
+          lineAmountType: firstItem.lineAmountTypes,
+        }
+      );
+
+      logger.info('TRADE_CREATE', 'Xero invoice created successfully', {
+        invoiceNumber: xeroInvoice.InvoiceNumber,
+        invoiceId: xeroInvoice.InvoiceID,
+        status: xeroInvoice.Status,
+      });
+    } catch (error: any) {
+      logger.error("TRADE_CREATE", "Failed to create Xero invoice", {
+        error: error.message,
+        details: error.details,
       });
 
       return NextResponse.json(
         {
-          error: "MAKE_WEBHOOK_ERROR",
-          message: "Failed to create invoice via Make.com",
-          details: errorText,
+          error: "XERO_API_ERROR",
+          message: "Failed to create invoice in Xero",
+          details: error.message,
         },
         { status: 502 },
       );
     }
 
-    // Parse Make.com response
-    const makeData = await makeResponse.json();
-
-    // Validate Make response has required fields
-    if (
-      !makeData.invoiceNumber ||
-      !makeData.invoiceId ||
-      !makeData.invoiceUrl
-    ) {
-      logger.error("TRADE_CREATE", "Make.com response missing required fields", { makeData });
-      return NextResponse.json(
-        {
-          error: "MAKE_RESPONSE_ERROR",
-          message: "Make.com response incomplete",
-        },
-        { status: 502 },
-      );
-    }
+    // Extract invoice details from Xero response
+    const invoiceNumber = xeroInvoice.InvoiceNumber;
+    const invoiceId = xeroInvoice.InvoiceID;
+    const invoiceUrl = `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${invoiceId}`;
 
     logger.info('TRADE_CREATE', 'Xero invoice created successfully, saving to Sales table');
 
@@ -292,9 +350,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // For multi-item trades, we'll save only the first item for now
-      // TODO: In the future, consider creating separate Sale records for each item
-      const firstItem = trade.items[0];
+      // Note: firstItem was already defined above for invoice creation
 
       // Find or create supplier record (from first item)
       const supplier = await findOrCreateSupplier(
@@ -317,16 +373,13 @@ export async function POST(request: NextRequest) {
         logger.info('TRADE_CREATE', 'Sale marked as having referral partner (details to be added in Sales OS)');
       }
 
-      // Calculate totals
+      // Calculate total buy price
       const totalBuyPrice = trade.items.reduce((sum, item) =>
         sum + (item.buyPriceGBP || item.buyPrice), 0
       );
-      const totalSellPrice = trade.items.reduce((sum, item) =>
-        sum + (item.sellPriceGBP || item.sellPrice), 0
-      );
 
+      // Note: totalSellPrice and brandingThemeMapping were already calculated above for invoice creation
       // Determine VAT rate based on branding theme
-      const brandingThemeMapping = getBrandingThemeMapping(firstItem.brandTheme);
 
       // CRITICAL: Do NOT default to 20% - this causes incorrect VAT on export sales
       if (!brandingThemeMapping) {
@@ -469,9 +522,9 @@ export async function POST(request: NextRequest) {
         commissionable_margin: commissionableMargin,
 
         // Xero integration
-        xero_invoice_number: makeData.invoiceNumber,
-        xero_invoice_id: makeData.invoiceId,
-        xero_invoice_url: makeData.invoiceUrl,
+        xero_invoice_number: invoiceNumber,
+        xero_invoice_id: invoiceId,
+        xero_invoice_url: invoiceUrl,
         invoice_status: 'DRAFT',
         branding_theme: firstItem.brandTheme,
 
@@ -484,7 +537,7 @@ export async function POST(request: NextRequest) {
       logger.info('TRADE_CREATE', 'Sale saved to database', {
         saleId: saleRecord.id,
         saleReference,
-        xeroInvoiceNumber: makeData.invoiceNumber
+        xeroInvoiceNumber: invoiceNumber
       });
 
       // Auto-sync Xero invoice details (non-blocking - logs errors but doesn't fail)
@@ -499,9 +552,9 @@ export async function POST(request: NextRequest) {
       // Return success response with sale ID
       return NextResponse.json({
         status: "success",
-        invoiceNumber: makeData.invoiceNumber,
-        invoiceId: makeData.invoiceId,
-        invoiceUrl: makeData.invoiceUrl,
+        invoiceNumber: invoiceNumber,
+        invoiceId: invoiceId,
+        invoiceUrl: invoiceUrl,
         commissionableMarginGBP: trade.commissionableMarginGBP,
         saleId: saleRecord.id,
         saleReference: saleReference,
@@ -517,9 +570,9 @@ export async function POST(request: NextRequest) {
       // Return success with warning
       return NextResponse.json({
         status: "success",
-        invoiceNumber: makeData.invoiceNumber,
-        invoiceId: makeData.invoiceId,
-        invoiceUrl: makeData.invoiceUrl,
+        invoiceNumber: invoiceNumber,
+        invoiceId: invoiceId,
+        invoiceUrl: invoiceUrl,
         commissionableMarginGBP: trade.commissionableMarginGBP,
         warning: 'Invoice created but failed to save to database',
       });

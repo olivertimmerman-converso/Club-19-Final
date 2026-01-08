@@ -24,9 +24,6 @@ interface EnvironmentVariables {
   XERO_CLIENT_SECRET: string;
   XERO_WEBHOOK_SECRET: string;
   XERO_SYSTEM_USER_ID: string;
-
-  // Make.com Webhooks (optional)
-  MAKE_TRADE_WEBHOOK_URL?: string;
 }
 
 /**
