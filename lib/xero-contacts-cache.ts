@@ -115,17 +115,21 @@ function normalizeContact(xeroContact: XeroContactFromAPI): ExtendedContact {
 }
 
 /**
- * Fetch all contacts from Xero with pagination
+ * Fetch contacts from Xero with pagination and optional server-side filtering
  *
- * Iterates through all pages until no more contacts are returned.
- * This is the foundation for Make-style local searching.
+ * When searchTerm is provided, uses Xero's where clause for server-side filtering.
+ * Otherwise, fetches all contacts for caching purposes.
  *
  * NOTE: Uses shared Xero connection via getValidTokens() fallback.
  * This allows all authenticated users to access Xero contacts.
+ *
+ * @param userId - Clerk user ID for authentication
+ * @param searchTerm - Optional search term for server-side filtering
+ * @returns Array of contacts matching search criteria (or all if no search term)
  */
-async function fetchAllContactsFromXero(userId: string): Promise<ExtendedContact[]> {
+async function fetchAllContactsFromXero(userId: string, searchTerm?: string): Promise<ExtendedContact[]> {
   const startTime = Date.now();
-  logger.info("XERO_CACHE", "Fetching ALL contacts from Xero");
+  logger.info("XERO_CACHE", searchTerm ? "Fetching contacts with server-side search" : "Fetching ALL contacts from Xero", { searchTerm });
   logger.info("XERO_CACHE", "Requesting user", { userId });
 
   // Get valid OAuth tokens using shared connection fallback
@@ -148,7 +152,17 @@ async function fetchAllContactsFromXero(userId: string): Promise<ExtendedContact
   let hasMorePages = true;
 
   while (hasMorePages) {
-    const xeroUrl = `https://api.xero.com/api.xro/2.0/Contacts?page=${page}`;
+    // Build URL with optional where clause for server-side filtering
+    let xeroUrl = `https://api.xero.com/api.xro/2.0/Contacts?page=${page}`;
+
+    if (searchTerm && searchTerm.trim().length > 0) {
+      // Use Xero's where clause for server-side search
+      // Search in Name field using Contains operator
+      const whereClause = `Name.Contains("${searchTerm.trim()}")`;
+      xeroUrl += `&where=${encodeURIComponent(whereClause)}`;
+      logger.info("XERO_CACHE", "Applying server-side filter", { whereClause, page });
+    }
+
     logger.info("XERO_CACHE", "Fetching page", { page });
 
     const response = await fetch(xeroUrl, {
@@ -186,6 +200,7 @@ async function fetchAllContactsFromXero(userId: string): Promise<ExtendedContact
     }
 
     // Safety limit: max 100 pages (10,000 contacts)
+    // With server-side filtering, we should rarely hit this
     if (page > 100) {
       logger.warn("XERO_CACHE", "Reached page limit (100), stopping pagination");
       hasMorePages = false;
@@ -193,9 +208,10 @@ async function fetchAllContactsFromXero(userId: string): Promise<ExtendedContact
   }
 
   const duration = Date.now() - startTime;
-  logger.info("XERO_CACHE", "Fetched all contacts", {
+  logger.info("XERO_CACHE", searchTerm ? "Fetched filtered contacts" : "Fetched all contacts", {
     totalContacts: allContacts.length,
-    durationMs: duration
+    durationMs: duration,
+    searchTerm: searchTerm || "none"
   });
 
   return allContacts;
@@ -233,6 +249,40 @@ export async function getAllXeroContacts(userId: string): Promise<ExtendedContac
     contacts,
     fetchedAt: now,
     userId,
+  });
+
+  return contacts;
+}
+
+/**
+ * Search Xero contacts with server-side filtering
+ *
+ * PERFORMANCE OPTIMIZATION: Uses Xero's where clause to filter server-side.
+ * This avoids fetching all contacts and searching locally.
+ *
+ * This function does NOT use cache - it goes directly to Xero API with search filter.
+ * For sub-2-second response times, we bypass the full contacts cache.
+ *
+ * @param userId - Clerk user ID for authentication
+ * @param searchTerm - Search term to filter by name
+ * @returns Array of contacts matching search term
+ */
+export async function searchXeroContacts(userId: string, searchTerm: string): Promise<ExtendedContact[]> {
+  logger.info("XERO_CACHE", "Server-side contact search", { searchTerm, userId });
+
+  if (!searchTerm || searchTerm.trim().length < 2) {
+    logger.info("XERO_CACHE", "Search term too short, returning empty", {
+      searchTermLength: searchTerm?.length || 0
+    });
+    return [];
+  }
+
+  // Fetch with server-side filtering (no caching)
+  const contacts = await fetchAllContactsFromXero(userId, searchTerm);
+
+  logger.info("XERO_CACHE", "Server-side search completed", {
+    resultCount: contacts.length,
+    searchTerm
   });
 
   return contacts;
