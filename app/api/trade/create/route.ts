@@ -462,11 +462,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Calculate margins server-side for accuracy
-      // gross_margin = sale_amount_ex_vat - (buy_price + shipping_cost + card_fees + direct_costs)
-      const grossMargin = saleAmountExVat - (totalBuyPrice + trade.impliedCosts.shipping + trade.impliedCosts.cardFees + trade.impliedCosts.total);
+      // GROSS MARGIN = Sale Price (ex VAT) - Buy Price ONLY
+      const grossMargin = saleAmountExVat - totalBuyPrice;
 
-      // commissionable_margin = gross_margin (introducer commission will be deducted later if applicable)
-      const commissionableMargin = grossMargin;
+      // COMMISSIONABLE MARGIN = Gross Margin - Shipping - Card Fees - Direct Costs
+      // (Introducer commission will be deducted later if applicable)
+      const commissionableMargin = grossMargin - trade.impliedCosts.shipping - trade.impliedCosts.cardFees - trade.impliedCosts.total;
 
       logger.info('TRADE_CREATE', 'Margins calculated', {
         saleAmountExVat,
