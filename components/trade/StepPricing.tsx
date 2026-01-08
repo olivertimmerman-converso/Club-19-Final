@@ -10,46 +10,31 @@ export function StepPricing() {
   const [buyPrice, setBuyPrice] = useState(state.currentItem?.buyPrice?.toString() || "");
   const [sellPrice, setSellPrice] = useState(state.currentItem?.sellPrice?.toString() || "");
 
-  // Sync FROM context TO local state when context changes (e.g., navigating back to this step)
-  // This ensures local state reflects any changes made elsewhere
-  useEffect(() => {
-    if (state.currentItem?.buyPrice !== undefined) {
-      const contextBuyStr = state.currentItem.buyPrice.toString();
-      // Only update if significantly different (avoid micro-updates from floating point drift)
-      if (buyPrice !== contextBuyStr && Math.abs(parseFloat(buyPrice || "0") - state.currentItem.buyPrice) > 0.001) {
-        setBuyPrice(contextBuyStr);
-      }
-    }
-    if (state.currentItem?.sellPrice !== undefined) {
-      const contextSellStr = state.currentItem.sellPrice.toString();
-      // Only update if significantly different (avoid micro-updates from floating point drift)
-      if (sellPrice !== contextSellStr && Math.abs(parseFloat(sellPrice || "0") - state.currentItem.sellPrice) > 0.001) {
-        setSellPrice(contextSellStr);
-      }
-    }
-  }, [state.currentItem?.buyPrice, state.currentItem?.sellPrice, buyPrice, sellPrice]);
-
-  // Sync TO context whenever local prices change
-  // Important: Only update if values actually changed to prevent infinite loop and floating point drift
-  useEffect(() => {
-    if (state.currentItem && buyPrice && sellPrice) {
-      const newBuyPrice = parseFloat(buyPrice) || undefined;
-      const newSellPrice = parseFloat(sellPrice) || undefined;
-
-      // Only update if values have actually changed (using small tolerance for floating point comparison)
-      const buyChanged = newBuyPrice !== undefined && Math.abs((state.currentItem.buyPrice || 0) - newBuyPrice) > 0.001;
-      const sellChanged = newSellPrice !== undefined && Math.abs((state.currentItem.sellPrice || 0) - newSellPrice) > 0.001;
-
-      if (buyChanged || sellChanged) {
+  // Sync to context only when user stops typing (on blur)
+  // This prevents flickering and fighting with user input
+  const handleBuyPriceBlur = () => {
+    if (state.currentItem && buyPrice) {
+      const numValue = parseFloat(buyPrice);
+      if (!isNaN(numValue) && numValue >= 0) {
         setCurrentItem({
           ...state.currentItem,
-          buyPrice: newBuyPrice,
-          sellPrice: newSellPrice,
+          buyPrice: numValue,
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buyPrice, sellPrice]); // Intentionally exclude state.currentItem to prevent loop
+  };
+
+  const handleSellPriceBlur = () => {
+    if (state.currentItem && sellPrice) {
+      const numValue = parseFloat(sellPrice);
+      if (!isNaN(numValue) && numValue >= 0) {
+        setCurrentItem({
+          ...state.currentItem,
+          sellPrice: numValue,
+        });
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -93,23 +78,10 @@ export function StepPricing() {
               max="10000000"
               value={buyPrice}
               onChange={(e) => {
-                const value = e.target.value;
-                const numValue = parseFloat(value);
-
-                // Allow empty string for clearing the field
-                if (value === '') {
-                  setBuyPrice('');
-                  return;
-                }
-
-                // Prevent negative numbers
-                if (numValue < 0) return;
-
-                // Prevent extremely large numbers
-                if (numValue > 10000000) return;
-
-                setBuyPrice(value);
+                // Simply store what user types - no transformations
+                setBuyPrice(e.target.value);
               }}
+              onBlur={handleBuyPriceBlur}
               placeholder="0.00"
               className="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
               required
@@ -138,23 +110,10 @@ export function StepPricing() {
               max="10000000"
               value={sellPrice}
               onChange={(e) => {
-                const value = e.target.value;
-                const numValue = parseFloat(value);
-
-                // Allow empty string for clearing the field
-                if (value === '') {
-                  setSellPrice('');
-                  return;
-                }
-
-                // Prevent negative numbers
-                if (numValue < 0) return;
-
-                // Prevent extremely large numbers
-                if (numValue > 10000000) return;
-
-                setSellPrice(value);
+                // Simply store what user types - no transformations
+                setSellPrice(e.target.value);
               }}
+              onBlur={handleSellPriceBlur}
               placeholder="0.00"
               className="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
