@@ -145,6 +145,8 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       shopper: sale.shopper ? { id: sale.shopper.id, name: sale.shopper.name || 'Unknown' } : null,
       is_payment_plan: (sale as any).is_payment_plan || false,
       payment_plan_instalments: (sale as any).payment_plan_instalments || null,
+      shipping_method: (sale as any).shipping_method || null,
+      shipping_cost_confirmed: (sale as any).shipping_cost_confirmed || false,
     }));
 
     const deletedSales = deletedSalesRaw.map(sale => ({
@@ -162,6 +164,8 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       shopper: sale.shopper ? { id: sale.shopper.id, name: sale.shopper.name || 'Unknown' } : null,
       is_payment_plan: (sale as any).is_payment_plan || false,
       payment_plan_instalments: (sale as any).payment_plan_instalments || null,
+      shipping_method: (sale as any).shipping_method || null,
+      shipping_cost_confirmed: (sale as any).shipping_cost_confirmed || false,
     }));
 
     const shoppers = shoppersRaw.map(s => ({
