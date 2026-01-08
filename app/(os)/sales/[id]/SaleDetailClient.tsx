@@ -573,12 +573,13 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
     }
   };
 
-  // Handle shipping cost confirmation
+  // Handle delivery cost confirmation
   const handleConfirmShipping = async () => {
-    const shippingCost = parseFloat(shippingCostInput);
+    const deliveryCost = parseFloat(shippingCostInput);
 
-    if (isNaN(shippingCost) || shippingCost < 0) {
-      setShippingError('Please enter a valid shipping cost');
+    // Allow 0 for free delivery
+    if (isNaN(deliveryCost) || deliveryCost < 0) {
+      setShippingError('Please enter a valid delivery cost (0 for free delivery)');
       return;
     }
 
@@ -587,20 +588,29 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
     setShippingSuccess(false);
 
     try {
+      // Calculate new commissionable margin
+      // gross_margin - delivery_cost - card_fees - introducer_commission
+      const newCommissionableMargin =
+        (sale.gross_margin || 0) -
+        deliveryCost -
+        (sale.card_fees || 0) -
+        (sale.introducer_commission || 0);
+
       const response = await fetch(`/api/sales/${sale.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          shipping_cost: shippingCost,
+          shipping_cost: deliveryCost,
           shipping_cost_confirmed: true,
+          commissionable_margin: newCommissionableMargin,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to confirm shipping cost');
+        throw new Error(errorData.error || 'Failed to confirm delivery cost');
       }
 
       setShippingSuccess(true);
@@ -610,8 +620,8 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
         router.refresh();
       }, 1000);
     } catch (error) {
-      console.error('Error confirming shipping cost:', error);
-      setShippingError(error instanceof Error ? error.message : 'Failed to confirm shipping cost');
+      console.error('Error confirming delivery cost:', error);
+      setShippingError(error instanceof Error ? error.message : 'Failed to confirm delivery cost');
     } finally {
       setIsConfirmingShipping(false);
     }
@@ -1103,44 +1113,45 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
           </div>
         </div>
 
-        {/* Shipping & Delivery Card */}
+        {/* Delivery Cost Card */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 lg:col-span-2">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Shipping & Delivery</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Delivery</h2>
 
-          {/* Hand Delivery */}
-          {sale.shipping_method === 'hand_delivery' && (
+          {/* Delivery Cost Confirmed */}
+          {sale.shipping_cost_confirmed && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-green-800">
-                ✓ Hand delivery - no shipping cost
-              </p>
+              <div className="flex items-center gap-2 text-green-800">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="font-medium">
+                  {sale.shipping_cost === 0
+                    ? 'Free delivery'
+                    : `Delivery cost: ${formatCurrency(sale.shipping_cost)}`}
+                </span>
+              </div>
             </div>
           )}
 
-          {/* To Be Shipped - Confirmed */}
-          {sale.shipping_method === 'to_be_shipped' && sale.shipping_cost_confirmed && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-green-800">
-                ✓ Shipping cost confirmed: {formatCurrency(sale.shipping_cost || 0)}
-              </p>
-            </div>
-          )}
-
-          {/* To Be Shipped - Not Confirmed */}
-          {sale.shipping_method === 'to_be_shipped' && !sale.shipping_cost_confirmed && (
+          {/* Delivery Cost Pending Confirmation */}
+          {!sale.shipping_cost_confirmed && (
             <div className="space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm font-medium text-amber-800 mb-3">
-                  ⚠️ Shipping cost not yet confirmed
-                </p>
+                <div className="flex items-center gap-2 text-amber-800 mb-3">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium">Delivery cost to be confirmed</span>
+                </div>
                 <p className="text-xs text-amber-700 mb-4">
-                  Margin shown excludes shipping until confirmed
+                  Commissionable margin will be recalculated after confirmation
                 </p>
 
                 {/* Success Message */}
                 {shippingSuccess && (
                   <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
                     <p className="text-sm font-medium text-green-800">
-                      ✓ Shipping cost confirmed successfully! Refreshing...
+                      ✓ Delivery cost confirmed successfully! Refreshing...
                     </p>
                   </div>
                 )}
@@ -1153,46 +1164,30 @@ export function SaleDetailClient({ sale, shoppers, userRole, unallocatedXeroImpo
                 )}
 
                 {/* Input and Button */}
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <label htmlFor="shipping-cost" className="sr-only">
-                      Shipping cost
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
-                        £
-                      </span>
-                      <input
-                        id="shipping-cost"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={shippingCostInput}
-                        onChange={(e) => setShippingCostInput(e.target.value)}
-                        placeholder="0.00"
-                        className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        disabled={isConfirmingShipping}
-                      />
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center">
+                    <span className="mr-2 text-gray-700">£</span>
+                    <input
+                      id="delivery-cost"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={shippingCostInput}
+                      onChange={(e) => setShippingCostInput(e.target.value)}
+                      placeholder="0.00"
+                      className="w-32 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      disabled={isConfirmingShipping}
+                    />
                   </div>
                   <button
                     onClick={handleConfirmShipping}
-                    disabled={isConfirmingShipping || !shippingCostInput}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    disabled={isConfirmingShipping}
+                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {isConfirmingShipping ? 'Confirming...' : 'Confirm Shipping Cost'}
+                    {isConfirmingShipping ? 'Confirming...' : 'Confirm Delivery Cost'}
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* No Shipping Method Set */}
-          {!sale.shipping_method && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <p className="text-sm text-gray-600">
-                No shipping method recorded for this sale
-              </p>
             </div>
           )}
         </div>
