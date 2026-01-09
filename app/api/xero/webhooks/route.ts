@@ -225,7 +225,11 @@ export async function POST(req: NextRequest) {
         logger.info("XERO_WEBHOOKS", "Processing invoice event", {
           eventType: webhookEvent.eventType,
           resourceId: webhookEvent.resourceId,
+          eventDateUtc: webhookEvent.eventDateUtc,
         });
+
+        // Log the full event for debugging
+        console.log("[XERO_WEBHOOKS] Full event:", JSON.stringify(webhookEvent, null, 2));
 
         // Get invoice details from event
         const invoiceId = webhookEvent.resourceId;
@@ -289,19 +293,32 @@ export async function POST(req: NextRequest) {
         });
 
         // Find corresponding sale in Xata by xero_invoice_id (more reliable than invoice number)
-        const sale = await xata().db.Sales
+        console.log("[XERO_WEBHOOKS] Looking for sale with xero_invoice_id:", invoice.InvoiceID);
+
+        let sale = await xata().db.Sales
           .filter({ xero_invoice_id: invoice.InvoiceID })
           .getFirst();
+
+        // Fallback: Try to find by invoice number if ID doesn't match
+        if (!sale && invoice.InvoiceNumber) {
+          console.log("[XERO_WEBHOOKS] No match by ID, trying invoice number:", invoice.InvoiceNumber);
+          sale = await xata().db.Sales
+            .filter({ xero_invoice_number: invoice.InvoiceNumber })
+            .getFirst();
+        }
 
         if (!sale) {
           logger.info("XERO_WEBHOOKS", "No sale found for invoice - may be unallocated", {
             invoiceNumber: invoice.InvoiceNumber,
             invoiceId: invoice.InvoiceID,
           });
+          console.log("[XERO_WEBHOOKS] NOT FOUND - Invoice:", invoice.InvoiceNumber, "ID:", invoice.InvoiceID);
           // This is normal for new invoices or unallocated invoices
           // They will be picked up by the regular sync process
           continue;
         }
+
+        console.log("[XERO_WEBHOOKS] FOUND sale:", sale.id, "Current status:", sale.invoice_status);
 
         logger.info("XERO_WEBHOOKS", "Found matching sale", {
           saleId: sale.id,
@@ -324,13 +341,16 @@ export async function POST(req: NextRequest) {
         }
 
         // Update the sale
+        console.log("[XERO_WEBHOOKS] Updating sale", sale.id, "with:", JSON.stringify(updateData));
         await xata().db.Sales.update(sale.id, updateData);
 
         logger.info("XERO_WEBHOOKS", "Sale updated successfully", {
           saleId: sale.id,
           invoiceNumber: invoice.InvoiceNumber,
-          status: invoice.Status,
+          oldStatus: sale.invoice_status,
+          newStatus: invoice.Status,
         });
+        console.log("[XERO_WEBHOOKS] SUCCESS - Updated", sale.id, "from", sale.invoice_status, "to", invoice.Status);
         processedCount++;
       } catch (err: any) {
         logger.error("XERO_WEBHOOKS", "Error processing event", {
