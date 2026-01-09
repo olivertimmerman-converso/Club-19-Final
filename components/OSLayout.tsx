@@ -9,6 +9,7 @@ import { getUserRole } from "@/lib/getUserRole";
 import { Sidebar } from "./Sidebar";
 import { OSNav } from "./OSNav";
 import { ErrorFallback } from "./ErrorFallback";
+import { XeroStatusBanner } from "./XeroStatusBanner";
 import * as logger from '@/lib/logger';
 
 interface OSLayoutProps {
@@ -43,6 +44,9 @@ export async function OSLayout({ children }: OSLayoutProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Xero Disconnection Warning Banner */}
+        <XeroStatusBanner role={role} />
+
         {/* Top Bar */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
           <div className="flex-1">
