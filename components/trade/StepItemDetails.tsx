@@ -123,9 +123,9 @@ export function StepItemDetails() {
     }
   }, []);
 
-  // Handler to initiate Xero OAuth flow
+  // Handler to initiate Xero OAuth flow (opens in new tab to preserve wizard state)
   const handleConnectXero = () => {
-    window.location.href = "/api/xero/oauth/authorize";
+    window.open("/api/xero/oauth/authorize", "_blank", "noopener,noreferrer");
   };
 
   // Reset form to empty state

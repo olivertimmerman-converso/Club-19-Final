@@ -68,6 +68,8 @@ export function XeroStatusBanner({ role }: XeroStatusBannerProps) {
       {role === 'superadmin' || role === 'admin' || role === 'founder' ? (
         <a
           href="/api/xero/oauth/authorize"
+          target="_blank"
+          rel="noopener noreferrer"
           className="underline ml-2 hover:text-red-100"
         >
           Reconnect now

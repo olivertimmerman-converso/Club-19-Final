@@ -173,9 +173,9 @@ export function StepSupplierBuyer() {
     setIsBuyerSearchActive(false);
   };
 
-  // Initiate Xero OAuth connection
+  // Initiate Xero OAuth connection (opens in new tab to preserve wizard state)
   const handleConnectXero = () => {
-    window.location.href = "/api/xero/oauth/authorize";
+    window.open("/api/xero/oauth/authorize", "_blank", "noopener,noreferrer");
   };
 
   // Auto-save buyer on field changes
