@@ -333,15 +333,31 @@ export async function POST(req: NextRequest) {
         });
         processedCount++;
       } catch (err: any) {
-        logger.error("XERO_WEBHOOKS", "Error processing event", { error: err as any });
+        logger.error("XERO_WEBHOOKS", "Error processing event", {
+          message: err.message,
+          stack: err.stack,
+          event: webhookEvent,
+          invoiceId: webhookEvent.resourceId,
+          eventType: webhookEvent.eventType,
+        });
         errorCount++;
 
-        // Log error
+        // Determine severity based on error type
+        const isAuthError = err.message?.includes("Xero session expired") ||
+                           err.message?.includes("reconnect Xero");
+        const severity = isAuthError ? "high" : "medium";
+
+        // Log error with full details
         try {
           await xata().db.Errors.create({
-            severity: "medium",
+            severity,
             source: "xero-webhook",
-            message: [`Event processing error: ${err.message || err}`],
+            message: [
+              `Event processing error: ${err.message || err}`,
+              `Event type: ${webhookEvent.eventType}`,
+              `Invoice ID: ${webhookEvent.resourceId}`,
+              isAuthError ? "ACTION REQUIRED: Admin must reconnect Xero at /admin/xero" : "",
+            ].filter(Boolean),
             timestamp: new Date(),
             resolved: false,
           });
