@@ -104,11 +104,34 @@ export async function GET(request: NextRequest) {
       duration,
     });
 
+    // Send alert if any refresh failed
+    if (failed > 0 && process.env.ALERT_WEBHOOK_URL) {
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sales.club19london.com';
+        await fetch(process.env.ALERT_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: `🚨 URGENT: Xero token refresh failed for ${failed} user(s). Admin must reconnect at ${appUrl}/admin/xero`,
+            priority: 'high',
+            errors: errors,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        logger.info('XERO_CRON', 'Alert sent for refresh failures');
+      } catch (alertError) {
+        logger.error('XERO_CRON', 'Failed to send alert', {
+          error: alertError instanceof Error ? alertError.message : String(alertError),
+        });
+      }
+    }
+
     return NextResponse.json({
       success: true,
       refreshed,
       failed,
       errors: errors.length > 0 ? errors : undefined,
+      alertSent: failed > 0 && !!process.env.ALERT_WEBHOOK_URL,
       duration,
     });
 
