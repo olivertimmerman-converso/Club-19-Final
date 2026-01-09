@@ -76,9 +76,9 @@ export async function POST(request: NextRequest) {
       );
       sales = sales.filter(Boolean);
     } else {
-      // All active sales
+      // All non-deleted sales (not just "active" - includes paid, completed, etc.)
       sales = await xata.db.Sales.filter({
-        $all: [{ deleted_at: { $is: null } }, { status: "active" }],
+        deleted_at: { $is: null },
       })
         .select([
           "id",
@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
           "commission_split_introducer",
           "gross_margin",
           "commissionable_margin",
+          "status",
         ])
         .getAll();
     }
@@ -105,10 +106,15 @@ export async function POST(request: NextRequest) {
       changes: [] as Array<{
         id: string;
         reference: string;
+        status: string | null | undefined;
         oldGrossMargin: number | null | undefined;
         newGrossMargin: number;
         oldCommissionableMargin: number | null | undefined;
         newCommissionableMargin: number;
+        inputs: {
+          saleAmountExVat: number;
+          buyPrice: number;
+        };
       }>,
       errorDetails: [] as Array<{ id: string; error: string }>,
     };
@@ -142,10 +148,15 @@ export async function POST(request: NextRequest) {
           results.changes.push({
             id: sale.id,
             reference: sale.sale_reference || sale.id,
+            status: sale.status,
             oldGrossMargin: sale.gross_margin,
             newGrossMargin,
             oldCommissionableMargin: sale.commissionable_margin,
             newCommissionableMargin,
+            inputs: {
+              saleAmountExVat: marginResult.breakdown.saleAmountExVat,
+              buyPrice: marginResult.breakdown.buyPrice,
+            },
           });
 
           // Update if not dry run
