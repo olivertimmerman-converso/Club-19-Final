@@ -5,6 +5,14 @@ import * as logger from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
+ * STAGE 1: Single Integration User Architecture
+ *
+ * Tokens are always saved to the integration user, regardless of who
+ * initiates the OAuth flow. This allows ANY user to reconnect Xero.
+ */
+const INTEGRATION_USER_ID = process.env.XERO_INTEGRATION_CLERK_USER_ID;
+
+/**
  * Xero OAuth Token Response
  */
 interface XeroTokenResponse {
@@ -27,11 +35,11 @@ interface XeroConnection {
 /**
  * GET /api/xero/oauth/callback
  * Handles OAuth 2.0 callback from Xero
- * Exchanges authorization code for tokens and stores in Clerk privateMetadata
+ * STAGE 1: Stores tokens in integration user's Clerk privateMetadata
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-  logger.info("XERO_OAUTH", "OAuth callback initiated");
+  logger.info("XERO_OAUTH", "OAuth callback initiated (Stage 1 - Integration User)");
 
   try {
     // 1. Verify user is authenticated via Clerk
@@ -169,9 +177,20 @@ export async function GET(request: NextRequest) {
     // 6. Calculate token expiration timestamp
     const expiresAt = Date.now() + tokens.expires_in * 1000;
 
-    // 7. Store tokens in Clerk user privateMetadata with nested structure
-    logger.info("XERO_OAUTH", "Storing tokens in Clerk privateMetadata...");
-    await clerkClient.users.updateUser(userId, {
+    // 7. STAGE 1: Store tokens in INTEGRATION USER's Clerk privateMetadata
+    // This allows any user to reconnect, but tokens are centralized
+    const targetUserId = INTEGRATION_USER_ID || userId;
+
+    if (!INTEGRATION_USER_ID) {
+      logger.warn("XERO_OAUTH", "XERO_INTEGRATION_CLERK_USER_ID not set, falling back to current user");
+    }
+
+    logger.info("XERO_OAUTH", "Storing tokens in Clerk privateMetadata...", {
+      targetUserId,
+      isIntegrationUser: !!INTEGRATION_USER_ID,
+    });
+
+    await clerkClient.users.updateUser(targetUserId, {
       privateMetadata: {
         xero: {
           accessToken: tokens.access_token,
@@ -180,6 +199,7 @@ export async function GET(request: NextRequest) {
           tenantId: primaryConnection.tenantId,
           tenantName: primaryConnection.tenantName,
           connectedAt: Date.now(),
+          refreshedAt: Date.now(), // Track initial save as refresh point
         },
       },
     });
@@ -187,9 +207,11 @@ export async function GET(request: NextRequest) {
     const duration = Date.now() - startTime;
     logger.info("XERO_OAUTH", "SUCCESS! Xero connected", {
       duration_ms: duration,
+      targetUserId,
       tenantId: primaryConnection.tenantId,
       tenantName: primaryConnection.tenantName,
-      expiresIn: tokens.expires_in
+      expiresIn: tokens.expires_in,
+      architecture: 'stage1-integration-user',
     });
 
     // 8. Redirect back to trade wizard with success message

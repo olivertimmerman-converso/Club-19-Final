@@ -1,14 +1,19 @@
 /**
  * Club 19 Sales OS - Xero Token Refresh Cron Job
  *
- * Automatically refreshes Xero tokens to keep connection alive PERMANENTLY.
+ * STAGE 1: Single Integration User Architecture
+ *
+ * Automatically refreshes Xero tokens for the integration user to keep connection alive.
  * Xero access tokens expire after 30 minutes, refresh tokens after 60 days of non-use.
- * By refreshing every 4 hours (6x/day), we ensure tokens never expire.
  *
- * This endpoint is called by Vercel Cron (configured in vercel.json).
- * Runs every 4 hours to refresh all active Xero connections.
+ * SCHEDULE: Every 10 minutes (see vercel.json for cron expression)
+ * This aggressive schedule ensures:
+ * - Tokens are always fresh (well before 30-minute expiry)
+ * - Users never see "Xero Connection Required" errors
+ * - Refresh tokens stay active (never go 60 days unused)
  *
- * After refresh, we verify the tokens work by making a test API call.
+ * IMPORTANT: Only the cron job can refresh tokens (forceCron: true).
+ * API routes will use existing tokens without refreshing to prevent race conditions.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,6 +23,9 @@ import { getXataClient } from '@/src/xata';
 import * as logger from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
+
+// Integration user ID - single source of truth for Xero tokens
+const INTEGRATION_USER_ID = process.env.XERO_INTEGRATION_CLERK_USER_ID;
 
 interface XeroMetadata {
   xero?: {
@@ -29,7 +37,7 @@ interface XeroMetadata {
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-  logger.info('XERO_CRON', 'Starting scheduled token refresh');
+  logger.info('XERO_CRON', 'Starting scheduled token refresh (Stage 1 - Integration User)');
 
   // Verify cron secret to prevent unauthorized access
   const authHeader = request.headers.get('authorization');
@@ -48,88 +56,94 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Stage 1: Require integration user ID
+  if (!INTEGRATION_USER_ID) {
+    logger.error('XERO_CRON', 'XERO_INTEGRATION_CLERK_USER_ID not configured');
+    return NextResponse.json({
+      error: 'XERO_INTEGRATION_CLERK_USER_ID not configured',
+      message: 'Set this environment variable to enable Xero integration'
+    }, { status: 500 });
+  }
+
   try {
-    // Get all users from Clerk
-    const users = await clerkClient.users.getUserList({ limit: 100 });
+    // Stage 1: Get integration user directly (no scanning)
+    const user = await clerkClient.users.getUser(INTEGRATION_USER_ID);
+    const meta = user.privateMetadata as XeroMetadata;
 
-    // Filter for users with Xero tokens in privateMetadata
-    const usersWithTokens = users.data.filter(user => {
-      const meta = user.privateMetadata as XeroMetadata;
-      return !!(meta.xero?.accessToken && meta.xero?.refreshToken && meta.xero?.tenantId);
-    });
-
-    if (usersWithTokens.length === 0) {
-      logger.info('XERO_CRON', 'No Xero tokens found');
+    // Check if integration user has Xero tokens
+    if (!meta.xero?.accessToken || !meta.xero?.refreshToken || !meta.xero?.tenantId) {
+      logger.info('XERO_CRON', 'Integration user has no Xero connection', {
+        integrationUserId: INTEGRATION_USER_ID,
+      });
       return NextResponse.json({
-        message: 'No tokens to refresh',
+        message: 'Integration user has no Xero connection. Please connect Xero.',
         refreshed: 0,
         failed: 0,
         duration: Date.now() - startTime,
       });
     }
 
-    logger.info('XERO_CRON', 'Found tokens to refresh', {
-      count: usersWithTokens.length,
+    logger.info('XERO_CRON', 'Found Xero tokens on integration user', {
+      integrationUserId: INTEGRATION_USER_ID,
     });
 
     let refreshed = 0;
     let failed = 0;
     const errors: string[] = [];
 
-    for (const user of usersWithTokens) {
+    try {
+      logger.info('XERO_CRON', 'Refreshing token for integration user', {
+        integrationUserId: INTEGRATION_USER_ID,
+      });
+
+      // STAGE 1: Pass forceCron: true to allow actual refresh
+      // Only the cron job has permission to refresh tokens
+      await refreshTokens(INTEGRATION_USER_ID, { forceCron: true });
+
+      // Verify the refresh worked by making a test API call
+      const tokens = await getValidTokens(INTEGRATION_USER_ID);
+      if (!tokens || !tokens.accessToken) {
+        throw new Error('Token refresh succeeded but no access token returned');
+      }
+
+      const testResponse = await fetch('https://api.xero.com/connections', {
+        headers: {
+          'Authorization': `Bearer ${tokens.accessToken}`,
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!testResponse.ok) {
+        throw new Error(`Xero API verification failed: ${testResponse.status}`);
+      }
+
+      logger.info('XERO_CRON', 'Token refreshed and verified successfully', {
+        integrationUserId: INTEGRATION_USER_ID,
+      });
+      refreshed++;
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('XERO_CRON', 'Error refreshing token', {
+        integrationUserId: INTEGRATION_USER_ID,
+        error: errorMessage,
+      });
+      errors.push(`Integration user: ${errorMessage}`);
+      failed++;
+
+      // Log critical error to Xata for visibility
       try {
-        logger.info('XERO_CRON', 'Refreshing token', {
-          userId: user.id,
+        const xata = getXataClient();
+        await xata.db.Errors.create({
+          severity: 'high',
+          source: 'xero-cron',
+          message: [`Cron refresh failed for integration user: ${errorMessage}`],
+          timestamp: new Date(),
+          resolved: false,
         });
-
-        // Force refresh tokens regardless of expiry time
-        await refreshTokens(user.id);
-
-        // Verify the refresh worked by making a test API call
-        const tokens = await getValidTokens(user.id);
-        if (!tokens || !tokens.accessToken) {
-          throw new Error('Token refresh succeeded but no access token returned');
-        }
-
-        const testResponse = await fetch('https://api.xero.com/connections', {
-          headers: {
-            'Authorization': `Bearer ${tokens.accessToken}`,
-            'Accept': 'application/json',
-          },
+      } catch (logErr) {
+        logger.error('XERO_CRON', 'Failed to log error to Xata', {
+          error: logErr instanceof Error ? logErr.message : String(logErr),
         });
-
-        if (!testResponse.ok) {
-          throw new Error(`Xero API verification failed: ${testResponse.status}`);
-        }
-
-        logger.info('XERO_CRON', 'Token refreshed and verified successfully', {
-          userId: user.id,
-        });
-        refreshed++;
-      } catch (error: any) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.error('XERO_CRON', 'Error refreshing token', {
-          userId: user.id,
-          error: errorMessage,
-        });
-        errors.push(`User ${user.id}: ${errorMessage}`);
-        failed++;
-
-        // Log critical error to Xata for visibility
-        try {
-          const xata = getXataClient();
-          await xata.db.Errors.create({
-            severity: 'high',
-            source: 'xero-cron',
-            message: [`Cron refresh failed for user ${user.id}: ${errorMessage}`],
-            timestamp: new Date(),
-            resolved: false,
-          });
-        } catch (logErr) {
-          logger.error('XERO_CRON', 'Failed to log error to Xata', {
-            error: logErr instanceof Error ? logErr.message : String(logErr),
-          });
-        }
       }
     }
 
@@ -140,7 +154,7 @@ export async function GET(request: NextRequest) {
       duration,
     });
 
-    // Send alert if any refresh failed
+    // Send alert if refresh failed
     if (failed > 0 && process.env.ALERT_WEBHOOK_URL) {
       try {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sales.club19london.com';
@@ -148,13 +162,13 @@ export async function GET(request: NextRequest) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            text: `🚨 URGENT: Xero token refresh failed for ${failed} user(s). Admin must reconnect at ${appUrl}/admin/xero`,
+            text: `🚨 URGENT: Xero token refresh failed. Admin must reconnect at ${appUrl}/trade/new`,
             priority: 'high',
             errors: errors,
             timestamp: new Date().toISOString(),
           }),
         });
-        logger.info('XERO_CRON', 'Alert sent for refresh failures');
+        logger.info('XERO_CRON', 'Alert sent for refresh failure');
       } catch (alertError) {
         logger.error('XERO_CRON', 'Failed to send alert', {
           error: alertError instanceof Error ? alertError.message : String(alertError),
@@ -169,6 +183,7 @@ export async function GET(request: NextRequest) {
       errors: errors.length > 0 ? errors : undefined,
       alertSent: failed > 0 && !!process.env.ALERT_WEBHOOK_URL,
       duration,
+      architecture: 'stage1-integration-user',
     });
 
   } catch (error: any) {
