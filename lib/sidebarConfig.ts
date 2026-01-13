@@ -75,6 +75,11 @@ const ALL_SIDEBAR_ITEMS: SidebarItem[] = [
     icon: "RefreshCw",
   },
   {
+    label: "Xero Health",
+    href: "/xero-health",
+    icon: "HeartPulse",
+  },
+  {
     label: "🗑️ Deleted Sales",
     href: "/admin/deleted-sales",
     icon: "Trash2",

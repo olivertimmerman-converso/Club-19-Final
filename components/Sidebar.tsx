@@ -22,6 +22,7 @@ import {
   Archive,
   PlusCircle,
   RefreshCw,
+  HeartPulse,
 } from "lucide-react";
 
 const iconMap = {
@@ -35,6 +36,7 @@ const iconMap = {
   Archive,
   PlusCircle,
   RefreshCw,
+  HeartPulse,
 };
 
 interface SidebarProps {
