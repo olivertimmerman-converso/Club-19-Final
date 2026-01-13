@@ -125,10 +125,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Update sale record
+    // Note: Change source from 'xero_import' to 'allocated' so it appears in dashboards
     const updatedSale = await xata.db.Sales.update(saleId, {
       shopper: shopperId,
       needs_allocation: false,
       commission_amount: commissionAmount,
+      source: 'allocated',
     });
 
     if (!updatedSale) {
