@@ -90,6 +90,10 @@ export const ROUTE_PERMISSIONS: Record<string, {
     allowedRoles: ["superadmin", "founder", "operations", "shopper"],
     description: "Sales Atelier / Deal Studio",
   },
+  "/xero-health": {
+    allowedRoles: ["superadmin", "admin", "operations"],
+    description: "Xero integration health dashboard",
+  },
 
   // ============================================================================
   // STAFF PORTAL ROUTES (app/staff/*)

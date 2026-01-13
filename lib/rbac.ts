@@ -188,5 +188,14 @@ export function getNavigationItems(role: UserRole): NavItem[] {
     });
   }
 
+  // Xero Health - for admins who can manage Xero connection
+  if (canAccessRoute(role, '/xero-health')) {
+    items.push({
+      label: 'Xero Health',
+      href: '/xero-health',
+      icon: 'HeartPulse',
+    });
+  }
+
   return items;
 }

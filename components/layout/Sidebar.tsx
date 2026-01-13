@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  HeartPulse,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -33,6 +34,7 @@ const iconMap: Record<string, React.ElementType> = {
   Shield,
   Calculator,
   Settings,
+  HeartPulse,
 };
 
 interface SidebarProps {
