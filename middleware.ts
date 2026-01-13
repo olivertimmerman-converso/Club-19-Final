@@ -28,6 +28,7 @@ const isPublicRoute = createRouteMatcher([
   "/unauthorised",         // Access denied page (needs to be accessible)
   "/debug-role",           // Debug page (for troubleshooting auth issues)
   "/api/xero/webhooks",    // Xero webhooks (signature-verified internally)
+  "/api/cron/(.*)",        // Cron jobs (verified via CRON_SECRET internally)
   "/favicon(.*)",
   "/api/webhooks(.*)",
 ]);
