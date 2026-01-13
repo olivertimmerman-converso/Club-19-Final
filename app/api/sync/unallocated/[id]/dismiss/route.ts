@@ -50,12 +50,11 @@ export async function POST(
     }
 
     // Mark as dismissed
-    // Note: dismissed, dismissed_at, dismissed_by fields must be added to Sales table in Xata
     await xata.db.Sales.update(id, {
       dismissed: true,
       dismissed_at: new Date(),
       dismissed_by: userId,
-    } as any);
+    });
 
     logger.info("DISMISS", "Invoice dismissed successfully", {
       saleId: id,

@@ -1,0 +1,17 @@
+{
+  "id": "mig_d5j67tfp0go7q7tljb40",
+  "parentID": "mig_d5ggctc38mj1psbpcurg",
+  "checksum": "1:a64a8f2544048f1829cd2c4dd1b1741dfd8aee7bc22518755f8cd1a4b96330a9",
+  "operations": [
+    {
+      "addColumn": {
+        "column": {
+          "name": "dismissed",
+          "type": "bool",
+          "defaultValue": "false"
+        },
+        "table": "Sales"
+      }
+    }
+  ]
+}

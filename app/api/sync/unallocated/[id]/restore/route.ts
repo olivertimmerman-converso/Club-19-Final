@@ -42,9 +42,7 @@ export async function POST(
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
     }
 
-    // Note: dismissed field must be added to Sales table in Xata
-    const saleAny = sale as any;
-    if (!saleAny.dismissed) {
+    if (!sale.dismissed) {
       return NextResponse.json(
         { error: "This invoice is not dismissed" },
         { status: 400 }
@@ -56,7 +54,7 @@ export async function POST(
       dismissed: false,
       dismissed_at: null,
       dismissed_by: null,
-    } as any);
+    });
 
     logger.info("RESTORE", "Invoice restored successfully", {
       saleId: id,
