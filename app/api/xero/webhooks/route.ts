@@ -308,13 +308,110 @@ export async function POST(req: NextRequest) {
         }
 
         if (!sale) {
-          logger.info("XERO_WEBHOOKS", "No sale found for invoice - may be unallocated", {
+          // Only create for ACCREC (sales invoices), not ACCPAY (bills)
+          if (invoice.Type !== 'ACCREC') {
+            logger.info("XERO_WEBHOOKS", "Skipping non-sales invoice (ACCPAY bill)", {
+              invoiceNumber: invoice.InvoiceNumber,
+              type: invoice.Type,
+            });
+            continue;
+          }
+
+          logger.info("XERO_WEBHOOKS", "Creating new unallocated sale from webhook", {
             invoiceNumber: invoice.InvoiceNumber,
             invoiceId: invoice.InvoiceID,
+            contactName: invoice.Contact?.Name,
+            total: invoice.Total,
           });
-          console.log("[XERO_WEBHOOKS] NOT FOUND - Invoice:", invoice.InvoiceNumber, "ID:", invoice.InvoiceID);
-          // This is normal for new invoices or unallocated invoices
-          // They will be picked up by the regular sync process
+
+          // Find or create the buyer
+          let buyer = null;
+          if (invoice.Contact?.Name) {
+            buyer = await xata().db.Buyers
+              .filter({ name: invoice.Contact.Name })
+              .getFirst();
+
+            if (!buyer) {
+              // Check by Xero contact ID
+              if (invoice.Contact?.ContactID) {
+                buyer = await xata().db.Buyers
+                  .filter({ xero_contact_id: invoice.Contact.ContactID })
+                  .getFirst();
+              }
+            }
+
+            if (!buyer) {
+              // Create new buyer
+              buyer = await xata().db.Buyers.create({
+                name: invoice.Contact.Name,
+                xero_contact_id: invoice.Contact?.ContactID || null,
+              });
+              logger.info("XERO_WEBHOOKS", "Created new buyer", {
+                buyerId: buyer.id,
+                buyerName: buyer.name,
+              });
+            }
+          }
+
+          // Parse invoice date safely
+          let saleDate: Date;
+          if (invoice.DateString) {
+            saleDate = new Date(invoice.DateString);
+          } else if (invoice.Date) {
+            // Handle Xero's /Date(timestamp)/ format
+            const match = invoice.Date.match(/\/Date\((\d+)\)\//);
+            saleDate = match ? new Date(parseInt(match[1])) : new Date();
+          } else {
+            saleDate = new Date();
+          }
+
+          // Get first line item description
+          const firstLineItem = invoice.LineItems?.[0];
+          const itemDescription = firstLineItem?.Description || 'Imported from Xero';
+
+          // Create the sale record
+          const newSale = await xata().db.Sales.create({
+            xero_invoice_id: invoice.InvoiceID,
+            xero_invoice_number: invoice.InvoiceNumber,
+            xero_invoice_url: `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${invoice.InvoiceID}`,
+            source: 'xero_import',
+            needs_allocation: true,
+
+            // Dates
+            sale_date: saleDate,
+
+            // Buyer
+            buyer: buyer?.id || null,
+
+            // Financials from Xero
+            sale_amount_inc_vat: invoice.Total || 0,
+            sale_amount_ex_vat: invoice.SubTotal || (invoice.Total / 1.2), // Assume 20% VAT if SubTotal missing
+            currency: invoice.CurrencyCode || 'GBP',
+
+            // Placeholder values - to be filled in via Adopt or manual edit
+            brand: 'Unknown',
+            category: 'Unknown',
+            item_title: itemDescription,
+            quantity: firstLineItem?.Quantity || 1,
+            buy_price: 0,
+            gross_margin: 0,
+
+            // Status from Xero
+            invoice_status: invoice.Status,
+            invoice_paid_date: invoice.Status === 'PAID' ? new Date() : undefined,
+
+            // Internal notes
+            internal_notes: `Auto-imported via Xero webhook on ${new Date().toISOString()}. Client: ${invoice.Contact?.Name || 'Unknown'}. Needs shopper allocation and cost details.`,
+          });
+
+          logger.info("XERO_WEBHOOKS", "Created unallocated sale from webhook", {
+            saleId: newSale.id,
+            invoiceNumber: invoice.InvoiceNumber,
+            buyerName: invoice.Contact?.Name,
+            total: invoice.Total,
+          });
+          console.log("[XERO_WEBHOOKS] CREATED new sale:", newSale.id, "for invoice:", invoice.InvoiceNumber);
+          processedCount++;
           continue;
         }
 

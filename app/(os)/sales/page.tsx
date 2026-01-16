@@ -65,6 +65,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
         'has_introducer',
         'introducer.id',
         'introducer.name',
+        'introducer_commission',
       ]);
 
     // Filter for shoppers - only show their own sales
@@ -156,6 +157,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       shipping_cost_confirmed: (sale as any).shipping_cost_confirmed || false,
       has_introducer: (sale as any).has_introducer || false,
       introducer: sale.introducer ? { id: sale.introducer.id, name: sale.introducer.name || 'Unknown' } : null,
+      introducer_commission: sale.introducer_commission || null,
     }));
 
     const deletedSales = deletedSalesRaw.map(sale => ({
@@ -179,6 +181,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       shipping_cost_confirmed: (sale as any).shipping_cost_confirmed || false,
       has_introducer: (sale as any).has_introducer || false,
       introducer: sale.introducer ? { id: sale.introducer.id, name: sale.introducer.name || 'Unknown' } : null,
+      introducer_commission: sale.introducer_commission || null,
     }));
 
     const shoppers = shoppersRaw.map(s => ({

@@ -26,6 +26,7 @@ interface Sale {
   shipping_cost_confirmed: boolean | null;
   has_introducer: boolean;
   introducer: { id: string; name: string } | null;
+  introducer_commission: number | null;
 }
 
 interface Shopper {
@@ -150,12 +151,22 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
     );
   };
 
+  // Helper to get list of missing fields for a sale
+  const getMissingFields = (sale: Sale) => {
+    const missing: string[] = [];
+    if (!sale.brand || sale.brand === 'Unknown') missing.push('brand');
+    if (!sale.category || sale.category === 'Unknown') missing.push('category');
+    if (!sale.buy_price || sale.buy_price === 0) missing.push('buy price');
+    if (!sale.supplier?.id) missing.push('supplier');
+    // Introducer checks: if has_introducer is true, must have introducer assigned and commission set
+    if (sale.has_introducer && !sale.introducer?.id) missing.push('introducer');
+    if (sale.has_introducer && (!sale.introducer_commission || sale.introducer_commission === 0)) missing.push('introducer commission');
+    return missing;
+  };
+
   // Check if sale is missing required data
   const isIncomplete = (sale: Sale) => {
-    return !sale.brand || sale.brand === 'Unknown' ||
-           !sale.category || sale.category === 'Unknown' ||
-           !sale.buy_price || sale.buy_price === 0 ||
-           !sale.supplier?.id;
+    return getMissingFields(sale).length > 0;
   };
 
   return (
@@ -322,7 +333,7 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
                       {isIncomplete(sale) && (
                         <span
                           className="text-amber-500"
-                          title="Missing required data (brand, category, buy price, or supplier)"
+                          title={`Missing: ${getMissingFields(sale).join(', ')}`}
                         >
                           ⚠️
                         </span>

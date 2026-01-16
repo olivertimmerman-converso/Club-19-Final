@@ -56,6 +56,10 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
       'shipping_method',
       'shipping_cost_confirmed',
       'buy_price',
+      'has_introducer',
+      'introducer.id',
+      'introducer.name',
+      'introducer_commission',
     ]);
 
   // Apply date range filter if specified
@@ -130,12 +134,22 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   );
   const pendingShippingCount = pendingShippingSales.length;
 
+  // Helper to get list of missing fields for a sale
+  const getMissingFields = (sale: typeof sales[0]) => {
+    const missing: string[] = [];
+    if (!sale.brand || sale.brand === 'Unknown') missing.push('brand');
+    if (!sale.category || sale.category === 'Unknown') missing.push('category');
+    if (!sale.buy_price || sale.buy_price === 0) missing.push('buy price');
+    if (!sale.supplier?.id) missing.push('supplier');
+    // Introducer checks: if has_introducer is true, must have introducer assigned and commission set
+    if (sale.has_introducer && !sale.introducer?.id) missing.push('introducer');
+    if (sale.has_introducer && (!sale.introducer_commission || sale.introducer_commission === 0)) missing.push('introducer commission');
+    return missing;
+  };
+
   // Helper to check if a sale is incomplete (missing required data)
   const isIncomplete = (sale: typeof sales[0]) => {
-    return !sale.brand || sale.brand === 'Unknown' ||
-           !sale.category || sale.category === 'Unknown' ||
-           !sale.buy_price || sale.buy_price === 0 ||
-           !sale.supplier?.id;
+    return getMissingFields(sale).length > 0;
   };
 
   // Sales needing attention: DRAFT status OR needs_allocation OR overdue (>30 days AUTHORISED) OR pending shipping OR incomplete
@@ -525,7 +539,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
                       <div className="flex items-center justify-center gap-1.5">
                         {getStatusBadge(sale)}
                         {isIncomplete(sale) && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800" title="Missing: brand, category, buy price, or supplier">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800" title={`Missing: ${getMissingFields(sale).join(', ')}`}>
                             ⚠️
                           </span>
                         )}
