@@ -137,6 +137,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
       id: sale.introducer.id,
       name: sale.introducer.name || 'Unknown',
     } : null,
+    linked_invoices: (sale as any).linked_invoices || [],
   };
 
   // Debug: Log serialized data

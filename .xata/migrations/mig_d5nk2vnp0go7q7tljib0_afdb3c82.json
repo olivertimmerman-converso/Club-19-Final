@@ -1,0 +1,13 @@
+{
+  "id": "mig_d5nk2vnp0go7q7tljib0",
+  "parentID": "mig_d5nk2thhd294nkdn4r60",
+  "checksum": "1:afdb3c825dcd6a1b024cc03c8f8ca4bfd29782c3482f6373f6b681131ddc0669",
+  "operations": [
+    {
+      "removeColumn": {
+        "column": "owner_changed_by",
+        "table": "Sales"
+      }
+    }
+  ]
+}

@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
  *
  * Displays all buyers/clients with their transaction statistics
  * Shoppers see only clients they've sold to
+ * Supports filtering by owner (client manager)
  */
 
 const xata = new XataClient();
@@ -30,11 +31,36 @@ interface ClientWithStats {
   has2026Activity: boolean;
   // Pipeline (unpaid invoices)
   pipelineValue: number;
+  // Owner (client manager)
+  ownerId: string | null;
+  ownerName: string | null;
 }
 
-export default async function ClientsPage() {
+interface Shopper {
+  id: string;
+  name: string;
+}
+
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ owner?: string }>;
+}) {
   // Get role for filtering
   const role = await getUserRole();
+  const { owner: ownerFilter } = await searchParams;
+
+  // Fetch all shoppers for the owner filter dropdown
+  const allShoppers = await xata.db.Shoppers
+    .select(['id', 'name'])
+    .filter({ active: true })
+    .sort('name', 'asc')
+    .getAll();
+
+  const shoppers: Shopper[] = allShoppers.map(s => ({
+    id: s.id,
+    name: s.name || 'Unknown',
+  }));
 
   // Fetch all sales to calculate stats (include source for 2026 filtering)
   let salesQuery = xata.db.Sales
@@ -71,10 +97,11 @@ export default async function ClientsPage() {
   const uniqueBuyerIds = [...new Set(sales.map(sale => sale.buyer?.id).filter((id): id is string => !!id))];
 
   // Fetch only buyers that have sales (filtered by shopper if applicable)
+  // Include owner relationship for filtering and display
   // Limit to 100 top clients for performance
   const buyers = uniqueBuyerIds.length > 0
     ? await xata.db.Buyers
-        .select(['*'])
+        .select(['*', 'owner.id', 'owner.name'])
         .filter({ id: { $any: uniqueBuyerIds } })
         .getMany({ pagination: { size: 100 } })
     : [];
@@ -146,11 +173,21 @@ export default async function ClientsPage() {
       trades2026,
       has2026Activity: trades2026 > 0,
       pipelineValue,
+      ownerId: buyer.owner?.id || null,
+      ownerName: buyer.owner?.name || null,
     };
   });
 
+  // Apply owner filter if specified
+  let filteredClients = clientsWithStats;
+  if (ownerFilter === 'unassigned') {
+    filteredClients = clientsWithStats.filter(c => !c.ownerId);
+  } else if (ownerFilter && ownerFilter !== 'all') {
+    filteredClients = clientsWithStats.filter(c => c.ownerId === ownerFilter);
+  }
+
   // Sort by 2026 activity first, then by total spend
-  clientsWithStats.sort((a, b) => {
+  filteredClients.sort((a, b) => {
     // Clients with 2026 activity sort first
     if (a.has2026Activity && !b.has2026Activity) return -1;
     if (!a.has2026Activity && b.has2026Activity) return 1;
@@ -164,22 +201,22 @@ export default async function ClientsPage() {
     return b.totalSpend - a.totalSpend;
   });
 
-  // Calculate summary stats (lifetime)
-  const totalClients = clientsWithStats.length;
-  const totalClientSpend = clientsWithStats.reduce((sum, client) =>
+  // Calculate summary stats (from filtered clients)
+  const totalClients = filteredClients.length;
+  const totalClientSpend = filteredClients.reduce((sum, client) =>
     sum + client.totalSpend, 0
   );
 
   // Calculate 2026 summary stats
-  const totalSpend2026 = clientsWithStats.reduce((sum, client) =>
+  const totalSpend2026 = filteredClients.reduce((sum, client) =>
     sum + client.spend2026, 0
   );
-  const totalMargin2026 = clientsWithStats.reduce((sum, client) =>
+  const totalMargin2026 = filteredClients.reduce((sum, client) =>
     sum + client.margin2026, 0
   );
 
   // Calculate pipeline (unpaid) summary stats
-  const totalPipeline = clientsWithStats.reduce((sum, client) =>
+  const totalPipeline = filteredClients.reduce((sum, client) =>
     sum + client.pipelineValue, 0
   );
 
@@ -208,25 +245,53 @@ export default async function ClientsPage() {
             Client directory and transaction history
           </p>
         </div>
-        <Link
-          href="#"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-        >
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-4">
+          {/* Owner Filter */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="owner-filter" className="text-sm font-medium text-gray-700">
+              Owner:
+            </label>
+            <form>
+              <select
+                id="owner-filter"
+                name="owner"
+                defaultValue={ownerFilter || ''}
+                onChange={(e) => {
+                  const form = e.target.form;
+                  if (form) form.submit();
+                }}
+                className="rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+              >
+                <option value="">All</option>
+                <option value="unassigned">Unassigned</option>
+                {shoppers.map((shopper) => (
+                  <option key={shopper.id} value={shopper.id}>
+                    {shopper.name}
+                  </option>
+                ))}
+              </select>
+            </form>
+          </div>
+          <Link
+            href="#"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Add Client
-        </Link>
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Add Client
+          </Link>
+        </div>
       </div>
 
       {/* Summary Stats - Hybrid: Lifetime + 2026 + Pipeline */}
@@ -259,7 +324,7 @@ export default async function ClientsPage() {
       </div>
 
       {/* Clients Table */}
-      {clientsWithStats.length === 0 ? (
+      {filteredClients.length === 0 ? (
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
           <svg
             className="mx-auto h-12 w-12 text-gray-400"
@@ -314,6 +379,12 @@ export default async function ClientsPage() {
                   </th>
                   <th
                     scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Owner
+                  </th>
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Total Spend
@@ -351,7 +422,7 @@ export default async function ClientsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {clientsWithStats.map((client) => (
+                {filteredClients.map((client) => (
                   <tr
                     key={client.id}
                     className={`hover:bg-gray-50 transition-colors ${client.has2026Activity ? 'bg-blue-50/30' : ''}`}
@@ -373,6 +444,13 @@ export default async function ClientsPage() {
                           )}
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {client.ownerName ? (
+                        <span className="text-gray-900">{client.ownerName}</span>
+                      ) : (
+                        <span className="text-gray-400 italic">Unassigned</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
                       {formatCurrency(client.totalSpend)}

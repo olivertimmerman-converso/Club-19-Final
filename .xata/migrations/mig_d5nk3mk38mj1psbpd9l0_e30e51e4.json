@@ -1,0 +1,16 @@
+{
+  "id": "mig_d5nk3mk38mj1psbpd9l0",
+  "parentID": "mig_d5nk3jc38mj1psbpd9k0",
+  "checksum": "1:e30e51e4880b54c7fc65aea47480f03c093e7dd205304b8ead372edb1a7a5e52",
+  "operations": [
+    {
+      "addColumn": {
+        "column": {
+          "name": "owner_changed_at",
+          "type": "datetime"
+        },
+        "table": "Buyers"
+      }
+    }
+  ]
+}

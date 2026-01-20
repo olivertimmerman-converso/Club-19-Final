@@ -15,7 +15,11 @@ const tables = [
       { name: "commission_scheme", type: "text" },
       { name: "active", type: "bool" },
     ],
-    revLinks: [{ column: "shopper", table: "Sales" }],
+    revLinks: [
+      { column: "shopper", table: "Sales" },
+      { column: "owner", table: "Sales" },
+      { column: "owner", table: "Buyers" },
+    ],
   },
   {
     name: "Buyers",
@@ -23,6 +27,9 @@ const tables = [
       { name: "name", type: "text" },
       { name: "email", type: "text" },
       { name: "xero_contact_id", type: "text" },
+      { name: "owner", type: "link", link: { table: "Shoppers" } },
+      { name: "owner_changed_at", type: "datetime" },
+      { name: "owner_changed_by", type: "text" },
     ],
     revLinks: [{ column: "buyer", table: "Sales" }],
   },
@@ -125,6 +132,8 @@ const tables = [
       { name: "dismissed", type: "bool", defaultValue: "false" },
       { name: "dismissed_at", type: "datetime" },
       { name: "dismissed_by", type: "text" },
+      { name: "linked_invoices", type: "json" },
+      { name: "owner", type: "link", link: { table: "Shoppers" } },
     ],
     revLinks: [
       { column: "sale", table: "Errors" },

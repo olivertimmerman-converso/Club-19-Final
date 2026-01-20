@@ -1,0 +1,19 @@
+{
+  "id": "mig_d5nk3jc38mj1psbpd9k0",
+  "parentID": "mig_d5nk2vnp0go7q7tljib0",
+  "checksum": "1:3f58d39c552dcc9e1598876aa9d2915989663f07153d8b00c14cc3dc9b719227",
+  "operations": [
+    {
+      "addColumn": {
+        "column": {
+          "name": "owner",
+          "type": "link",
+          "link": {
+            "table": "Shoppers"
+          }
+        },
+        "table": "Buyers"
+      }
+    }
+  ]
+}

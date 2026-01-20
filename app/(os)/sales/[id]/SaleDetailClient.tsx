@@ -6,6 +6,16 @@ import { useRouter } from 'next/navigation';
 import { getBrandingThemeMapping } from '@/lib/branding-theme-mappings';
 import { BRANDS, CATEGORIES } from '@/lib/constants';
 
+interface LinkedInvoice {
+  xero_invoice_id: string;
+  xero_invoice_number: string;
+  amount_inc_vat: number;
+  currency: string;
+  invoice_date: string;
+  linked_at: string;
+  linked_by: string;
+}
+
 interface Sale {
   id: string;
   sale_reference: string | null;
@@ -48,6 +58,7 @@ interface Sale {
   payment_plan_instalments: number | null;
   shipping_method: string | null;
   shipping_cost_confirmed: boolean;
+  linked_invoices: LinkedInvoice[];
 }
 
 interface PaymentInstalment {
@@ -223,6 +234,15 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
   // Line items state (for multi-item invoices)
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [isLoadingLineItems, setIsLoadingLineItems] = useState(false);
+
+  // Linked invoices state (for multi-invoice linking)
+  const [showLinkInvoiceModal, setShowLinkInvoiceModal] = useState(false);
+  const [selectedLinkInvoiceId, setSelectedLinkInvoiceId] = useState('');
+  const [isLinkingAdditional, setIsLinkingAdditional] = useState(false);
+  const [linkAdditionalError, setLinkAdditionalError] = useState<string | null>(null);
+  const [linkAdditionalSuccess, setLinkAdditionalSuccess] = useState(false);
+  const [isUnlinking, setIsUnlinking] = useState<string | null>(null);
+  const [unlinkError, setUnlinkError] = useState<string | null>(null);
 
   // Fetch introducers on mount
   useEffect(() => {
@@ -439,6 +459,77 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
       setLinkError(error instanceof Error ? error.message : 'Failed to link Xero invoice');
     } finally {
       setIsLinking(false);
+    }
+  };
+
+  // Handle linking an additional invoice to this sale
+  const handleLinkAdditionalInvoice = async () => {
+    if (!selectedLinkInvoiceId) return;
+
+    setIsLinkingAdditional(true);
+    setLinkAdditionalError(null);
+    setLinkAdditionalSuccess(false);
+
+    try {
+      const response = await fetch(`/api/sales/${sale.id}/link-invoice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          xero_import_id: selectedLinkInvoiceId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to link invoice');
+      }
+
+      setLinkAdditionalSuccess(true);
+      setShowLinkInvoiceModal(false);
+      setSelectedLinkInvoiceId('');
+
+      // Refresh the page data after a short delay to show success message
+      setTimeout(() => {
+        router.refresh();
+      }, 1500);
+    } catch (error) {
+      console.error('Error linking additional invoice:', error);
+      setLinkAdditionalError(error instanceof Error ? error.message : 'Failed to link invoice');
+    } finally {
+      setIsLinkingAdditional(false);
+    }
+  };
+
+  // Handle unlinking an invoice from this sale
+  const handleUnlinkInvoice = async (xeroInvoiceId: string) => {
+    setIsUnlinking(xeroInvoiceId);
+    setUnlinkError(null);
+
+    try {
+      const response = await fetch(`/api/sales/${sale.id}/unlink-invoice`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          xero_invoice_id: xeroInvoiceId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to unlink invoice');
+      }
+
+      // Refresh the page data
+      router.refresh();
+    } catch (error) {
+      console.error('Error unlinking invoice:', error);
+      setUnlinkError(error instanceof Error ? error.message : 'Failed to unlink invoice');
+    } finally {
+      setIsUnlinking(null);
     }
   };
 
@@ -2434,6 +2525,220 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 lg:col-span-2">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Internal Notes</h2>
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{sale.internal_notes}</p>
+          </div>
+        )}
+
+        {/* Linked Invoices Section (when there are linked invoices OR superadmin viewing atelier sale) */}
+        {(sale.linked_invoices?.length > 0 || (userRole === 'superadmin' && sale.source === 'atelier' && sale.xero_invoice_id)) && (
+          <div className="bg-indigo-50 rounded-lg border border-indigo-200 shadow-sm p-6 lg:col-span-2">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-indigo-900 mb-1">Linked Invoices</h2>
+                <p className="text-sm text-indigo-700 mb-4">
+                  {sale.linked_invoices?.length > 0
+                    ? `This sale has ${sale.linked_invoices.length + 1} linked invoice${sale.linked_invoices.length > 0 ? 's' : ''} (payment in multiple parts).`
+                    : 'Link additional invoices when a client pays in multiple parts (e.g., deposit + balance).'}
+                </p>
+
+                {unlinkError && (
+                  <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-sm font-medium text-red-800">{unlinkError}</p>
+                  </div>
+                )}
+
+                {linkAdditionalSuccess && (
+                  <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-sm font-medium text-green-800">Invoice linked successfully!</p>
+                  </div>
+                )}
+
+                {/* Invoice table */}
+                <div className="bg-white rounded-lg border border-indigo-200 overflow-hidden mb-4">
+                  <table className="min-w-full divide-y divide-indigo-200">
+                    <thead className="bg-indigo-100">
+                      <tr>
+                        <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Invoice</th>
+                        <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Date</th>
+                        <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-indigo-700 uppercase tracking-wider">Amount</th>
+                        <th scope="col" className="px-4 py-2 text-center text-xs font-medium text-indigo-700 uppercase tracking-wider">Type</th>
+                        {userRole === 'superadmin' && (
+                          <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-indigo-700 uppercase tracking-wider">Actions</th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-indigo-100">
+                      {/* Primary invoice */}
+                      {sale.xero_invoice_id && (
+                        <tr className="bg-white">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                            {sale.xero_invoice_url ? (
+                              <a href={sale.xero_invoice_url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 hover:underline">
+                                {sale.xero_invoice_number}
+                              </a>
+                            ) : (
+                              sale.xero_invoice_number
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{formatDate(sale.sale_date)}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">
+                            {formatCurrency(
+                              sale.sale_amount_inc_vat - (sale.linked_invoices?.reduce((sum, inv) => sum + inv.amount_inc_vat, 0) || 0)
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                              Primary
+                            </span>
+                          </td>
+                          {userRole === 'superadmin' && (
+                            <td className="px-4 py-3 text-right text-sm">
+                              <span className="text-gray-400">-</span>
+                            </td>
+                          )}
+                        </tr>
+                      )}
+                      {/* Linked invoices */}
+                      {sale.linked_invoices?.map((linkedInv) => (
+                        <tr key={linkedInv.xero_invoice_id} className="bg-white">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                            {linkedInv.xero_invoice_number}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{formatDate(linkedInv.invoice_date)}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">
+                            {formatCurrency(linkedInv.amount_inc_vat)}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              Linked
+                            </span>
+                          </td>
+                          {userRole === 'superadmin' && (
+                            <td className="px-4 py-3 text-right text-sm">
+                              <button
+                                onClick={() => handleUnlinkInvoice(linkedInv.xero_invoice_id)}
+                                disabled={isUnlinking === linkedInv.xero_invoice_id}
+                                className="text-red-600 hover:text-red-800 text-xs font-medium disabled:opacity-50"
+                              >
+                                {isUnlinking === linkedInv.xero_invoice_id ? 'Unlinking...' : 'Unlink'}
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                    {/* Total row */}
+                    <tfoot className="bg-indigo-50">
+                      <tr>
+                        <td colSpan={2} className="px-4 py-3 text-sm font-semibold text-indigo-900">Total</td>
+                        <td className="px-4 py-3 text-sm font-bold text-indigo-900 text-right">
+                          {formatCurrency(sale.sale_amount_inc_vat)}
+                        </td>
+                        <td colSpan={userRole === 'superadmin' ? 2 : 1}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                {/* Link another invoice button (superadmin only) */}
+                {userRole === 'superadmin' && unallocatedXeroImports.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setShowLinkInvoiceModal(true);
+                      setSelectedLinkInvoiceId('');
+                      setLinkAdditionalError(null);
+                    }}
+                    className="inline-flex items-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Link Another Invoice
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Link Invoice Modal */}
+        {showLinkInvoiceModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Link Additional Invoice</h3>
+                <button
+                  onClick={() => {
+                    setShowLinkInvoiceModal(false);
+                    setSelectedLinkInvoiceId('');
+                    setLinkAdditionalError(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Select an unallocated Xero invoice to link to this sale. This is useful when a client pays in multiple parts (e.g., deposit + balance).
+              </p>
+
+              {linkAdditionalError && (
+                <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-red-800">{linkAdditionalError}</p>
+                </div>
+              )}
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Invoice</label>
+                <select
+                  value={selectedLinkInvoiceId}
+                  onChange={(e) => setSelectedLinkInvoiceId(e.target.value)}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  disabled={isLinkingAdditional}
+                >
+                  <option value="">Choose an invoice...</option>
+                  {unallocatedXeroImports
+                    .filter(imp => imp.currency === sale.currency)
+                    .map((imp) => (
+                      <option key={imp.id} value={imp.id}>
+                        {imp.xero_invoice_number} - {imp.buyer_name} - {formatCurrency(imp.sale_amount_inc_vat)} ({formatDate(imp.sale_date)})
+                        {imp.buyer_name === sale.buyer?.name ? ' (Same Client)' : ''}
+                      </option>
+                    ))}
+                </select>
+                {unallocatedXeroImports.filter(imp => imp.currency !== sale.currency).length > 0 && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    {unallocatedXeroImports.filter(imp => imp.currency !== sale.currency).length} invoice(s) hidden due to different currency
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowLinkInvoiceModal(false);
+                    setSelectedLinkInvoiceId('');
+                    setLinkAdditionalError(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                  disabled={isLinkingAdditional}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLinkAdditionalInvoice}
+                  disabled={!selectedLinkInvoiceId || isLinkingAdditional}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLinkingAdditional ? 'Linking...' : 'Link Invoice'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
