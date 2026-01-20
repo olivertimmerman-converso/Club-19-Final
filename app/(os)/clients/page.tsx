@@ -46,9 +46,10 @@ export default async function ClientsPage({
 }: {
   searchParams: Promise<{ owner?: string }>;
 }) {
-  // Get role for filtering
-  const role = await getUserRole();
-  const { owner: ownerFilter } = await searchParams;
+  try {
+    // Get role for filtering
+    const role = await getUserRole();
+    const { owner: ownerFilter } = await searchParams;
 
   // Fetch all shoppers for the owner filter dropdown
   const allShoppers = await xata.db.Shoppers
@@ -495,4 +496,26 @@ export default async function ClientsPage({
       )}
     </div>
   );
+  } catch (error) {
+    console.error('[ClientsPage] Error:', error);
+    return (
+      <div className="p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h1 className="text-xl font-semibold text-red-900 mb-2">Clients Page Error</h1>
+          <p className="text-sm text-red-700 mb-4">
+            An error occurred while loading the clients page.
+          </p>
+          <p className="text-sm font-medium text-red-800 mb-2">
+            {error instanceof Error ? error.message : 'Unknown error'}
+          </p>
+          <details className="text-xs text-red-600">
+            <summary className="cursor-pointer font-medium hover:text-red-800">Stack trace</summary>
+            <pre className="mt-2 p-2 bg-red-100 rounded overflow-auto text-xs">
+              {error instanceof Error ? error.stack : JSON.stringify(error, null, 2)}
+            </pre>
+          </details>
+        </div>
+      </div>
+    );
+  }
 }
