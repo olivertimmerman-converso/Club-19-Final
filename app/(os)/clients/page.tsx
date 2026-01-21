@@ -122,135 +122,135 @@ export default async function ClientsPage({
     console.log('[ClientsPage] Found', buyers.length, 'buyers');
 
     // Calculate stats for each buyer (hybrid: lifetime + 2026)
-  const clientsWithStats: ClientWithStats[] = buyers.map(buyer => {
-    // Find all sales for this buyer
-    const buyerSales = sales.filter(sale => sale.buyer?.id === buyer.id);
+    const clientsWithStats: ClientWithStats[] = buyers.map(buyer => {
+      // Find all sales for this buyer
+      const buyerSales = sales.filter(sale => sale.buyer?.id === buyer.id);
 
-    // Filter to PAID invoices only for metrics (exclude deleted handled by query)
-    const paidSales = buyerSales.filter(sale =>
-      sale.invoice_status?.toUpperCase() === 'PAID'
-    );
+      // Filter to PAID invoices only for metrics (exclude deleted handled by query)
+      const paidSales = buyerSales.filter(sale =>
+        sale.invoice_status?.toUpperCase() === 'PAID'
+      );
 
-    // Filter 2026 Atelier PAID sales (source: 'atelier' AND date >= 2026-01-01 AND PAID)
-    const sales2026 = paidSales.filter(sale => {
-      if (sale.source !== 'atelier') return false;
-      const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
-      if (!saleDate) return false;
-      return saleDate >= new Date('2026-01-01');
+      // Filter 2026 Atelier PAID sales (source: 'atelier' AND date >= 2026-01-01 AND PAID)
+      const sales2026 = paidSales.filter(sale => {
+        if (sale.source !== 'atelier') return false;
+        const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+        if (!saleDate) return false;
+        return saleDate >= new Date('2026-01-01');
+      });
+
+      // Calculate lifetime totals (PAID sales only)
+      const totalSpend = paidSales.reduce((sum, sale) =>
+        sum + (sale.sale_amount_inc_vat || 0), 0
+      );
+      const totalMargin = paidSales.reduce((sum, sale) =>
+        sum + (sale.gross_margin || 0), 0
+      );
+      const tradesCount = paidSales.length;
+
+      // Calculate 2026 totals (Atelier PAID only)
+      const spend2026 = sales2026.reduce((sum, sale) =>
+        sum + (sale.sale_amount_inc_vat || 0), 0
+      );
+      const margin2026 = sales2026.reduce((sum, sale) =>
+        sum + (sale.gross_margin || 0), 0
+      );
+      const trades2026 = sales2026.length;
+
+      // Find last purchase date (any source)
+      const lastPurchaseDate = buyerSales.length > 0
+        ? buyerSales.reduce((latest, sale) => {
+            const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+            if (!saleDate) return latest;
+            if (!latest) return saleDate;
+            return saleDate > latest ? saleDate : latest;
+          }, null as Date | null)
+        : null;
+
+      // Calculate pipeline (unpaid invoices: AUTHORISED status)
+      const unpaidSales = buyerSales.filter(sale =>
+        sale.invoice_status?.toUpperCase() === 'AUTHORISED'
+      );
+      const pipelineValue = unpaidSales.reduce((sum, sale) =>
+        sum + (sale.sale_amount_inc_vat || 0), 0
+      );
+
+      return {
+        id: buyer.id,
+        name: buyer.name || 'Unnamed Client',
+        email: buyer.email ?? null,
+        totalSpend,
+        totalMargin,
+        tradesCount,
+        lastPurchaseDate,
+        spend2026,
+        margin2026,
+        trades2026,
+        has2026Activity: trades2026 > 0,
+        pipelineValue,
+        ownerId: buyer.owner?.id || null,
+        ownerName: buyer.owner?.name || null,
+      };
     });
 
-    // Calculate lifetime totals (PAID sales only)
-    const totalSpend = paidSales.reduce((sum, sale) =>
-      sum + (sale.sale_amount_inc_vat || 0), 0
-    );
-    const totalMargin = paidSales.reduce((sum, sale) =>
-      sum + (sale.gross_margin || 0), 0
-    );
-    const tradesCount = paidSales.length;
-
-    // Calculate 2026 totals (Atelier PAID only)
-    const spend2026 = sales2026.reduce((sum, sale) =>
-      sum + (sale.sale_amount_inc_vat || 0), 0
-    );
-    const margin2026 = sales2026.reduce((sum, sale) =>
-      sum + (sale.gross_margin || 0), 0
-    );
-    const trades2026 = sales2026.length;
-
-    // Find last purchase date (any source)
-    const lastPurchaseDate = buyerSales.length > 0
-      ? buyerSales.reduce((latest, sale) => {
-          const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
-          if (!saleDate) return latest;
-          if (!latest) return saleDate;
-          return saleDate > latest ? saleDate : latest;
-        }, null as Date | null)
-      : null;
-
-    // Calculate pipeline (unpaid invoices: AUTHORISED status)
-    const unpaidSales = buyerSales.filter(sale =>
-      sale.invoice_status?.toUpperCase() === 'AUTHORISED'
-    );
-    const pipelineValue = unpaidSales.reduce((sum, sale) =>
-      sum + (sale.sale_amount_inc_vat || 0), 0
-    );
-
-    return {
-      id: buyer.id,
-      name: buyer.name || 'Unnamed Client',
-      email: buyer.email ?? null,
-      totalSpend,
-      totalMargin,
-      tradesCount,
-      lastPurchaseDate,
-      spend2026,
-      margin2026,
-      trades2026,
-      has2026Activity: trades2026 > 0,
-      pipelineValue,
-      ownerId: buyer.owner?.id || null,
-      ownerName: buyer.owner?.name || null,
-    };
-  });
-
-  // Apply owner filter if specified
-  let filteredClients = clientsWithStats;
-  if (ownerFilter === 'unassigned') {
-    filteredClients = clientsWithStats.filter(c => !c.ownerId);
-  } else if (ownerFilter && ownerFilter !== 'all') {
-    filteredClients = clientsWithStats.filter(c => c.ownerId === ownerFilter);
-  }
-
-  // Sort by 2026 activity first, then by total spend
-  filteredClients.sort((a, b) => {
-    // Clients with 2026 activity sort first
-    if (a.has2026Activity && !b.has2026Activity) return -1;
-    if (!a.has2026Activity && b.has2026Activity) return 1;
-
-    // Within same category, sort by 2026 spend (if both have 2026 activity)
-    if (a.has2026Activity && b.has2026Activity) {
-      return b.spend2026 - a.spend2026;
+    // Apply owner filter if specified
+    let filteredClients = clientsWithStats;
+    if (ownerFilter === 'unassigned') {
+      filteredClients = clientsWithStats.filter(c => !c.ownerId);
+    } else if (ownerFilter && ownerFilter !== 'all') {
+      filteredClients = clientsWithStats.filter(c => c.ownerId === ownerFilter);
     }
 
-    // Otherwise sort by total spend
-    return b.totalSpend - a.totalSpend;
-  });
+    // Sort by 2026 activity first, then by total spend
+    filteredClients.sort((a, b) => {
+      // Clients with 2026 activity sort first
+      if (a.has2026Activity && !b.has2026Activity) return -1;
+      if (!a.has2026Activity && b.has2026Activity) return 1;
 
-  // Calculate summary stats (from filtered clients)
-  const totalClients = filteredClients.length;
-  const totalClientSpend = filteredClients.reduce((sum, client) =>
-    sum + client.totalSpend, 0
-  );
+      // Within same category, sort by 2026 spend (if both have 2026 activity)
+      if (a.has2026Activity && b.has2026Activity) {
+        return b.spend2026 - a.spend2026;
+      }
 
-  // Calculate 2026 summary stats
-  const totalSpend2026 = filteredClients.reduce((sum, client) =>
-    sum + client.spend2026, 0
-  );
-  const totalMargin2026 = filteredClients.reduce((sum, client) =>
-    sum + client.margin2026, 0
-  );
-
-  // Calculate pipeline (unpaid) summary stats
-  const totalPipeline = filteredClients.reduce((sum, client) =>
-    sum + client.pipelineValue, 0
-  );
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return `£${amount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-  };
-
-  // Format date
-  const formatDate = (date: Date | null) => {
-    if (!date) return '—';
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
+      // Otherwise sort by total spend
+      return b.totalSpend - a.totalSpend;
     });
-  };
 
-  return (
+    // Calculate summary stats (from filtered clients)
+    const totalClients = filteredClients.length;
+    const totalClientSpend = filteredClients.reduce((sum, client) =>
+      sum + client.totalSpend, 0
+    );
+
+    // Calculate 2026 summary stats
+    const totalSpend2026 = filteredClients.reduce((sum, client) =>
+      sum + client.spend2026, 0
+    );
+    const totalMargin2026 = filteredClients.reduce((sum, client) =>
+      sum + client.margin2026, 0
+    );
+
+    // Calculate pipeline (unpaid) summary stats
+    const totalPipeline = filteredClients.reduce((sum, client) =>
+      sum + client.pipelineValue, 0
+    );
+
+    // Format currency
+    const formatCurrency = (amount: number) => {
+      return `£${amount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    };
+
+    // Format date
+    const formatDate = (date: Date | null) => {
+      if (!date) return '—';
+      return new Date(date).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    };
+
+    return (
     <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -508,8 +508,8 @@ export default async function ClientsPage({
           </div>
         </div>
       )}
-    </div>
-  );
+      </div>
+    );
   } catch (error) {
     console.error('[ClientsPage] Error:', error);
     return (

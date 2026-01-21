@@ -37,9 +37,13 @@ interface XeroHealthClientProps {
 export function XeroHealthClient({ role }: XeroHealthClientProps) {
   const [health, setHealth] = useState<XeroHealthData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
 
-  const fetchHealth = useCallback(async () => {
+  const fetchHealth = useCallback(async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setRefreshing(true);
+    }
     try {
       const response = await fetch("/api/xero/health");
       const data = await response.json();
@@ -53,6 +57,7 @@ export function XeroHealthClient({ role }: XeroHealthClientProps) {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -142,11 +147,12 @@ export function XeroHealthClient({ role }: XeroHealthClientProps) {
           </p>
         </div>
         <button
-          onClick={fetchHealth}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          onClick={() => fetchHealth(true)}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:cursor-not-allowed rounded-lg transition-colors"
         >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 
