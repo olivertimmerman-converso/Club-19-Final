@@ -28,6 +28,8 @@ interface ClientWithStats {
   trades2026: number;
   has2026Activity: boolean;
   pipelineValue: number;
+  ownerId: string | null;
+  ownerName: string | null;
 }
 
 export default async function ClientsPage() {
@@ -66,10 +68,10 @@ export default async function ClientsPage() {
     // Get unique buyer IDs from sales
     const uniqueBuyerIds = [...new Set(sales.map(sale => sale.buyer?.id).filter((id): id is string => !!id))];
 
-    // Fetch buyers (without owner for now)
+    // Fetch buyers with owner data
     const buyers = uniqueBuyerIds.length > 0
       ? await xata.db.Buyers
-          .select(['id', 'name', 'email'])
+          .select(['id', 'name', 'email', 'owner.id', 'owner.name'])
           .filter({ id: { $any: uniqueBuyerIds } })
           .getMany({ pagination: { size: 100 } })
       : [];
@@ -124,6 +126,8 @@ export default async function ClientsPage() {
         trades2026,
         has2026Activity: trades2026 > 0,
         pipelineValue,
+        ownerId: buyer.owner?.id ?? null,
+        ownerName: buyer.owner?.name ?? null,
       };
     });
 
@@ -231,6 +235,7 @@ export default async function ClientsPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client Name</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Spend</th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">2026 Margin</th>
                     <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sales</th>
@@ -254,6 +259,13 @@ export default async function ClientsPage() {
                             {client.email && <div className="text-xs text-gray-500">{client.email}</div>}
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {client.ownerName ? (
+                          <span className="text-gray-900">{client.ownerName}</span>
+                        ) : (
+                          <span className="text-gray-400 italic">Unassigned</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
                         {formatCurrency(client.totalSpend)}
