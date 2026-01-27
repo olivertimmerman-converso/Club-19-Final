@@ -11,9 +11,9 @@
 
 export type StaffRole =
   | "superadmin"   // Oliver - full system access
-  | "founder"      // Founders - business operations access
-  | "operations"   // Alys - operations manager
-  | "admin"        // Sophie - administrator
+  | "founder"      // Sophie - founder, business operations & Xero access
+  | "operations"   // Alys - operations manager, reconciliation workflow
+  | "admin"        // Administrator role (currently unused)
   | "finance"      // Finance team - financial data access
   | "shopper";     // Hope, MC - sales team
 
@@ -91,7 +91,7 @@ export const ROUTE_PERMISSIONS: Record<string, {
     description: "Sales Atelier / Deal Studio",
   },
   "/xero-health": {
-    allowedRoles: ["superadmin", "admin", "operations"],
+    allowedRoles: ["superadmin", "founder", "operations", "admin"],
     description: "Xero integration health dashboard",
   },
 
