@@ -9,11 +9,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { shoppers, sales, buyers } from "@/db/schema";
+import { eq } from "drizzle-orm";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
 import { getUserRole } from "@/lib/getUserRole";
 import * as logger from "@/lib/logger";
 
-const xata = getXataClient();
+// ORIGINAL XATA: const xata = getXataClient();
 
 interface ShopperWithSales {
   id: string;
@@ -41,22 +44,37 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden - Superadmin only" }, { status: 403 });
     }
 
-    // Fetch all shoppers
-    const shoppers = await xata.db.Shoppers.select(["id", "name", "email", "active"]).getAll();
+    // ORIGINAL XATA: const shoppers = await xata.db.Shoppers.select(["id", "name", "email", "active"]).getAll();
+    const allShoppers = await db
+      .select({
+        id: shoppers.id,
+        name: shoppers.name,
+        email: shoppers.email,
+        active: shoppers.active,
+      })
+      .from(shoppers);
 
-    // Fetch all sales to count per shopper
-    const sales = await xata.db.Sales.select(["id", "shopper.id"]).getAll();
+    // ORIGINAL XATA: const sales = await xata.db.Sales.select(["id", "shopper.id"]).getAll();
+    const allSales = await db
+      .select({
+        id: sales.id,
+        shopperId: sales.shopperId,
+      })
+      .from(sales);
 
     // Count sales per shopper
     const salesCountMap = new Map<string, number>();
-    sales.forEach((sale) => {
-      if (sale.shopper?.id) {
-        salesCountMap.set(sale.shopper.id, (salesCountMap.get(sale.shopper.id) || 0) + 1);
+    allSales.forEach((sale) => {
+      // ORIGINAL XATA: if (sale.shopper?.id) {
+      //   salesCountMap.set(sale.shopper.id, (salesCountMap.get(sale.shopper.id) || 0) + 1);
+      // }
+      if (sale.shopperId) {
+        salesCountMap.set(sale.shopperId, (salesCountMap.get(sale.shopperId) || 0) + 1);
       }
     });
 
     // Build shopper list with sales count
-    const shoppersWithSales: ShopperWithSales[] = shoppers.map((s) => ({
+    const shoppersWithSales: ShopperWithSales[] = allShoppers.map((s) => ({
       id: s.id,
       name: s.name || "Unknown",
       email: s.email || null,
@@ -111,7 +129,7 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      totalShoppers: shoppers.length,
+      totalShoppers: allShoppers.length,
       shoppers: shoppersWithSales.sort((a, b) => b.salesCount - a.salesCount),
       exactDuplicates,
       similarNames: similarGroups,
@@ -146,9 +164,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch both shoppers
-    const canonical = await xata.db.Shoppers.filter({ id: canonicalId }).getFirst();
-    const duplicate = await xata.db.Shoppers.filter({ id: duplicateId }).getFirst();
+    // ORIGINAL XATA: const canonical = await xata.db.Shoppers.filter({ id: canonicalId }).getFirst();
+    const canonicalResults = await db
+      .select()
+      .from(shoppers)
+      .where(eq(shoppers.id, canonicalId))
+      .limit(1);
+    const canonical = canonicalResults[0] || null;
+
+    // ORIGINAL XATA: const duplicate = await xata.db.Shoppers.filter({ id: duplicateId }).getFirst();
+    const duplicateResults = await db
+      .select()
+      .from(shoppers)
+      .where(eq(shoppers.id, duplicateId))
+      .limit(1);
+    const duplicate = duplicateResults[0] || null;
 
     if (!canonical) {
       return NextResponse.json({ error: "Canonical shopper not found" }, { status: 404 });
@@ -157,17 +187,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Duplicate shopper not found" }, { status: 404 });
     }
 
-    // Find all Sales linked to the duplicate
-    const salesWithDuplicate = await xata.db.Sales
-      .filter({ "shopper.id": duplicateId })
-      .select(["id", "sale_reference", "item_title"])
-      .getAll();
+    // ORIGINAL XATA:
+    // const salesWithDuplicate = await xata.db.Sales
+    //   .filter({ "shopper.id": duplicateId })
+    //   .select(["id", "sale_reference", "item_title"])
+    //   .getAll();
+    const salesWithDuplicate = await db
+      .select({
+        id: sales.id,
+        saleReference: sales.saleReference,
+        itemTitle: sales.itemTitle,
+      })
+      .from(sales)
+      .where(eq(sales.shopperId, duplicateId));
 
-    // Find all Buyers with owner set to duplicate
-    const buyersWithDuplicate = await xata.db.Buyers
-      .filter({ "owner.id": duplicateId })
-      .select(["id", "name"])
-      .getAll();
+    // ORIGINAL XATA:
+    // const buyersWithDuplicate = await xata.db.Buyers
+    //   .filter({ "owner.id": duplicateId })
+    //   .select(["id", "name"])
+    //   .getAll();
+    const buyersWithDuplicate = await db
+      .select({
+        id: buyers.id,
+        name: buyers.name,
+      })
+      .from(buyers)
+      .where(eq(buyers.ownerId, duplicateId));
 
     // If not confirmed, return preview
     if (!confirm) {
@@ -190,17 +235,32 @@ export async function POST(request: NextRequest) {
     });
 
     // Update Sales
+    // ORIGINAL XATA:
+    // for (const sale of salesWithDuplicate) {
+    //   await xata.db.Sales.update(sale.id, { shopper: canonicalId });
+    // }
     for (const sale of salesWithDuplicate) {
-      await xata.db.Sales.update(sale.id, { shopper: canonicalId });
+      await db
+        .update(sales)
+        .set({ shopperId: canonicalId })
+        .where(eq(sales.id, sale.id));
     }
 
     // Update Buyers
+    // ORIGINAL XATA:
+    // for (const buyer of buyersWithDuplicate) {
+    //   await xata.db.Buyers.update(buyer.id, { owner: canonicalId } as any);
+    // }
     for (const buyer of buyersWithDuplicate) {
-      await xata.db.Buyers.update(buyer.id, { owner: canonicalId } as any);
+      await db
+        .update(buyers)
+        .set({ ownerId: canonicalId })
+        .where(eq(buyers.id, buyer.id));
     }
 
     // Delete the duplicate
-    await xata.db.Shoppers.delete(duplicateId);
+    // ORIGINAL XATA: await xata.db.Shoppers.delete(duplicateId);
+    await db.delete(shoppers).where(eq(shoppers.id, duplicateId));
 
     logger.info("SHOPPERS", "Shopper merge completed", {
       canonicalId,

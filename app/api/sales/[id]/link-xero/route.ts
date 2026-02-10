@@ -15,13 +15,22 @@
  * to point to the new invoice. The old invoice (if it exists in Xero) remains as a Draft.
  *
  * Superadmin only endpoint
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
 import * as logger from '@/lib/logger';
+
+// Drizzle imports
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from '@/src/xata';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,15 +74,29 @@ export async function POST(
     }
 
     // 3. Get both records
-    const xata = getXataClient();
+    // ORIGINAL XATA:
+    // const xata = getXataClient();
+    // const atelierSale = await xata.db.Sales.filter({ id: saleId }).getFirst();
+    // const xeroImport = await xata.db.Sales.filter({ id: xeroImportId }).getFirst();
 
-    const atelierSale = await xata.db.Sales.filter({ id: saleId }).getFirst();
+    // DRIZZLE:
+    const [atelierSale] = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.id, saleId))
+      .limit(1);
+
     if (!atelierSale) {
       logger.error('SALES_LINK_XERO', 'Atelier sale not found', { saleId });
       return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
     }
 
-    const xeroImport = await xata.db.Sales.filter({ id: xeroImportId }).getFirst();
+    const [xeroImport] = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.id, xeroImportId))
+      .limit(1);
+
     if (!xeroImport) {
       logger.error('SALES_LINK_XERO', 'Xero import not found', { xeroImportId });
       return NextResponse.json({ error: 'Xero import not found' }, { status: 404 });
@@ -103,7 +126,7 @@ export async function POST(
     }
 
     // 5. Check if Xero import is already deleted
-    if (xeroImport.deleted_at) {
+    if (xeroImport.deletedAt) {
       logger.warn('SALES_LINK_XERO', 'Xero import already deleted', { xeroImportId });
       return NextResponse.json(
         { error: 'This Xero invoice has already been linked or deleted' },
@@ -114,33 +137,53 @@ export async function POST(
     logger.info('SALES_LINK_XERO', 'Linking records', {
       atelierSale: saleId,
       xeroImport: xeroImportId,
-      xeroInvoiceNumber: xeroImport.xero_invoice_number,
+      xeroInvoiceNumber: xeroImport.xeroInvoiceNumber,
     });
 
     // 6. Copy Xero fields from import to Atelier record
-    await xata.db.Sales.update(saleId, {
-      xero_invoice_id: xeroImport.xero_invoice_id,
-      xero_invoice_number: xeroImport.xero_invoice_number,
-      xero_invoice_url: xeroImport.xero_invoice_url,
-      invoice_status: xeroImport.invoice_status,
-      invoice_paid_date: xeroImport.invoice_paid_date || null,
-    });
+    // ORIGINAL XATA:
+    // await xata.db.Sales.update(saleId, {
+    //   xero_invoice_id: xeroImport.xero_invoice_id,
+    //   xero_invoice_number: xeroImport.xero_invoice_number,
+    //   xero_invoice_url: xeroImport.xero_invoice_url,
+    //   invoice_status: xeroImport.invoice_status,
+    //   invoice_paid_date: xeroImport.invoice_paid_date || null,
+    // });
+
+    // DRIZZLE:
+    await db
+      .update(sales)
+      .set({
+        xeroInvoiceId: xeroImport.xeroInvoiceId,
+        xeroInvoiceNumber: xeroImport.xeroInvoiceNumber,
+        xeroInvoiceUrl: xeroImport.xeroInvoiceUrl,
+        invoiceStatus: xeroImport.invoiceStatus,
+        invoicePaidDate: xeroImport.invoicePaidDate || null,
+      })
+      .where(eq(sales.id, saleId));
 
     // 7. Soft-delete the Xero import record
-    await xata.db.Sales.update(xeroImportId, {
-      deleted_at: new Date(),
-    });
+    // ORIGINAL XATA:
+    // await xata.db.Sales.update(xeroImportId, {
+    //   deleted_at: new Date(),
+    // });
+
+    // DRIZZLE:
+    await db
+      .update(sales)
+      .set({ deletedAt: new Date() })
+      .where(eq(sales.id, xeroImportId));
 
     logger.info('SALES_LINK_XERO', 'Successfully linked records', {
       saleId,
       xeroImportId,
-      xeroInvoiceNumber: xeroImport.xero_invoice_number,
+      xeroInvoiceNumber: xeroImport.xeroInvoiceNumber,
     });
 
     return NextResponse.json({
       success: true,
       message: 'Successfully linked to Xero invoice',
-      xeroInvoiceNumber: xeroImport.xero_invoice_number,
+      xeroInvoiceNumber: xeroImport.xeroInvoiceNumber,
       saleId,
     });
   } catch (error) {

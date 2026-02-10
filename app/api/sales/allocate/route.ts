@@ -10,7 +10,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
+import { db } from "@/db";
+import { sales, shoppers } from "@/db/schema";
+import { eq } from "drizzle-orm";
+// ORIGINAL XATA: import { getXataClient } from '@/src/xata';
 import * as logger from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -58,47 +61,78 @@ export async function POST(request: NextRequest) {
 
     logger.info('ALLOCATE', 'Allocating sale to shopper', { saleId, shopperId });
 
-    const xata = getXataClient();
+    // ORIGINAL XATA: const xata = getXataClient();
 
     // 3. Fetch the sale record
-    const sale = await xata.db.Sales
-      .filter({ id: saleId })
-      .select([
-        'id',
-        'xero_invoice_number',
-        'sale_amount_inc_vat',
-        'sale_amount_ex_vat',
-        'buy_price',
-        'gross_margin',
-        'needs_allocation',
-        'shopper.id',
-      ])
-      .getFirst();
+    // ORIGINAL XATA:
+    // const sale = await xata.db.Sales
+    //   .filter({ id: saleId })
+    //   .select([
+    //     'id',
+    //     'xero_invoice_number',
+    //     'sale_amount_inc_vat',
+    //     'sale_amount_ex_vat',
+    //     'buy_price',
+    //     'gross_margin',
+    //     'needs_allocation',
+    //     'shopper.id',
+    //   ])
+    //   .getFirst();
+    const saleResults = await db
+      .select({
+        id: sales.id,
+        xeroInvoiceNumber: sales.xeroInvoiceNumber,
+        saleAmountIncVat: sales.saleAmountIncVat,
+        saleAmountExVat: sales.saleAmountExVat,
+        buyPrice: sales.buyPrice,
+        grossMargin: sales.grossMargin,
+        needsAllocation: sales.needsAllocation,
+        shopperId: sales.shopperId,
+      })
+      .from(sales)
+      .where(eq(sales.id, saleId))
+      .limit(1);
+    const sale = saleResults[0] || null;
 
     if (!sale) {
       logger.error('ALLOCATE', 'Sale not found', { saleId });
       return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
     }
 
-    logger.info('ALLOCATE', 'Found sale', { invoiceNumber: sale.xero_invoice_number });
+    // ORIGINAL XATA: logger.info('ALLOCATE', 'Found sale', { invoiceNumber: sale.xero_invoice_number });
+    logger.info('ALLOCATE', 'Found sale', { invoiceNumber: sale.xeroInvoiceNumber });
 
     // 4. Fetch the shopper record
-    const shopper = await xata.db.Shoppers
-      .filter({ id: shopperId })
-      .select(['id', 'name', 'commission_scheme'])
-      .getFirst();
+    // ORIGINAL XATA:
+    // const shopper = await xata.db.Shoppers
+    //   .filter({ id: shopperId })
+    //   .select(['id', 'name', 'commission_scheme'])
+    //   .getFirst();
+    const shopperResults = await db
+      .select({
+        id: shoppers.id,
+        name: shoppers.name,
+        commissionScheme: shoppers.commissionScheme,
+      })
+      .from(shoppers)
+      .where(eq(shoppers.id, shopperId))
+      .limit(1);
+    const shopper = shopperResults[0] || null;
 
     if (!shopper) {
       logger.error('ALLOCATE', 'Shopper not found', { shopperId });
       return NextResponse.json({ error: 'Shopper not found' }, { status: 404 });
     }
 
-    logger.info('ALLOCATE', 'Found shopper', { shopperName: shopper.name, scheme: shopper.commission_scheme });
+    // ORIGINAL XATA: logger.info('ALLOCATE', 'Found shopper', { shopperName: shopper.name, scheme: shopper.commission_scheme });
+    logger.info('ALLOCATE', 'Found shopper', { shopperName: shopper.name, scheme: shopper.commissionScheme });
 
     // 5. Calculate commission based on shopper's scheme and gross margin
     let commissionAmount = 0;
-    const grossMargin = sale.gross_margin || 0;
-    const scheme = shopper.commission_scheme || 'standard'; // Default to 'standard' if null
+    // ORIGINAL XATA: const grossMargin = sale.gross_margin || 0;
+    const grossMargin = sale.grossMargin || 0;
+    // ORIGINAL XATA: const scheme = shopper.commission_scheme || 'standard';
+    const scheme = shopper.commissionScheme || 'standard'; // Default to 'standard' if null
 
     logger.info('ALLOCATE', 'Calculating commission', { grossMargin, scheme });
 
@@ -125,13 +159,24 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Update sale record
-    // Note: Change source from 'xero_import' to 'allocated' so it appears in dashboards
-    const updatedSale = await xata.db.Sales.update(saleId, {
-      shopper: shopperId,
-      needs_allocation: false,
-      commission_amount: commissionAmount,
-      source: 'allocated',
-    });
+    // ORIGINAL XATA:
+    // const updatedSale = await xata.db.Sales.update(saleId, {
+    //   shopper: shopperId,
+    //   needs_allocation: false,
+    //   commission_amount: commissionAmount,
+    //   source: 'allocated',
+    // });
+    const updatedSaleResults = await db
+      .update(sales)
+      .set({
+        shopperId,
+        needsAllocation: false,
+        commissionAmount,
+        source: 'allocated',
+      })
+      .where(eq(sales.id, saleId))
+      .returning();
+    const updatedSale = updatedSaleResults[0] || null;
 
     if (!updatedSale) {
       logger.error('ALLOCATE', 'Failed to update sale', { saleId });
@@ -141,7 +186,8 @@ export async function POST(request: NextRequest) {
     const duration = Date.now() - startTime;
     logger.info('ALLOCATE', 'Allocation completed', {
       duration: `${duration}ms`,
-      invoiceNumber: sale.xero_invoice_number,
+      // ORIGINAL XATA: invoiceNumber: sale.xero_invoice_number,
+      invoiceNumber: sale.xeroInvoiceNumber,
       shopperName: shopper.name,
       commissionAmount
     });
@@ -150,11 +196,13 @@ export async function POST(request: NextRequest) {
       success: true,
       sale: {
         id: updatedSale.id,
-        xeroInvoiceNumber: sale.xero_invoice_number,
+        // ORIGINAL XATA: xeroInvoiceNumber: sale.xero_invoice_number,
+        xeroInvoiceNumber: sale.xeroInvoiceNumber,
         shopper: {
           id: shopper.id,
           name: shopper.name,
-          scheme: shopper.commission_scheme,
+          // ORIGINAL XATA: scheme: shopper.commission_scheme,
+          scheme: shopper.commissionScheme,
         },
         grossMargin,
         commissionAmount,

@@ -48,7 +48,14 @@
       "Bash(XATA_BRANCH=main XATA_API_KEY=\"xau_bsxtJS0755dKdgH2vAwhhRsuiDCytkJB1\" XATA_DATABASE_URL=\"https://Oliver-Timmerman-s-workspace-d3730u.eu-central-1.xata.sh/db/Club19SalesOS\" npx xata codegen:*)",
       "Bash(pgrep:*)",
       "Bash(npx tsx:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill -9)",
+      "Bash(npm run db:test:*)",
+      "Bash(host:*)",
+      "Bash(grep:*)",
+      "Bash(xargs ls:*)",
+      "Bash(npm run type-check:*)"
     ],
     "deny": [],
     "ask": []

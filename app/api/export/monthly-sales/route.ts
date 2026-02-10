@@ -3,15 +3,23 @@
  *
  * GET endpoint for exporting monthly sales data as CSV
  * Used by Founder dashboard to export month data to bookkeeper
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getXataClient } from "@/src/xata";
 import { getMonthDateRange } from "@/lib/dateUtils";
 import { auth } from "@clerk/nextjs/server";
 import * as logger from "@/lib/logger";
 
-const xata = getXataClient();
+// Drizzle imports
+import { db } from "@/db";
+import { sales, shoppers, buyers, suppliers, introducers } from "@/db/schema";
+import { gte, lte, asc, and } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from "@/src/xata";
+// const xata = getXataClient();
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,39 +42,63 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Query all sales for the month
-    const sales = await xata.db.Sales.filter({
-      sale_date: {
-        $ge: dateRange.start,
-        $le: dateRange.end,
+    // ORIGINAL XATA:
+    // const sales = await xata.db.Sales.filter({
+    //   sale_date: {
+    //     $ge: dateRange.start,
+    //     $le: dateRange.end,
+    //   },
+    // })
+    //   .select([
+    //     "id",
+    //     "sale_date",
+    //     "sale_reference",
+    //     "xero_invoice_number",
+    //     "shopper.name",
+    //     "buyer.name",
+    //     "buyer.id",
+    //     "brand",
+    //     "category",
+    //     "item_title",
+    //     "buy_price",
+    //     "sale_amount_ex_vat",
+    //     "sale_amount_inc_vat",
+    //     "shipping_cost",
+    //     "direct_costs",
+    //     "gross_margin",
+    //     "supplier.name",
+    //     "supplier.id",
+    //     "introducer.name",
+    //     "introducer.id",
+    //     "internal_notes",
+    //     "commissionable_margin",
+    //   ])
+    //   .sort("sale_date", "asc")
+    //   .getAll();
+
+    // DRIZZLE:
+    // Use Drizzle's relational query API to fetch sales with relations
+    const salesData = await db.query.sales.findMany({
+      where: and(
+        gte(sales.saleDate, new Date(dateRange.start)),
+        lte(sales.saleDate, new Date(dateRange.end))
+      ),
+      with: {
+        shopper: {
+          columns: { name: true },
+        },
+        buyer: {
+          columns: { id: true, name: true },
+        },
+        supplier: {
+          columns: { id: true, name: true },
+        },
+        introducer: {
+          columns: { id: true, name: true },
+        },
       },
-    })
-      .select([
-        "id",
-        "sale_date",
-        "sale_reference",
-        "xero_invoice_number",
-        "shopper.name",
-        "buyer.name",
-        "buyer.id",
-        "brand",
-        "category",
-        "item_title",
-        "buy_price",
-        "sale_amount_ex_vat",
-        "sale_amount_inc_vat",
-        "shipping_cost",
-        "direct_costs",
-        "gross_margin",
-        "supplier.name",
-        "supplier.id",
-        "introducer.name",
-        "introducer.id",
-        "internal_notes",
-        "commissionable_margin",
-      ])
-      .sort("sale_date", "asc")
-      .getAll();
+      orderBy: [asc(sales.saleDate)],
+    });
 
     // Generate CSV content
     const csvHeaders = [
@@ -90,35 +122,35 @@ export async function GET(request: NextRequest) {
       "notes",
     ];
 
-    const csvRows = sales.map((sale) => {
-      const saleDate = sale.sale_date
-        ? new Date(sale.sale_date).toLocaleDateString("en-GB")
+    const csvRows = salesData.map((sale) => {
+      const saleDate = sale.saleDate
+        ? new Date(sale.saleDate).toLocaleDateString("en-GB")
         : "";
-      const vatAmount = (sale.sale_amount_inc_vat || 0) - (sale.sale_amount_ex_vat || 0);
+      const vatAmount = (sale.saleAmountIncVat || 0) - (sale.saleAmountExVat || 0);
       const marginPercent =
-        sale.sale_amount_inc_vat && sale.sale_amount_inc_vat > 0
-          ? ((sale.gross_margin || 0) / sale.sale_amount_inc_vat) * 100
+        sale.saleAmountIncVat && sale.saleAmountIncVat > 0
+          ? ((sale.grossMargin || 0) / sale.saleAmountIncVat) * 100
           : 0;
 
       return [
         saleDate,
-        sale.xero_invoice_number || sale.sale_reference || "",
+        sale.xeroInvoiceNumber || sale.saleReference || "",
         sale.shopper?.name || "",
         sale.buyer?.name || "",
         sale.brand || "",
         sale.category || "",
-        sale.item_title || "",
-        (sale.buy_price || 0).toFixed(2),
-        (sale.sale_amount_ex_vat || 0).toFixed(2),
+        sale.itemTitle || "",
+        (sale.buyPrice || 0).toFixed(2),
+        (sale.saleAmountExVat || 0).toFixed(2),
         vatAmount.toFixed(2),
-        (sale.shipping_cost || 0).toFixed(2),
-        (sale.direct_costs || 0).toFixed(2),
-        (sale.gross_margin || 0).toFixed(2),
+        (sale.shippingCost || 0).toFixed(2),
+        (sale.directCosts || 0).toFixed(2),
+        (sale.grossMargin || 0).toFixed(2),
         marginPercent.toFixed(2),
-        (sale.commissionable_margin || 0).toFixed(2),
+        (sale.commissionableMargin || 0).toFixed(2),
         sale.supplier?.name || "",
         sale.introducer?.name || "",
-        `"${(sale.internal_notes || "").replace(/"/g, '""')}"`, // Escape quotes in notes
+        `"${(sale.internalNotes || "").replace(/"/g, '""')}"`, // Escape quotes in notes
       ];
     });
 

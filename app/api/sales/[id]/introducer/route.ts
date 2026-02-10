@@ -5,13 +5,22 @@
  * Updates introducer and commission on a sale
  *
  * Body: { introducerId?: string | null, introducerCommission?: number | null }
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
 import * as logger from '@/lib/logger';
+
+// Drizzle imports
+import { db } from "@/db";
+import { sales, introducers } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from '@/src/xata';
 
 /**
  * PUT - Update introducer and/or commission on sale
@@ -53,12 +62,22 @@ export async function PUT(
       }
     }
 
-    const xata = getXataClient();
+    // ORIGINAL XATA:
+    // const xata = getXataClient();
 
     // If introducerId is provided (and not null), verify it exists
     let introducerName: string | null = null;
     if (introducerId) {
-      const introducer = await xata.db.Introducers.read(introducerId);
+      // ORIGINAL XATA:
+      // const introducer = await xata.db.Introducers.read(introducerId);
+
+      // DRIZZLE:
+      const [introducer] = await db
+        .select()
+        .from(introducers)
+        .where(eq(introducers.id, introducerId))
+        .limit(1);
+
       if (!introducer) {
         return NextResponse.json(
           { error: 'Introducer not found' },
@@ -68,21 +87,28 @@ export async function PUT(
       introducerName = introducer.name || null;
     }
 
-    // Build update object with correct Xata syntax
-    const updateData: any = {};
+    // Build update object with correct Drizzle syntax
+    const updateData: Record<string, any> = {};
 
-    // Handle introducer link (use { id: ... } format for links, or null to clear)
+    // Handle introducer link (use foreign key column, or null to clear)
     if (introducerId !== undefined) {
-      updateData.introducer = introducerId ? { id: introducerId } : null;
+      updateData.introducerId = introducerId || null;
     }
 
     // Handle commission (direct value or null)
     if (introducerCommission !== undefined) {
-      updateData.introducer_commission = introducerCommission;
+      updateData.introducerCommission = introducerCommission;
     }
 
-    // Update sale record
-    const updatedSale = await xata.db.Sales.update(id, updateData);
+    // ORIGINAL XATA:
+    // const updatedSale = await xata.db.Sales.update(id, updateData);
+
+    // DRIZZLE:
+    const [updatedSale] = await db
+      .update(sales)
+      .set(updateData)
+      .where(eq(sales.id, id))
+      .returning();
 
     if (!updatedSale) {
       return NextResponse.json(

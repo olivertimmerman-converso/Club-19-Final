@@ -7,11 +7,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { shoppers } from "@/db/schema";
+import { eq } from "drizzle-orm";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
 import { getUserRole } from "@/lib/getUserRole";
 import * as logger from "@/lib/logger";
 
-const xata = getXataClient();
+// ORIGINAL XATA: const xata = getXataClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +36,8 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { name, email, commission_scheme = "standard" } = body;
+    // ORIGINAL XATA: const { name, email, commission_scheme = "standard" } = body;
+    const { name, email, commission_scheme: commissionScheme = "standard" } = body;
 
     // Validate required fields
     if (!name || !email) {
@@ -47,7 +51,13 @@ export async function POST(request: NextRequest) {
     const normalizedName = name.trim();
 
     // Check for duplicate email
-    const existingByEmail = await xata.db.Shoppers.filter({ email }).getFirst();
+    // ORIGINAL XATA: const existingByEmail = await xata.db.Shoppers.filter({ email }).getFirst();
+    const existingByEmailResults = await db
+      .select()
+      .from(shoppers)
+      .where(eq(shoppers.email, email))
+      .limit(1);
+    const existingByEmail = existingByEmailResults[0] || null;
 
     if (existingByEmail) {
       return NextResponse.json(
@@ -57,7 +67,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for existing shopper with same/similar name (case-insensitive)
-    const allShoppers = await xata.db.Shoppers.select(["id", "name"]).getAll();
+    // ORIGINAL XATA: const allShoppers = await xata.db.Shoppers.select(["id", "name"]).getAll();
+    const allShoppers = await db
+      .select({
+        id: shoppers.id,
+        name: shoppers.name,
+      })
+      .from(shoppers);
 
     // Exact match check (case-insensitive)
     const exactMatch = allShoppers.find(
@@ -98,12 +114,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the shopper with normalized name
-    const shopper = await xata.db.Shoppers.create({
-      name: normalizedName,
-      email,
-      commission_scheme,
-      active: true,
-    });
+    // ORIGINAL XATA:
+    // const shopper = await xata.db.Shoppers.create({
+    //   name: normalizedName,
+    //   email,
+    //   commission_scheme,
+    //   active: true,
+    // });
+    const newShopperResults = await db
+      .insert(shoppers)
+      .values({
+        name: normalizedName,
+        email,
+        commissionScheme,
+        active: true,
+      })
+      .returning();
+    const shopper = newShopperResults[0];
 
     return NextResponse.json(
       {
@@ -112,7 +139,8 @@ export async function POST(request: NextRequest) {
           id: shopper.id,
           name: shopper.name,
           email: shopper.email,
-          commission_scheme: shopper.commission_scheme,
+          // ORIGINAL XATA: commission_scheme: shopper.commission_scheme,
+          commission_scheme: shopper.commissionScheme,
         },
       },
       { status: 201 }

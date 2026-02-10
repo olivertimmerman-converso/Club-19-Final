@@ -10,9 +10,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getValidTokens } from '@/lib/xero-auth';
 import * as logger from '@/lib/logger';
+
+// ORIGINAL XATA: import { getXataClient } from '@/src/xata';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,14 +70,20 @@ export async function POST(
     }
 
     // 2. Get the sale record
-    const xata = getXataClient();
-    const sale = await xata.db.Sales.read(saleId);
+    // ORIGINAL XATA: const xata = getXataClient();
+    // ORIGINAL XATA: const sale = await xata.db.Sales.read(saleId);
+    const saleResults = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.id, saleId))
+      .limit(1);
+    const sale = saleResults[0] || null;
 
     if (!sale) {
       return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
     }
 
-    if (!sale.xero_invoice_id) {
+    if (!sale.xeroInvoiceId) {
       return NextResponse.json({
         error: 'Sale has no Xero invoice ID',
         message: 'This sale is not linked to a Xero invoice'
@@ -82,8 +92,8 @@ export async function POST(
 
     logger.info('SYNC_STATUS', 'Found sale', {
       saleId,
-      invoiceId: sale.xero_invoice_id,
-      currentStatus: sale.invoice_status,
+      invoiceId: sale.xeroInvoiceId,
+      currentStatus: sale.invoiceStatus,
     });
 
     // 3. Get Xero tokens
@@ -111,7 +121,7 @@ export async function POST(
 
     // 4. Fetch invoice from Xero
     const xeroResponse = await fetch(
-      `https://api.xero.com/api.xro/2.0/Invoices/${sale.xero_invoice_id}`,
+      `https://api.xero.com/api.xro/2.0/Invoices/${sale.xeroInvoiceId}`,
       {
         headers: {
           'Authorization': `Bearer ${tokens.accessToken}`,
@@ -139,31 +149,31 @@ export async function POST(
     if (!invoice) {
       return NextResponse.json({
         error: 'Invoice not found in Xero',
-        invoiceId: sale.xero_invoice_id
+        invoiceId: sale.xeroInvoiceId
       }, { status: 404 });
     }
 
     logger.info('SYNC_STATUS', 'Fetched invoice from Xero', {
       invoiceNumber: invoice.InvoiceNumber,
       xeroStatus: invoice.Status,
-      currentStatus: sale.invoice_status,
+      currentStatus: sale.invoiceStatus,
       amountDue: invoice.AmountDue,
       amountPaid: invoice.AmountPaid,
     });
 
     // 5. Update sale with new status
-    const updates: Record<string, any> = {};
+    const updates: Partial<typeof sales.$inferInsert> = {};
     const changes: string[] = [];
 
-    if (sale.invoice_status !== invoice.Status) {
-      updates.invoice_status = invoice.Status;
-      changes.push(`status: ${sale.invoice_status} → ${invoice.Status}`);
+    if (sale.invoiceStatus !== invoice.Status) {
+      updates.invoiceStatus = invoice.Status;
+      changes.push(`status: ${sale.invoiceStatus} → ${invoice.Status}`);
     }
 
     // Set paid date if invoice is now paid
-    if (invoice.Status === 'PAID' && !sale.invoice_paid_date) {
+    if (invoice.Status === 'PAID' && !sale.invoicePaidDate) {
       const paidDate = parseXeroDate(invoice.FullyPaidOnDate) || new Date();
-      updates.invoice_paid_date = paidDate;
+      updates.invoicePaidDate = paidDate;
       changes.push(`paid_date: null → ${paidDate.toISOString()}`);
     }
 
@@ -177,7 +187,11 @@ export async function POST(
       });
     }
 
-    await xata.db.Sales.update(saleId, updates);
+    // ORIGINAL XATA: await xata.db.Sales.update(saleId, updates);
+    await db
+      .update(sales)
+      .set(updates)
+      .where(eq(sales.id, saleId));
 
     logger.info('SYNC_STATUS', 'Sale updated successfully', {
       saleId,
@@ -187,7 +201,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: 'Invoice status synced from Xero',
-      previousStatus: sale.invoice_status,
+      previousStatus: sale.invoiceStatus,
       newStatus: invoice.Status,
       changes,
     });

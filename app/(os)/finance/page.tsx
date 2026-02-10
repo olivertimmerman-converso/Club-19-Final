@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { XataClient } from "@/src/xata";
+// ORIGINAL XATA: import { XataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, shoppers } from "@/db/schema";
+import { eq, and, gte, lte } from "drizzle-orm";
 import { getUserRole } from "@/lib/getUserRole";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { MonthPicker } from "@/components/ui/MonthPicker";
@@ -15,7 +18,7 @@ export const dynamic = "force-dynamic";
  * Shoppers see only their own commission data (not company P&L)
  */
 
-const xata = new XataClient();
+// ORIGINAL XATA: const xata = new XataClient();
 
 interface FinancePageProps {
   searchParams: Promise<{ month?: string }>;
@@ -31,91 +34,120 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
   const monthParam = params.month || "current";
   const dateRange = getMonthDateRange(monthParam);
 
-  // Fetch sales with financial and commission data
-  let salesQuery = xata.db.Sales
-    .select([
-      'id',
-      'sale_date',
-      'item_title',
-      'brand',
-      'sale_amount_inc_vat',
-      'buy_price',
-      'shipping_cost',
-      'card_fees',
-      'direct_costs',
-      'gross_margin',
-      'commissionable_margin',
-      'commission_locked',
-      'commission_paid',
-      'shopper.name',
-      'shopper.name',
-    ]);
+  // Build conditions for sales query
+  const conditions: any[] = [];
+
+  // ORIGINAL XATA:
+  // // Fetch sales with financial and commission data
+  // let salesQuery = xata.db.Sales
+  //   .select([
+  //     'id',
+  //     'sale_date',
+  //     'item_title',
+  //     'brand',
+  //     'sale_amount_inc_vat',
+  //     'buy_price',
+  //     'shipping_cost',
+  //     'card_fees',
+  //     'direct_costs',
+  //     'gross_margin',
+  //     'commissionable_margin',
+  //     'commission_locked',
+  //     'commission_paid',
+  //     'shopper.name',
+  //     'shopper.name',
+  //   ]);
+  //
+  // // Filter for shoppers - only show their own sales
+  // if (role === 'shopper' && currentUser?.fullName) {
+  //   // Look up the Shopper record by name to get the ID
+  //   const shopper = await xata.db.Shoppers.filter({ name: currentUser.fullName }).getFirst();
+  //   if (shopper) {
+  //     // Filter Sales by the shopper link ID
+  //     salesQuery = salesQuery.filter({ shopper: shopper.id });
+  //   }
+  // }
+  //
+  // // Apply date range filter if specified
+  // if (dateRange) {
+  //   salesQuery = salesQuery.filter({
+  //     sale_date: {
+  //       $ge: dateRange.start,
+  //       $le: dateRange.end,
+  //     },
+  //   });
+  // }
+  //
+  // const sales = await salesQuery.getAll();
 
   // Filter for shoppers - only show their own sales
   if (role === 'shopper' && currentUser?.fullName) {
     // Look up the Shopper record by name to get the ID
-    const shopper = await xata.db.Shoppers.filter({ name: currentUser.fullName }).getFirst();
+    const shopper = await db.query.shoppers.findFirst({
+      where: eq(shoppers.name, currentUser.fullName),
+    });
     if (shopper) {
-      // Filter Sales by the shopper link ID
-      salesQuery = salesQuery.filter({ shopper: shopper.id });
+      conditions.push(eq(sales.shopperId, shopper.id));
     }
   }
 
   // Apply date range filter if specified
   if (dateRange) {
-    salesQuery = salesQuery.filter({
-      sale_date: {
-        $ge: dateRange.start,
-        $le: dateRange.end,
-      },
-    });
+    conditions.push(gte(sales.saleDate, dateRange.start));
+    conditions.push(lte(sales.saleDate, dateRange.end));
   }
 
-  const sales = await salesQuery.getAll();
+  // Fetch sales with financial and commission data
+  const salesData = await db.query.sales.findMany({
+    where: conditions.length > 0 ? and(...conditions) : undefined,
+    with: {
+      shopper: true,
+    },
+  });
 
   // Calculate P&L totals
-  const totalRevenue = sales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
-  const totalCosts = sales.reduce((sum, sale) =>
-    sum + (sale.buy_price || 0) + (sale.shipping_cost || 0) +
-    (sale.card_fees || 0) + (sale.direct_costs || 0), 0
+  const totalRevenue = salesData.reduce((sum, sale) => sum + (sale.saleAmountIncVat || 0), 0);
+  const totalCosts = salesData.reduce((sum, sale) =>
+    sum + (sale.buyPrice || 0) + (sale.shippingCost || 0) +
+    (sale.cardFees || 0) + (sale.directCosts || 0), 0
   );
-  const totalMargin = sales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
+  const totalMargin = salesData.reduce((sum, sale) => sum + (sale.grossMargin || 0), 0);
   const marginPercent = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
 
   // Commission status breakdown
-  const pendingCommission = sales.filter(sale => !sale.commission_locked);
-  const lockedCommission = sales.filter(sale => sale.commission_locked && !sale.commission_paid);
-  const paidCommission = sales.filter(sale => sale.commission_paid);
+  const pendingCommission = salesData.filter(sale => !sale.commissionLocked);
+  const lockedCommission = salesData.filter(sale => sale.commissionLocked && !sale.commissionPaid);
+  const paidCommission = salesData.filter(sale => sale.commissionPaid);
 
   const pendingCommissionMargin = pendingCommission.reduce((sum, sale) =>
-    sum + (sale.commissionable_margin || 0), 0
+    sum + (sale.commissionableMargin || 0), 0
   );
   const lockedCommissionMargin = lockedCommission.reduce((sum, sale) =>
-    sum + (sale.commissionable_margin || 0), 0
+    sum + (sale.commissionableMargin || 0), 0
   );
   const paidCommissionMargin = paidCommission.reduce((sum, sale) =>
-    sum + (sale.commissionable_margin || 0), 0
+    sum + (sale.commissionableMargin || 0), 0
   );
 
   // Recent sales pending commission approval (unlocked only)
-  const pendingSales = sales
-    .filter(sale => !sale.commission_locked)
+  const pendingSales = salesData
+    .filter(sale => !sale.commissionLocked)
     .sort((a, b) => {
-      const dateA = a.sale_date ? new Date(a.sale_date).getTime() : 0;
-      const dateB = b.sale_date ? new Date(b.sale_date).getTime() : 0;
+      const dateA = a.saleDate ? new Date(a.saleDate).getTime() : 0;
+      const dateB = b.saleDate ? new Date(b.saleDate).getTime() : 0;
       return dateB - dateA;
     })
     .slice(0, 10);
 
   // Revenue by brand (top 5)
   const brandRevenue: Record<string, { revenue: number; margin: number }> = {};
-  sales.forEach(sale => {
+  salesData.forEach(sale => {
     const brand = sale.brand || 'Unknown';
     if (!brandRevenue[brand]) {
       brandRevenue[brand] = { revenue: 0, margin: 0 };
     }
-    brandRevenue[brand].revenue += sale.sale_amount_inc_vat || 0;
-    brandRevenue[brand].margin += sale.gross_margin || 0;
+    brandRevenue[brand].revenue += sale.saleAmountIncVat || 0;
+    brandRevenue[brand].margin += sale.grossMargin || 0;
   });
 
   const topBrands = Object.entries(brandRevenue)
@@ -257,26 +289,26 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
                   {pendingSales.map((sale) => (
                     <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(sale.sale_date)}
+                        {formatDate(sale.saleDate)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
                         <Link
                           href={`/sales/${sale.id}`}
                           className="text-purple-600 hover:text-purple-900"
                         >
-                          {sale.brand && sale.item_title
-                            ? `${sale.brand} - ${sale.item_title}`
-                            : sale.brand || sale.item_title || '—'}
+                          {sale.brand && sale.itemTitle
+                            ? `${sale.brand} - ${sale.itemTitle}`
+                            : sale.brand || sale.itemTitle || '—'}
                         </Link>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                        {formatCurrency(sale.sale_amount_inc_vat || 0)}
+                        {formatCurrency(sale.saleAmountIncVat || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-right font-medium">
-                        {formatCurrency(sale.gross_margin || 0)}
+                        {formatCurrency(sale.grossMargin || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-medium">
-                        {formatCurrency(sale.commissionable_margin || 0)}
+                        {formatCurrency(sale.commissionableMargin || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {sale.shopper?.name || '—'}

@@ -1,6 +1,9 @@
 import Link from "next/link";
-import { XataClient } from "@/src/xata";
-import type { SalesRecord } from "@/src/xata";
+// ORIGINAL XATA: import { XataClient } from "@/src/xata";
+// ORIGINAL XATA: import type { SalesRecord } from "@/src/xata";
+import { db } from "@/db";
+import { sales, shoppers, buyers, suppliers, introducers } from "@/db/schema";
+import { eq, and, gte, lte, desc, ne, isNull, isNotNull } from "drizzle-orm";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { ViewAsSelector } from "@/components/ui/ViewAsSelector";
 import { getMonthDateRange } from "@/lib/dateUtils";
@@ -12,7 +15,7 @@ import { getMonthDateRange } from "@/lib/dateUtils";
  * Server component that displays real metrics from the Sales table
  */
 
-const xata = new XataClient();
+// ORIGINAL XATA: const xata = new XataClient();
 
 interface SuperadminDashboardProps {
   monthParam?: string;
@@ -26,71 +29,98 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   const currentDate = dateRange ? dateRange.start : new Date();
   const monthName = currentDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
-  // Query Sales table for metrics (will filter deleted in JavaScript)
-  let salesQuery = xata.db.Sales
-    .select([
-      'sale_amount_inc_vat',
-      'gross_margin',
-      'commissionable_margin',
-      'currency',
-      'sale_date',
-      'brand',
-      'category',
-      'item_title',
-      'sale_reference',
-      'invoice_status',
-      'commission_paid',
-      'commission_locked',
-      'shopper.name',
-      'shopper.id',
-      'buyer.name',
-      'supplier.id',
-      'xero_invoice_number',
-      'xero_payment_date',
-      'invoice_paid_date',
-      'needs_allocation',
-      'dismissed',
-      'id',
-      'source',
-      'deleted_at',
-      'shipping_method',
-      'shipping_cost_confirmed',
-      'buy_price',
-      'has_introducer',
-      'introducer.id',
-      'introducer.name',
-      'introducer_commission',
-    ]);
+  // ORIGINAL XATA:
+  // let salesQuery = xata.db.Sales
+  //   .select([
+  //     'sale_amount_inc_vat',
+  //     'gross_margin',
+  //     'commissionable_margin',
+  //     'currency',
+  //     'sale_date',
+  //     'brand',
+  //     'category',
+  //     'item_title',
+  //     'sale_reference',
+  //     'invoice_status',
+  //     'commission_paid',
+  //     'commission_locked',
+  //     'shopper.name',
+  //     'shopper.id',
+  //     'buyer.name',
+  //     'supplier.id',
+  //     'xero_invoice_number',
+  //     'xero_payment_date',
+  //     'invoice_paid_date',
+  //     'needs_allocation',
+  //     'dismissed',
+  //     'id',
+  //     'source',
+  //     'deleted_at',
+  //     'shipping_method',
+  //     'shipping_cost_confirmed',
+  //     'buy_price',
+  //     'has_introducer',
+  //     'introducer.id',
+  //     'introducer.name',
+  //     'introducer_commission',
+  //   ]);
+  // if (dateRange) {
+  //   salesQuery = salesQuery.filter({
+  //     sale_date: {
+  //       $ge: dateRange.start,
+  //       $le: dateRange.end,
+  //     },
+  //   });
+  // }
+  // const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
 
-  // Apply date range filter if specified
-  if (dateRange) {
-    salesQuery = salesQuery.filter({
-      sale_date: {
-        $ge: dateRange.start,
-        $le: dateRange.end,
-      },
-    });
-  }
+  // Query Sales table for metrics using Drizzle
+  const whereConditions = dateRange
+    ? and(
+        gte(sales.saleDate, dateRange.start),
+        lte(sales.saleDate, dateRange.end)
+      )
+    : undefined;
 
-  // Fetch sales and filter in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
-  const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
+  const allSalesRaw = await db.query.sales.findMany({
+    where: whereConditions,
+    with: {
+      shopper: true,
+      buyer: true,
+      supplier: true,
+      introducer: true,
+    },
+    orderBy: [desc(sales.saleDate)],
+    limit: 200,
+  });
 
   // Filter out xero_import, deleted, needs_allocation, and dismissed sales in JavaScript
   // This ensures summary cards, sales table, and leaderboard all use the EXACT same dataset
-  const sales = allSalesRaw.filter(sale =>
+  const salesData = allSalesRaw.filter(sale =>
     sale.source !== 'xero_import' &&
-    !sale.deleted_at &&
-    !sale.needs_allocation &&
+    !sale.deletedAt &&
+    !sale.needsAllocation &&
     !sale.dismissed
   );
 
   // Calculate metrics
-  const total = sales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
-  const margin = sales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
+  const total = salesData.reduce((sum, sale) => sum + (sale.saleAmountIncVat || 0), 0);
+  const margin = salesData.reduce((sum, sale) => sum + (sale.grossMargin || 0), 0);
   const totalSales = total;
   const totalMargin = margin;
-  const tradesCount = sales.length;
+  const tradesCount = salesData.length;
   const avgMarginPercent = total > 0 ? (margin / total) * 100 : 0;
+
+  // ORIGINAL XATA:
+  // const lastMonthSalesRaw = await xata.db.Sales
+  //   .select(['sale_amount_inc_vat', 'gross_margin', 'source', 'deleted_at'])
+  //   .filter({
+  //     sale_date: {
+  //       $ge: lastMonthStart,
+  //       $le: lastMonthEnd,
+  //     }
+  //   })
+  //   .getMany({ pagination: { size: 1000 } });
 
   // Calculate last month's metrics for trend comparison (only if viewing current month)
   let lastMonthData = null;
@@ -99,23 +129,21 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const lastMonthSalesRaw = await xata.db.Sales
-      .select(['sale_amount_inc_vat', 'gross_margin', 'source', 'deleted_at'])
-      .filter({
-        sale_date: {
-          $ge: lastMonthStart,
-          $le: lastMonthEnd,
-        }
-      })
-      .getMany({ pagination: { size: 1000 } });
+    const lastMonthSalesRaw = await db.query.sales.findMany({
+      where: and(
+        gte(sales.saleDate, lastMonthStart),
+        lte(sales.saleDate, lastMonthEnd)
+      ),
+      limit: 1000,
+    });
 
     // Filter in JavaScript
     const lastMonthSales = lastMonthSalesRaw.filter(sale =>
-      sale.source !== 'xero_import' && !sale.deleted_at
+      sale.source !== 'xero_import' && !sale.deletedAt
     );
 
-    const lastTotal = lastMonthSales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
-    const lastMargin = lastMonthSales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
+    const lastTotal = lastMonthSales.reduce((sum, sale) => sum + (sale.saleAmountIncVat || 0), 0);
+    const lastMargin = lastMonthSales.reduce((sum, sale) => sum + (sale.grossMargin || 0), 0);
     lastMonthData = {
       totalSales: lastTotal,
       totalMargin: lastMargin,
@@ -129,36 +157,36 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
 
   // Calculate metrics for new sections
   // Pending shipping count
-  const pendingShippingSales = sales.filter(sale =>
-    sale.shipping_method === 'to_be_shipped' && !sale.shipping_cost_confirmed
+  const pendingShippingSales = salesData.filter(sale =>
+    sale.shippingMethod === 'to_be_shipped' && !sale.shippingCostConfirmed
   );
   const pendingShippingCount = pendingShippingSales.length;
 
   // Helper to get list of missing fields for a sale
-  const getMissingFields = (sale: typeof sales[0]) => {
+  const getMissingFields = (sale: typeof salesData[0]) => {
     const missing: string[] = [];
     if (!sale.brand || sale.brand === 'Unknown') missing.push('brand');
     if (!sale.category || sale.category === 'Unknown') missing.push('category');
-    if (!sale.buy_price || sale.buy_price === 0) missing.push('buy price');
+    if (!sale.buyPrice || sale.buyPrice === 0) missing.push('buy price');
     if (!sale.supplier?.id) missing.push('supplier');
     // Introducer checks: if has_introducer is true, must have introducer assigned and commission set
-    if (sale.has_introducer && !sale.introducer?.id) missing.push('introducer');
-    if (sale.has_introducer && (!sale.introducer_commission || sale.introducer_commission === 0)) missing.push('introducer commission');
+    if (sale.hasIntroducer && !sale.introducer?.id) missing.push('introducer');
+    if (sale.hasIntroducer && (!sale.introducerCommission || sale.introducerCommission === 0)) missing.push('introducer commission');
     return missing;
   };
 
   // Helper to check if a sale is incomplete (missing required data)
-  const isIncomplete = (sale: typeof sales[0]) => {
+  const isIncomplete = (sale: typeof salesData[0]) => {
     return getMissingFields(sale).length > 0;
   };
 
   // Sales needing attention: DRAFT status OR needs_allocation OR overdue (>30 days AUTHORISED) OR pending shipping OR incomplete
-  const salesNeedingAttention = sales.filter(sale => {
-    if (sale.invoice_status === 'DRAFT' || sale.needs_allocation) return true;
-    if (sale.shipping_method === 'to_be_shipped' && !sale.shipping_cost_confirmed) return true;
+  const salesNeedingAttention = salesData.filter(sale => {
+    if (sale.invoiceStatus === 'DRAFT' || sale.needsAllocation) return true;
+    if (sale.shippingMethod === 'to_be_shipped' && !sale.shippingCostConfirmed) return true;
     if (isIncomplete(sale)) return true;
-    if (sale.invoice_status === 'AUTHORISED') {
-      const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+    if (sale.invoiceStatus === 'AUTHORISED') {
+      const saleDate = sale.saleDate ? new Date(sale.saleDate) : null;
       if (saleDate) {
         const daysOld = Math.floor((Date.now() - saleDate.getTime()) / (1000 * 60 * 60 * 24));
         return daysOld > 30;
@@ -168,12 +196,12 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   });
 
   // Unpaid invoices: AUTHORISED status
-  const unpaidInvoices = sales.filter(sale => sale.invoice_status === 'AUTHORISED');
-  const unpaidTotal = unpaidInvoices.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
+  const unpaidInvoices = salesData.filter(sale => sale.invoiceStatus === 'AUTHORISED');
+  const unpaidTotal = unpaidInvoices.reduce((sum, sale) => sum + (sale.saleAmountIncVat || 0), 0);
 
   // Shopper leaderboard (this month only)
   // Uses gross_margin to match the margin shown in the sales table
-  const shopperStats = sales.reduce((acc: any, sale) => {
+  const shopperStats = salesData.reduce((acc: any, sale) => {
     const shopperId = sale.shopper?.id;
     const shopperName = sale.shopper?.name || 'Unknown';
     if (!shopperId) return acc;
@@ -189,7 +217,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
 
     acc[shopperId].salesCount++;
     // Use gross_margin to match the table column (not commissionable_margin)
-    acc[shopperId].totalMargin += (sale.gross_margin || 0);
+    acc[shopperId].totalMargin += (sale.grossMargin || 0);
 
     return acc;
   }, {});
@@ -270,7 +298,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   // Get status badge styling with improved logic
   const getStatusBadge = (sale: any) => {
     // Priority 1: Commission paid
-    if (sale.commission_paid) {
+    if (sale.commissionPaid) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
           Paid
@@ -279,7 +307,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
     }
 
     // Priority 2: Commission locked
-    if (sale.commission_locked) {
+    if (sale.commissionLocked) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
           Locked
@@ -288,7 +316,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
     }
 
     // Priority 3: Invoice status
-    const normalizedStatus = (sale.invoice_status || 'draft').toUpperCase();
+    const normalizedStatus = (sale.invoiceStatus || 'draft').toUpperCase();
 
     if (normalizedStatus === 'PAID') {
       return (
@@ -452,7 +480,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
           </Link>
         </div>
 
-        {sales.length === 0 ? (
+        {salesData.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
             <svg
               className="mx-auto h-12 w-12 text-gray-400"
@@ -543,13 +571,13 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sales.map((sale) => (
+                {salesData.map((sale) => (
                   <tr
                     key={sale.id}
                     className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(sale.sale_date)}
+                      {formatDate(sale.saleDate)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {sale.brand || '—'}
@@ -559,17 +587,17 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
                         href={`/sales/${sale.id}`}
                         className="text-purple-600 hover:text-purple-900"
                       >
-                        {sale.item_title || '—'}
+                        {sale.itemTitle || '—'}
                       </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {sale.shopper?.name || '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                      {formatCurrency(sale.sale_amount_inc_vat || 0)}
+                      {formatCurrency(sale.saleAmountIncVat || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-right font-medium">
-                      {formatCurrency(sale.gross_margin || 0)}
+                      {formatCurrency(sale.grossMargin || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-1.5">
@@ -627,13 +655,13 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
                 {salesNeedingAttention.slice(0, 4).map((sale) => {
                   // Determine issue type for badge
                   const issues: { label: string; color: string }[] = [];
-                  if (sale.invoice_status === 'DRAFT') {
+                  if (sale.invoiceStatus === 'DRAFT') {
                     issues.push({ label: 'Draft', color: 'bg-gray-100 text-gray-700' });
                   }
-                  if (sale.needs_allocation) {
+                  if (sale.needsAllocation) {
                     issues.push({ label: 'Allocate', color: 'bg-orange-100 text-orange-700' });
                   }
-                  if (sale.shipping_method === 'to_be_shipped' && !sale.shipping_cost_confirmed) {
+                  if (sale.shippingMethod === 'to_be_shipped' && !sale.shippingCostConfirmed) {
                     issues.push({ label: 'Shipping', color: 'bg-blue-100 text-blue-700' });
                   }
                   if (isIncomplete(sale)) {
@@ -646,9 +674,9 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
                       issues.push({ label: 'Incomplete', color: 'bg-amber-100 text-amber-700' });
                     }
                   }
-                  const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+                  const saleDate = sale.saleDate ? new Date(sale.saleDate) : null;
                   const daysOld = saleDate ? Math.floor((Date.now() - saleDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-                  if (sale.invoice_status === 'AUTHORISED' && daysOld > 30) {
+                  if (sale.invoiceStatus === 'AUTHORISED' && daysOld > 30) {
                     issues.push({ label: 'Overdue', color: 'bg-red-100 text-red-700' });
                   }
 
@@ -661,7 +689,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">
-                            {sale.item_title || sale.sale_reference || sale.xero_invoice_number || 'Unknown'}
+                            {sale.itemTitle || sale.saleReference || sale.xeroInvoiceNumber || 'Unknown'}
                           </p>
                           <p className="text-xs text-gray-500 mt-0.5">{sale.brand || 'No brand'}</p>
                         </div>
@@ -724,7 +752,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
                 </div>
                 <div className="space-y-2">
                   {unpaidInvoices.slice(0, 3).map((sale) => {
-                    const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+                    const saleDate = sale.saleDate ? new Date(sale.saleDate) : null;
                     const daysOld = saleDate ? Math.floor((Date.now() - saleDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
                     const isOverdue = daysOld > 30;
 
@@ -737,12 +765,12 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-gray-900 truncate">
-                              {sale.xero_invoice_number || sale.sale_reference}
+                              {sale.xeroInvoiceNumber || sale.saleReference}
                             </p>
                             <p className="text-xs text-gray-500">{sale.buyer?.name || 'Unknown'}</p>
                           </div>
                           <div className="ml-2 text-right">
-                            <p className="font-medium text-gray-900">{formatCurrency(sale.sale_amount_inc_vat || 0)}</p>
+                            <p className="font-medium text-gray-900">{formatCurrency(sale.saleAmountIncVat || 0)}</p>
                             <p className={`text-xs ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
                               {daysOld} {daysOld === 1 ? 'day' : 'days'} {isOverdue && '⚠️'}
                             </p>
@@ -829,7 +857,7 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
           <span className="text-gray-300">•</span>
           <span>Xero API</span>
           <span className="text-gray-300">•</span>
-          <span>Xata Database</span>
+          <span>Drizzle ORM</span>
         </div>
       </div>
     </div>

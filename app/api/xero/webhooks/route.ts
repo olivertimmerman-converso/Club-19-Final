@@ -23,7 +23,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, buyers, errors } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import {
   findSaleByInvoiceNumber,
   updateSalePaymentStatusFromXero,
@@ -36,16 +38,16 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // ============================================================================
-// XATA CLIENT
+// ORIGINAL XATA CLIENT (REMOVED)
 // ============================================================================
 
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: let _xata: ReturnType<typeof getXataClient> | null = null;
+// ORIGINAL XATA: function xata() {
+// ORIGINAL XATA:   if (_xata) return _xata;
+// ORIGINAL XATA:   _xata = getXataClient();
+// ORIGINAL XATA:   return _xata;
+// ORIGINAL XATA: }
 
 // ============================================================================
 // SIGNATURE VERIFICATION
@@ -160,7 +162,14 @@ export async function POST(req: NextRequest) {
     if (!isValidSignature) {
       // Log security incident to Errors table
       try {
-        await xata().db.Errors.create({
+        // ORIGINAL XATA: await xata().db.Errors.create({
+        // ORIGINAL XATA:   severity: "high",
+        // ORIGINAL XATA:   source: "xero-webhook",
+        // ORIGINAL XATA:   message: ["Invalid webhook signature - possible security breach"],
+        // ORIGINAL XATA:   timestamp: new Date(),
+        // ORIGINAL XATA:   resolved: false,
+        // ORIGINAL XATA: });
+        await db.insert(errors).values({
           severity: "high",
           source: "xero-webhook",
           message: ["Invalid webhook signature - possible security breach"],
@@ -292,19 +301,31 @@ export async function POST(req: NextRequest) {
           amountDue: invoice.AmountDue,
         });
 
-        // Find corresponding sale in Xata by xero_invoice_id (more reliable than invoice number)
+        // Find corresponding sale in database by xero_invoice_id (more reliable than invoice number)
         console.log("[XERO_WEBHOOKS] Looking for sale with xero_invoice_id:", invoice.InvoiceID);
 
-        let sale = await xata().db.Sales
-          .filter({ xero_invoice_id: invoice.InvoiceID })
-          .getFirst();
+        // ORIGINAL XATA: let sale = await xata().db.Sales
+        // ORIGINAL XATA:   .filter({ xero_invoice_id: invoice.InvoiceID })
+        // ORIGINAL XATA:   .getFirst();
+        const saleResults = await db
+          .select()
+          .from(sales)
+          .where(eq(sales.xeroInvoiceId, invoice.InvoiceID))
+          .limit(1);
+        let sale = saleResults[0] || null;
 
         // Fallback: Try to find by invoice number if ID doesn't match
         if (!sale && invoice.InvoiceNumber) {
           console.log("[XERO_WEBHOOKS] No match by ID, trying invoice number:", invoice.InvoiceNumber);
-          sale = await xata().db.Sales
-            .filter({ xero_invoice_number: invoice.InvoiceNumber })
-            .getFirst();
+          // ORIGINAL XATA: sale = await xata().db.Sales
+          // ORIGINAL XATA:   .filter({ xero_invoice_number: invoice.InvoiceNumber })
+          // ORIGINAL XATA:   .getFirst();
+          const fallbackResults = await db
+            .select()
+            .from(sales)
+            .where(eq(sales.xeroInvoiceNumber, invoice.InvoiceNumber))
+            .limit(1);
+          sale = fallbackResults[0] || null;
         }
 
         if (!sale) {
@@ -327,25 +348,45 @@ export async function POST(req: NextRequest) {
           // Find or create the buyer
           let buyer = null;
           if (invoice.Contact?.Name) {
-            buyer = await xata().db.Buyers
-              .filter({ name: invoice.Contact.Name })
-              .getFirst();
+            // ORIGINAL XATA: buyer = await xata().db.Buyers
+            // ORIGINAL XATA:   .filter({ name: invoice.Contact.Name })
+            // ORIGINAL XATA:   .getFirst();
+            const buyerResults = await db
+              .select()
+              .from(buyers)
+              .where(eq(buyers.name, invoice.Contact.Name))
+              .limit(1);
+            buyer = buyerResults[0] || null;
 
             if (!buyer) {
               // Check by Xero contact ID
               if (invoice.Contact?.ContactID) {
-                buyer = await xata().db.Buyers
-                  .filter({ xero_contact_id: invoice.Contact.ContactID })
-                  .getFirst();
+                // ORIGINAL XATA: buyer = await xata().db.Buyers
+                // ORIGINAL XATA:   .filter({ xero_contact_id: invoice.Contact.ContactID })
+                // ORIGINAL XATA:   .getFirst();
+                const buyerByContactResults = await db
+                  .select()
+                  .from(buyers)
+                  .where(eq(buyers.xeroContactId, invoice.Contact.ContactID))
+                  .limit(1);
+                buyer = buyerByContactResults[0] || null;
               }
             }
 
             if (!buyer) {
               // Create new buyer
-              buyer = await xata().db.Buyers.create({
-                name: invoice.Contact.Name,
-                xero_contact_id: invoice.Contact?.ContactID || null,
-              });
+              // ORIGINAL XATA: buyer = await xata().db.Buyers.create({
+              // ORIGINAL XATA:   name: invoice.Contact.Name,
+              // ORIGINAL XATA:   xero_contact_id: invoice.Contact?.ContactID || null,
+              // ORIGINAL XATA: });
+              const [newBuyer] = await db
+                .insert(buyers)
+                .values({
+                  name: invoice.Contact.Name,
+                  xeroContactId: invoice.Contact?.ContactID || null,
+                })
+                .returning();
+              buyer = newBuyer;
               logger.info("XERO_WEBHOOKS", "Created new buyer", {
                 buyerId: buyer.id,
                 buyerName: buyer.name,
@@ -370,39 +411,51 @@ export async function POST(req: NextRequest) {
           const itemDescription = firstLineItem?.Description || 'Imported from Xero';
 
           // Create the sale record
-          const newSale = await xata().db.Sales.create({
-            xero_invoice_id: invoice.InvoiceID,
-            xero_invoice_number: invoice.InvoiceNumber,
-            xero_invoice_url: `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${invoice.InvoiceID}`,
-            source: 'xero_import',
-            needs_allocation: true,
-
-            // Dates
-            sale_date: saleDate,
-
-            // Buyer
-            buyer: buyer?.id || null,
-
-            // Financials from Xero
-            sale_amount_inc_vat: invoice.Total || 0,
-            sale_amount_ex_vat: invoice.SubTotal || (invoice.Total / 1.2), // Assume 20% VAT if SubTotal missing
-            currency: invoice.CurrencyCode || 'GBP',
-
-            // Placeholder values - to be filled in via Adopt or manual edit
-            brand: 'Unknown',
-            category: 'Unknown',
-            item_title: itemDescription,
-            quantity: firstLineItem?.Quantity || 1,
-            buy_price: 0,
-            gross_margin: 0,
-
-            // Status from Xero
-            invoice_status: invoice.Status,
-            invoice_paid_date: invoice.Status === 'PAID' ? new Date() : undefined,
-
-            // Internal notes
-            internal_notes: `Auto-imported via Xero webhook on ${new Date().toISOString()}. Client: ${invoice.Contact?.Name || 'Unknown'}. Needs shopper allocation and cost details.`,
-          });
+          // ORIGINAL XATA: const newSale = await xata().db.Sales.create({
+          // ORIGINAL XATA:   xero_invoice_id: invoice.InvoiceID,
+          // ORIGINAL XATA:   xero_invoice_number: invoice.InvoiceNumber,
+          // ORIGINAL XATA:   xero_invoice_url: `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${invoice.InvoiceID}`,
+          // ORIGINAL XATA:   source: 'xero_import',
+          // ORIGINAL XATA:   needs_allocation: true,
+          // ORIGINAL XATA:   sale_date: saleDate,
+          // ORIGINAL XATA:   buyer: buyer?.id || null,
+          // ORIGINAL XATA:   sale_amount_inc_vat: invoice.Total || 0,
+          // ORIGINAL XATA:   sale_amount_ex_vat: invoice.SubTotal || (invoice.Total / 1.2),
+          // ORIGINAL XATA:   currency: invoice.CurrencyCode || 'GBP',
+          // ORIGINAL XATA:   brand: 'Unknown',
+          // ORIGINAL XATA:   category: 'Unknown',
+          // ORIGINAL XATA:   item_title: itemDescription,
+          // ORIGINAL XATA:   quantity: firstLineItem?.Quantity || 1,
+          // ORIGINAL XATA:   buy_price: 0,
+          // ORIGINAL XATA:   gross_margin: 0,
+          // ORIGINAL XATA:   invoice_status: invoice.Status,
+          // ORIGINAL XATA:   invoice_paid_date: invoice.Status === 'PAID' ? new Date() : undefined,
+          // ORIGINAL XATA:   internal_notes: `Auto-imported via Xero webhook on ${new Date().toISOString()}. Client: ${invoice.Contact?.Name || 'Unknown'}. Needs shopper allocation and cost details.`,
+          // ORIGINAL XATA: });
+          const [newSale] = await db
+            .insert(sales)
+            .values({
+              xeroInvoiceId: invoice.InvoiceID,
+              xeroInvoiceNumber: invoice.InvoiceNumber,
+              xeroInvoiceUrl: `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${invoice.InvoiceID}`,
+              source: 'xero_import',
+              needsAllocation: true,
+              saleDate: saleDate,
+              buyerId: buyer?.id || null,
+              saleAmountIncVat: invoice.Total || 0,
+              saleAmountExVat: invoice.SubTotal || (invoice.Total / 1.2),
+              currency: invoice.CurrencyCode || 'GBP',
+              brand: 'Unknown',
+              category: 'Unknown',
+              itemTitle: itemDescription,
+              quantity: firstLineItem?.Quantity || 1,
+              buyPrice: 0,
+              grossMargin: 0,
+              invoiceStatus: invoice.Status,
+              invoicePaidDate: invoice.Status === 'PAID' ? new Date() : null,
+              internalNotes: `Auto-imported via Xero webhook on ${new Date().toISOString()}. Client: ${invoice.Contact?.Name || 'Unknown'}. Needs shopper allocation and cost details.`,
+            })
+            .returning();
 
           logger.info("XERO_WEBHOOKS", "Created unallocated sale from webhook", {
             saleId: newSale.id,
@@ -415,22 +468,22 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        console.log("[XERO_WEBHOOKS] FOUND sale:", sale.id, "Current status:", sale.invoice_status);
+        console.log("[XERO_WEBHOOKS] FOUND sale:", sale.id, "Current status:", sale.invoiceStatus);
 
         logger.info("XERO_WEBHOOKS", "Found matching sale", {
           saleId: sale.id,
-          currentStatus: sale.invoice_status,
+          currentStatus: sale.invoiceStatus,
           newStatus: invoice.Status,
         });
 
         // Update sale with latest invoice data
-        const updateData: any = {
-          invoice_status: invoice.Status,
+        const updateData: Partial<typeof sales.$inferInsert> = {
+          invoiceStatus: invoice.Status,
         };
 
         // If invoice is now paid, set the paid date
-        if (invoice.Status === "PAID" && !sale.invoice_paid_date) {
-          updateData.invoice_paid_date = new Date();
+        if (invoice.Status === "PAID" && !sale.invoicePaidDate) {
+          updateData.invoicePaidDate = new Date();
           logger.info("XERO_WEBHOOKS", "Marking invoice as paid", {
             saleId: sale.id,
             invoiceNumber: invoice.InvoiceNumber,
@@ -438,16 +491,21 @@ export async function POST(req: NextRequest) {
         }
 
         // Update the sale
+        // ORIGINAL XATA: console.log("[XERO_WEBHOOKS] Updating sale", sale.id, "with:", JSON.stringify(updateData));
+        // ORIGINAL XATA: await xata().db.Sales.update(sale.id, updateData);
         console.log("[XERO_WEBHOOKS] Updating sale", sale.id, "with:", JSON.stringify(updateData));
-        await xata().db.Sales.update(sale.id, updateData);
+        await db
+          .update(sales)
+          .set(updateData)
+          .where(eq(sales.id, sale.id));
 
         logger.info("XERO_WEBHOOKS", "Sale updated successfully", {
           saleId: sale.id,
           invoiceNumber: invoice.InvoiceNumber,
-          oldStatus: sale.invoice_status,
+          oldStatus: sale.invoiceStatus,
           newStatus: invoice.Status,
         });
-        console.log("[XERO_WEBHOOKS] SUCCESS - Updated", sale.id, "from", sale.invoice_status, "to", invoice.Status);
+        console.log("[XERO_WEBHOOKS] SUCCESS - Updated", sale.id, "from", sale.invoiceStatus, "to", invoice.Status);
         processedCount++;
       } catch (err: any) {
         logger.error("XERO_WEBHOOKS", "Error processing event", {
@@ -466,7 +524,19 @@ export async function POST(req: NextRequest) {
 
         // Log error with full details
         try {
-          await xata().db.Errors.create({
+          // ORIGINAL XATA: await xata().db.Errors.create({
+          // ORIGINAL XATA:   severity,
+          // ORIGINAL XATA:   source: "xero-webhook",
+          // ORIGINAL XATA:   message: [
+          // ORIGINAL XATA:     `Event processing error: ${err.message || err}`,
+          // ORIGINAL XATA:     `Event type: ${webhookEvent.eventType}`,
+          // ORIGINAL XATA:     `Invoice ID: ${webhookEvent.resourceId}`,
+          // ORIGINAL XATA:     isAuthError ? "ACTION REQUIRED: Admin must reconnect Xero at /admin/xero" : "",
+          // ORIGINAL XATA:   ].filter(Boolean),
+          // ORIGINAL XATA:   timestamp: new Date(),
+          // ORIGINAL XATA:   resolved: false,
+          // ORIGINAL XATA: });
+          await db.insert(errors).values({
             severity,
             source: "xero-webhook",
             message: [

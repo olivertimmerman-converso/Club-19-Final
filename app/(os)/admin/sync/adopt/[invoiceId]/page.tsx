@@ -7,7 +7,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getUserRole } from "@/lib/getUserRole";
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { shoppers, suppliers } from "@/db/schema";
+import { eq, asc } from "drizzle-orm";
 import { AdoptInvoiceClient } from "./AdoptInvoiceClient";
 
 export const dynamic = "force-dynamic";
@@ -29,28 +32,41 @@ export default async function AdoptInvoicePage({ params }: PageProps) {
     redirect("/dashboard");
   }
 
-  const xata = getXataClient();
+  // ORIGINAL XATA: const xata = getXataClient();
+
+  // ORIGINAL XATA:
+  // // Fetch shoppers for the dropdown
+  // const shoppersRaw = await xata.db.Shoppers
+  //   .filter({ active: true })
+  //   .select(["id", "name"])
+  //   .sort("name", "asc")
+  //   .getAll();
 
   // Fetch shoppers for the dropdown
-  const shoppersRaw = await xata.db.Shoppers
-    .filter({ active: true })
-    .select(["id", "name"])
-    .sort("name", "asc")
-    .getAll();
+  const shoppersRaw = await db.query.shoppers.findMany({
+    where: eq(shoppers.active, true),
+    orderBy: [asc(shoppers.name)],
+  });
+
+  // ORIGINAL XATA:
+  // // Fetch suppliers for the dropdown
+  // const suppliersRaw = await xata.db.Suppliers
+  //   .select(["id", "name"])
+  //   .sort("name", "asc")
+  //   .getAll();
 
   // Fetch suppliers for the dropdown
-  const suppliersRaw = await xata.db.Suppliers
-    .select(["id", "name"])
-    .sort("name", "asc")
-    .getAll();
+  const suppliersRaw = await db.query.suppliers.findMany({
+    orderBy: [asc(suppliers.name)],
+  });
 
   // Serialize for client component
-  const shoppers = shoppersRaw.map((s) => ({
+  const shoppersData = shoppersRaw.map((s) => ({
     id: s.id,
     name: s.name || "Unknown",
   }));
 
-  const suppliers = suppliersRaw.map((s) => ({
+  const suppliersData = suppliersRaw.map((s) => ({
     id: s.id,
     name: s.name || "Unknown",
   }));
@@ -59,8 +75,8 @@ export default async function AdoptInvoicePage({ params }: PageProps) {
     <div className="p-6 max-w-3xl mx-auto">
       <AdoptInvoiceClient
         invoiceId={invoiceId}
-        shoppers={shoppers}
-        suppliers={suppliers}
+        shoppers={shoppersData}
+        suppliers={suppliersData}
       />
     </div>
   );

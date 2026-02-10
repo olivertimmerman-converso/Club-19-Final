@@ -5,12 +5,15 @@
  * Shows detailed analytics, insights, and operational metrics
  */
 
-import { XataClient } from "@/src/xata";
+// ORIGINAL XATA: import { XataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, shoppers, buyers } from "@/db/schema";
+import { eq, and, gte, lte, desc, asc, isNotNull } from "drizzle-orm";
 import Link from "next/link";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 // import { DashboardClientWrapper } from "./DashboardClientWrapper"; // Temporarily disabled
 
-const xata = new XataClient();
+// ORIGINAL XATA: const xata = new XataClient();
 
 interface OperationsDashboardProps {
   monthParam?: string;
@@ -79,46 +82,44 @@ export async function OperationsDashboard({
   const dateRange = getDateRange(monthParam);
   const monthLabel = getMonthLabel(monthParam);
 
-  // Fetch comprehensive sales data for this month (exclude xero_import records)
-  const salesQuery = xata.db.Sales.filter({
-    sale_date: {
-      $ge: dateRange.start,
-      $le: dateRange.end,
-    }
-  }).select([
-    "id",
-    "sale_date",
-    "sale_reference",
-    "xero_invoice_number",
-    "invoice_status",
-    "sale_amount_inc_vat",
-    "sale_amount_ex_vat",
-    "buy_price",
-    "shipping_cost",
-    "card_fees",
-    "direct_costs",
-    "gross_margin",
-    "commissionable_margin",
-    "commission_locked",
-    "commission_paid",
-    "brand",
-    "category",
-    "item_title",
-    "shopper.id",
-    "shopper.name",
-    "buyer.id",
-    "buyer.name",
-    "source",
-    "deleted_at",
-  ]);
+  // ORIGINAL XATA:
+  // const salesQuery = xata.db.Sales.filter({
+  //   sale_date: {
+  //     $ge: dateRange.start,
+  //     $le: dateRange.end,
+  //   }
+  // }).select([...]);
+  // const allSalesRaw = await salesQuery.sort("sale_date", "desc").getMany({ pagination: { size: 200 } });
 
-  // Fetch sales and filter in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
-  const allSalesRaw = await salesQuery.sort("sale_date", "desc").getMany({ pagination: { size: 200 } });
+  // Fetch comprehensive sales data for this month using Drizzle
+  const allSalesRaw = await db.query.sales.findMany({
+    where: and(
+      gte(sales.saleDate, dateRange.start),
+      lte(sales.saleDate, dateRange.end)
+    ),
+    with: {
+      shopper: true,
+      buyer: true,
+    },
+    orderBy: [desc(sales.saleDate)],
+    limit: 200,
+  });
 
   // Filter out xero_import and deleted sales in JavaScript
-  const sales = allSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deleted_at
+  const salesData = allSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deletedAt
   );
+
+  // ORIGINAL XATA:
+  // const lastMonthSalesRaw = await xata.db.Sales
+  //   .filter({
+  //     sale_date: {
+  //       $ge: lastMonthStart,
+  //       $le: lastMonthEnd,
+  //     }
+  //   })
+  //   .select([...])
+  //   .getMany({ pagination: { size: 200 } });
 
   // Fetch last month's data for comparison
   const lastMonthStart = new Date(dateRange.start);
@@ -127,76 +128,80 @@ export async function OperationsDashboard({
   lastMonthEnd.setDate(0);
   lastMonthEnd.setHours(23, 59, 59);
 
-  // Limit to 200 for comparison
-  const lastMonthSalesRaw = await xata.db.Sales
-    .filter({
-      sale_date: {
-        $ge: lastMonthStart,
-        $le: lastMonthEnd,
-      }
-    })
-    .select([
-      "sale_amount_inc_vat",
-      "gross_margin",
-      "shopper.id",
-      "shopper.name",
-      "source",
-      "deleted_at",
-    ])
-    .getMany({ pagination: { size: 200 } });
+  const lastMonthSalesRaw = await db.query.sales.findMany({
+    where: and(
+      gte(sales.saleDate, lastMonthStart),
+      lte(sales.saleDate, lastMonthEnd)
+    ),
+    with: {
+      shopper: true,
+    },
+    limit: 200,
+  });
 
   // Filter in JavaScript
   const lastMonthSales = lastMonthSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deleted_at
+    sale.source !== 'xero_import' && !sale.deletedAt
   );
+
+  // ORIGINAL XATA:
+  // const ytdSalesRaw = await xata.db.Sales
+  //   .filter({
+  //     sale_date: {
+  //       $ge: ytdStart,
+  //       $le: dateRange.end,
+  //     }
+  //   })
+  //   .select([...])
+  //   .getMany({ pagination: { size: 500 } });
 
   // Fetch YTD data - limit to 500
   const ytdStart = new Date(dateRange.start.getFullYear(), 0, 1);
-  const ytdSalesRaw = await xata.db.Sales
-    .filter({
-      sale_date: {
-        $ge: ytdStart,
-        $le: dateRange.end,
-      }
-    })
-    .select([
-      "sale_amount_inc_vat",
-      "gross_margin",
-      "shopper.id",
-      "shopper.name",
-      "source",
-      "deleted_at",
-    ])
-    .getMany({ pagination: { size: 500 } });
+  const ytdSalesRaw = await db.query.sales.findMany({
+    where: and(
+      gte(sales.saleDate, ytdStart),
+      lte(sales.saleDate, dateRange.end)
+    ),
+    with: {
+      shopper: true,
+    },
+    limit: 500,
+  });
 
   // Filter in JavaScript
   const ytdSales = ytdSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deleted_at
+    sale.source !== 'xero_import' && !sale.deletedAt
   );
 
+  // ORIGINAL XATA:
+  // const invoicesRaw = await xata.db.Sales
+  //   .filter({
+  //     xero_invoice_number: { $isNot: null }
+  //   })
+  //   .select([...])
+  //   .sort("sale_date", "desc")
+  //   .getMany({ pagination: { size: 500 } });
+
   // Fetch recent invoices to calculate outstanding amounts - limit to 500
-  const invoicesRaw = await xata.db.Sales
-    .filter({
-      xero_invoice_number: { $isNot: null }
-    })
-    .select([
-      "xero_invoice_number",
-      "invoice_status",
-      "sale_amount_inc_vat",
-      "sale_date",
-      "source",
-      "deleted_at",
-    ])
-    .sort("sale_date", "desc")
-    .getMany({ pagination: { size: 500 } });
+  const invoicesRaw = await db.query.sales.findMany({
+    where: isNotNull(sales.xeroInvoiceNumber),
+    orderBy: [desc(sales.saleDate)],
+    limit: 500,
+  });
 
   // Filter in JavaScript
   const invoices = invoicesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deleted_at
+    sale.source !== 'xero_import' && !sale.deletedAt
   );
 
+  // ORIGINAL XATA:
+  // const allBuyers = await xata.db.Buyers.select(["id", "name"]).getMany({ pagination: { size: 200 } });
+
   // Fetch buyers - limit to 200
-  const allBuyers = await xata.db.Buyers.select(["id", "name"]).getMany({ pagination: { size: 200 } });
+  const allBuyers = await db.query.buyers.findMany({
+    limit: 200,
+  });
+
   const buyerFirstPurchase = new Map<string, Date>();
 
   // TEMPORARILY DISABLED: Xero sync functionality
@@ -222,48 +227,57 @@ export async function OperationsDashboard({
   //   name: shopper.name,
   // }));
 
+  // ORIGINAL XATA:
+  // const allSalesForBuyersRaw = await xata.db.Sales
+  //   .select(["buyer.id", "sale_date", "source", "deleted_at"])
+  //   .sort("sale_date", "asc")
+  //   .getMany({ pagination: { size: 1000 } });
+
   // Fetch recent sales for buyer analysis - limit to 1000
-  const allSalesForBuyersRaw = await xata.db.Sales
-    .select(["buyer.id", "sale_date", "source", "deleted_at"])
-    .sort("sale_date", "asc")
-    .getMany({ pagination: { size: 1000 } });
+  const allSalesForBuyersRaw = await db.query.sales.findMany({
+    with: {
+      buyer: true,
+    },
+    orderBy: [asc(sales.saleDate)],
+    limit: 1000,
+  });
 
   // Filter in JavaScript
   const allSalesForBuyers = allSalesForBuyersRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deleted_at
+    sale.source !== 'xero_import' && !sale.deletedAt
   );
 
   allSalesForBuyers.forEach((sale) => {
-    if (sale.buyer?.id && sale.sale_date) {
+    if (sale.buyer?.id && sale.saleDate) {
       if (!buyerFirstPurchase.has(sale.buyer.id)) {
-        buyerFirstPurchase.set(sale.buyer.id, new Date(sale.sale_date));
+        buyerFirstPurchase.set(sale.buyer.id, new Date(sale.saleDate));
       }
     }
   });
 
   // Calculate key metrics
-  const revenue = sales.reduce((sum, s) => sum + (s.sale_amount_inc_vat || 0), 0);
-  const margin = sales.reduce((sum, s) => sum + (s.gross_margin || 0), 0);
+  const revenue = salesData.reduce((sum, s) => sum + (s.saleAmountIncVat || 0), 0);
+  const margin = salesData.reduce((sum, s) => sum + (s.grossMargin || 0), 0);
   const totalRevenue = revenue;
   const totalMargin = margin;
   const avgMarginPercent = revenue > 0 ? (margin / revenue) * 100 : 0;
-  const totalTrades = sales.length;
+  const totalTrades = salesData.length;
 
   // Calculate outstanding invoices
   const outstanding = invoices.filter(
     (inv) =>
-      inv.invoice_status === "AUTHORISED" || inv.invoice_status === "SUBMITTED"
+      inv.invoiceStatus === "AUTHORISED" || inv.invoiceStatus === "SUBMITTED"
   );
   const outstandingInvoices = outstanding;
   const outstandingAmount = outstanding.reduce(
-    (sum, inv) => sum + (inv.sale_amount_inc_vat || 0),
+    (sum, inv) => sum + (inv.saleAmountIncVat || 0),
     0
   );
 
   // Calculate overdue invoices (30+ days)
   const now = new Date();
   const overdueInvoices = outstandingInvoices.filter((inv) => {
-    const invoiceDate = inv.sale_date;
+    const invoiceDate = inv.saleDate;
     if (!invoiceDate) return false;
     const daysSince =
       (now.getTime() - new Date(invoiceDate).getTime()) /
@@ -272,9 +286,9 @@ export async function OperationsDashboard({
   });
 
   // Calculate commission pending
-  const commissionPending = sales.reduce((sum, s) => {
-    if (!s.commission_locked && !s.commission_paid) {
-      return sum + (s.commissionable_margin || 0);
+  const commissionPending = salesData.reduce((sum, s) => {
+    if (!s.commissionLocked && !s.commissionPaid) {
+      return sum + (s.commissionableMargin || 0);
     }
     return sum;
   }, 0);
@@ -297,7 +311,7 @@ export async function OperationsDashboard({
   // Calculate shopper performance
   const shopperPerformance = new Map<string, ShopperPerf>();
 
-  sales.forEach((sale) => {
+  salesData.forEach((sale) => {
     const shopperId = sale.shopper?.id || "unassigned";
     const shopperName = sale.shopper?.name || "Unassigned";
 
@@ -318,14 +332,14 @@ export async function OperationsDashboard({
     }
 
     const perf = shopperPerformance.get(shopperId)!;
-    perf.thisMonthSales += sale.sale_amount_inc_vat || 0;
-    perf.thisMonthMargin += sale.gross_margin || 0;
+    perf.thisMonthSales += sale.saleAmountIncVat || 0;
+    perf.thisMonthMargin += sale.grossMargin || 0;
     perf.thisMonthTrades++;
 
-    if (sale.commission_locked || sale.commission_paid) {
-      perf.commissionEarned += sale.commissionable_margin || 0;
+    if (sale.commissionLocked || sale.commissionPaid) {
+      perf.commissionEarned += sale.commissionableMargin || 0;
     } else {
-      perf.commissionPending += sale.commissionable_margin || 0;
+      perf.commissionPending += sale.commissionableMargin || 0;
     }
   });
 
@@ -334,8 +348,8 @@ export async function OperationsDashboard({
     const shopperId = sale.shopper?.id || "unassigned";
     if (shopperPerformance.has(shopperId)) {
       const perf = shopperPerformance.get(shopperId)!;
-      perf.lastMonthSales += sale.sale_amount_inc_vat || 0;
-      perf.lastMonthMargin += sale.gross_margin || 0;
+      perf.lastMonthSales += sale.saleAmountIncVat || 0;
+      perf.lastMonthMargin += sale.grossMargin || 0;
     }
   });
 
@@ -344,8 +358,8 @@ export async function OperationsDashboard({
     const shopperId = sale.shopper?.id || "unassigned";
     if (shopperPerformance.has(shopperId)) {
       const perf = shopperPerformance.get(shopperId)!;
-      perf.ytdSales += sale.sale_amount_inc_vat || 0;
-      perf.ytdMargin += sale.gross_margin || 0;
+      perf.ytdSales += sale.saleAmountIncVat || 0;
+      perf.ytdMargin += sale.grossMargin || 0;
     }
   });
 
@@ -363,7 +377,7 @@ export async function OperationsDashboard({
 
   // Calculate brand stats
   const brandStats = new Map<string, BrandStats>();
-  sales.forEach((sale) => {
+  salesData.forEach((sale) => {
     const brand = sale.brand || "Unknown";
     if (!brandStats.has(brand)) {
       brandStats.set(brand, {
@@ -374,8 +388,8 @@ export async function OperationsDashboard({
       });
     }
     const stats = brandStats.get(brand)!;
-    stats.revenue += sale.sale_amount_inc_vat || 0;
-    stats.margin += sale.gross_margin || 0;
+    stats.revenue += sale.saleAmountIncVat || 0;
+    stats.margin += sale.grossMargin || 0;
     stats.tradeCount++;
   });
 
@@ -395,7 +409,7 @@ export async function OperationsDashboard({
 
   // Calculate client stats
   const clientStatsMap = new Map<string, ClientStats>();
-  sales.forEach((sale) => {
+  salesData.forEach((sale) => {
     const buyerId = sale.buyer?.id;
     const buyerName = sale.buyer?.name || "Unknown";
     if (!buyerId) return;
@@ -418,8 +432,8 @@ export async function OperationsDashboard({
     }
 
     const stats = clientStatsMap.get(buyerId)!;
-    stats.totalSpend += sale.sale_amount_inc_vat || 0;
-    stats.marginGenerated += sale.gross_margin || 0;
+    stats.totalSpend += sale.saleAmountIncVat || 0;
+    stats.marginGenerated += sale.grossMargin || 0;
     stats.trades++;
   });
 
@@ -435,42 +449,42 @@ export async function OperationsDashboard({
 
   // Invoice status breakdown
   const invoicesByStatus = {
-    draft: invoices.filter((inv) => inv.invoice_status === "DRAFT"),
+    draft: invoices.filter((inv) => inv.invoiceStatus === "DRAFT"),
     awaiting: invoices.filter(
       (inv) =>
-        inv.invoice_status === "AUTHORISED" || inv.invoice_status === "SUBMITTED"
+        inv.invoiceStatus === "AUTHORISED" || inv.invoiceStatus === "SUBMITTED"
     ),
     overdue: overdueInvoices,
-    paid: invoices.filter((inv) => inv.invoice_status === "PAID"),
+    paid: invoices.filter((inv) => inv.invoiceStatus === "PAID"),
   };
 
   // Financial breakdown
-  const totalBuyCosts = sales.reduce((sum, s) => sum + (s.buy_price || 0), 0);
-  const totalShipping = sales.reduce(
-    (sum, s) => sum + (s.shipping_cost || 0),
+  const totalBuyCosts = salesData.reduce((sum, s) => sum + (s.buyPrice || 0), 0);
+  const totalShipping = salesData.reduce(
+    (sum, s) => sum + (s.shippingCost || 0),
     0
   );
-  const totalCardFees = sales.reduce((sum, s) => sum + (s.card_fees || 0), 0);
-  const totalDirectCosts = sales.reduce(
-    (sum, s) => sum + (s.direct_costs || 0),
+  const totalCardFees = salesData.reduce((sum, s) => sum + (s.cardFees || 0), 0);
+  const totalDirectCosts = salesData.reduce(
+    (sum, s) => sum + (s.directCosts || 0),
     0
   );
-  const vatAmount = totalRevenue - sales.reduce((sum, s) => sum + (s.sale_amount_ex_vat || 0), 0);
-  const netRevenue = sales.reduce((sum, s) => sum + (s.sale_amount_ex_vat || 0), 0);
+  const vatAmount = totalRevenue - salesData.reduce((sum, s) => sum + (s.saleAmountExVat || 0), 0);
+  const netRevenue = salesData.reduce((sum, s) => sum + (s.saleAmountExVat || 0), 0);
   const marginAfterCosts =
     totalMargin - totalShipping - totalCardFees - totalDirectCosts;
-  const commissionPool = sales.reduce(
-    (sum, s) => sum + (s.commissionable_margin || 0),
+  const commissionPool = salesData.reduce(
+    (sum, s) => sum + (s.commissionableMargin || 0),
     0
   );
 
   // Commission tracking
-  const commissionLocked = sales.reduce((sum, s) => {
-    if (s.commission_locked) return sum + (s.commissionable_margin || 0);
+  const commissionLocked = salesData.reduce((sum, s) => {
+    if (s.commissionLocked) return sum + (s.commissionableMargin || 0);
     return sum;
   }, 0);
-  const commissionPaid = sales.reduce((sum, s) => {
-    if (s.commission_paid) return sum + (s.commissionable_margin || 0);
+  const commissionPaid = salesData.reduce((sum, s) => {
+    if (s.commissionPaid) return sum + (s.commissionableMargin || 0);
     return sum;
   }, 0);
   const totalCommissionLiability = commissionPending + commissionLocked;
@@ -478,11 +492,11 @@ export async function OperationsDashboard({
     totalMargin > 0 ? (commissionPool / totalMargin) * 100 : 0;
 
   // Data quality alerts
-  const salesMissingShopper = sales.filter((s) => !s.shopper?.id);
-  const salesZeroMargin = sales.filter((s) => (s.gross_margin || 0) === 0);
+  const salesMissingShopper = salesData.filter((s) => !s.shopper?.id);
+  const salesZeroMargin = salesData.filter((s) => (s.grossMargin || 0) === 0);
   const stuckDraftInvoices = invoices.filter((inv) => {
-    if (inv.invoice_status !== "DRAFT") return false;
-    const invoiceDate = inv.sale_date;
+    if (inv.invoiceStatus !== "DRAFT") return false;
+    const invoiceDate = inv.saleDate;
     if (!invoiceDate) return false;
     const daysSince =
       (now.getTime() - new Date(invoiceDate).getTime()) /
@@ -492,11 +506,11 @@ export async function OperationsDashboard({
 
   // Last month comparison for key metrics
   const lastMonthRevenue = lastMonthSales.reduce(
-    (sum, s) => sum + (s.sale_amount_inc_vat || 0),
+    (sum, s) => sum + (s.saleAmountIncVat || 0),
     0
   );
   const lastMonthMargin = lastMonthSales.reduce(
-    (sum, s) => sum + (s.gross_margin || 0),
+    (sum, s) => sum + (s.grossMargin || 0),
     0
   );
   const revenueChange =
@@ -858,7 +872,7 @@ export async function OperationsDashboard({
             <p className="text-xs text-gray-500">
               {formatCurrency(
                 invoicesByStatus.overdue.reduce(
-                  (sum, inv) => sum + (inv.sale_amount_inc_vat || 0),
+                  (sum, inv) => sum + (inv.saleAmountIncVat || 0),
                   0
                 )
               )}
@@ -898,7 +912,7 @@ export async function OperationsDashboard({
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {overdueInvoices.slice(0, 10).map((inv) => {
-                    const invoiceDate = inv.sale_date;
+                    const invoiceDate = inv.saleDate;
                     const daysOverdue = invoiceDate
                       ? Math.floor(
                           (now.getTime() - new Date(invoiceDate).getTime()) /
@@ -906,15 +920,15 @@ export async function OperationsDashboard({
                         )
                       : 0;
                     return (
-                      <tr key={inv.xero_invoice_number} className="hover:bg-red-50">
+                      <tr key={inv.xeroInvoiceNumber} className="hover:bg-red-50">
                         <td className="px-3 py-2 text-sm font-medium">
-                          {inv.xero_invoice_number}
+                          {inv.xeroInvoiceNumber}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-600">
                           {formatDate(invoiceDate)}
                         </td>
                         <td className="px-3 py-2 text-sm text-right font-semibold">
-                          {formatCurrency(inv.sale_amount_inc_vat || 0)}
+                          {formatCurrency(inv.saleAmountIncVat || 0)}
                         </td>
                         <td className="px-3 py-2 text-sm text-right text-red-600 font-semibold">
                           {daysOverdue} days
@@ -1145,19 +1159,19 @@ export async function OperationsDashboard({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {sales.slice(0, 20).map((sale) => {
+              {salesData.slice(0, 20).map((sale) => {
                 const marginPercent =
-                  sale.sale_amount_inc_vat && sale.sale_amount_inc_vat > 0
-                    ? ((sale.gross_margin || 0) / sale.sale_amount_inc_vat) *
+                  sale.saleAmountIncVat && sale.saleAmountIncVat > 0
+                    ? ((sale.grossMargin || 0) / sale.saleAmountIncVat) *
                       100
                     : 0;
                 return (
                   <tr key={sale.id} className="hover:bg-gray-50">
                     <td className="px-3 py-2 whitespace-nowrap">
-                      {formatDate(sale.sale_date)}
+                      {formatDate(sale.saleDate)}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap font-medium">
-                      {sale.xero_invoice_number || sale.sale_reference || "—"}
+                      {sale.xeroInvoiceNumber || sale.saleReference || "—"}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {sale.shopper?.name || "—"}
@@ -1168,15 +1182,15 @@ export async function OperationsDashboard({
                     <td className="px-3 py-2">
                       <div className="max-w-xs truncate">
                         {sale.brand && <span className="font-medium">{sale.brand} </span>}
-                        {sale.item_title || "—"}
+                        {sale.itemTitle || "—"}
                       </div>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-right font-semibold">
-                      {formatCurrency(sale.sale_amount_inc_vat || 0)}
+                      {formatCurrency(sale.saleAmountIncVat || 0)}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-right">
                       <div className="text-green-600 font-semibold">
-                        {formatCurrency(sale.gross_margin || 0)}
+                        {formatCurrency(sale.grossMargin || 0)}
                       </div>
                       <div className="text-gray-500 text-xs">
                         {formatPercent(marginPercent)}
@@ -1185,14 +1199,14 @@ export async function OperationsDashboard({
                     <td className="px-3 py-2 whitespace-nowrap text-center">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          sale.invoice_status === "PAID"
+                          sale.invoiceStatus === "PAID"
                             ? "bg-green-100 text-green-800"
-                            : sale.invoice_status === "AUTHORISED"
+                            : sale.invoiceStatus === "AUTHORISED"
                             ? "bg-blue-100 text-blue-800"
                             : "bg-gray-100 text-gray-800"
                         }`}
                       >
-                        {sale.invoice_status || "—"}
+                        {sale.invoiceStatus || "—"}
                       </span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-center">
@@ -1217,7 +1231,7 @@ export async function OperationsDashboard({
         stuckDraftInvoices.length > 0) && (
         <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-5">
           <h2 className="text-lg font-semibold text-yellow-900 mb-4">
-            ⚠️ Data Quality Alerts
+            Data Quality Alerts
           </h2>
           <div className="space-y-3">
             {salesMissingShopper.length > 0 && (

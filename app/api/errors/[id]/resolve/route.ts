@@ -9,7 +9,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { resolveError, clearSaleErrorFlag } from "@/lib/error-tools";
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { errors } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { withRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -19,16 +22,17 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // ============================================================================
-// XATA CLIENT
+// ORIGINAL XATA CLIENT (REMOVED)
 // ============================================================================
 
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
+// ORIGINAL XATA:
+// let _xata: ReturnType<typeof getXataClient> | null = null;
+//
+// function xata() {
+//   if (_xata) return _xata;
+//   _xata = getXataClient();
+//   return _xata;
+// }
 
 // ============================================================================
 // POST HANDLER
@@ -95,14 +99,20 @@ export async function POST(
     });
 
     // STEP 2: Fetch the error to get the sale ID
-    const error = await xata().db.Errors.read(errorId);
+    // ORIGINAL XATA: const error = await xata().db.Errors.read(errorId);
+    const errorResults = await db
+      .select()
+      .from(errors)
+      .where(eq(errors.id, errorId))
+      .limit(1);
+    const error = errorResults[0];
 
     if (!error) {
       logger.error("ERRORS", "Error record not found", { errorId });
       return NextResponse.json({ error: "Error not found" }, { status: 404 });
     }
 
-    const saleId = error.sale?.id;
+    const saleId = error.saleId;
 
     // STEP 3: Resolve the error
     const resolveResult = await resolveError(errorId, adminEmail, notes);

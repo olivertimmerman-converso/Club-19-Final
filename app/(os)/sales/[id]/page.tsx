@@ -1,6 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
-import { getXataClient } from '@/src/xata';
+// ORIGINAL XATA: import { getXataClient } from '@/src/xata';
+import { db } from "@/db";
+import { sales, shoppers, suppliers } from "@/db/schema";
+import { eq, and, isNull, isNotNull, desc, asc } from "drizzle-orm";
 import { getUserRole } from '@/lib/getUserRole';
 import { SaleDetailClient } from './SaleDetailClient';
 
@@ -18,20 +21,31 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   if (!userId) redirect('/sign-in');
 
   const { id } = await params;
-  const xata = getXataClient();
+  // ORIGINAL XATA: const xata = getXataClient();
   const role = await getUserRole();
 
-  // Fetch sale record from Xata with all related data
-  const sale = await xata.db.Sales
-    .select([
-      '*',
-      'buyer.*',
-      'supplier.*',
-      'shopper.*',
-      'introducer.*',
-    ])
-    .filter({ id })
-    .getFirst();
+  // ORIGINAL XATA:
+  // const sale = await xata.db.Sales
+  //   .select([
+  //     '*',
+  //     'buyer.*',
+  //     'supplier.*',
+  //     'shopper.*',
+  //     'introducer.*',
+  //   ])
+  //   .filter({ id })
+  //   .getFirst();
+
+  // Fetch sale record with all related data
+  const sale = await db.query.sales.findFirst({
+    where: eq(sales.id, id),
+    with: {
+      buyer: true,
+      supplier: true,
+      shopper: true,
+      introducer: true,
+    },
+  });
 
   // Handle not found
   if (!sale) {
@@ -41,86 +55,104 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   // Debug: Log raw data from database
   console.log('[SALE_DETAIL] Raw sale from DB:', {
     id: sale.id,
-    sale_reference: sale.sale_reference,
-    sale_amount_inc_vat: sale.sale_amount_inc_vat,
-    sale_amount_ex_vat: sale.sale_amount_ex_vat,
-    branding_theme: sale.branding_theme,
+    sale_reference: sale.saleReference,
+    sale_amount_inc_vat: sale.saleAmountIncVat,
+    sale_amount_ex_vat: sale.saleAmountExVat,
+    branding_theme: sale.brandingTheme,
     timestamp: new Date().toISOString(),
   });
 
+  // ORIGINAL XATA:
+  // const shoppers = await xata.db.Shoppers
+  //   .select(['id', 'name'])
+  //   .sort('name', 'asc')
+  //   .getAll();
+
   // Fetch all shoppers for the dropdown
-  const shoppers = await xata.db.Shoppers
-    .select(['id', 'name'])
-    .sort('name', 'asc')
-    .getAll();
+  const shoppersData = await db.query.shoppers.findMany({
+    orderBy: [asc(shoppers.name)],
+  });
+
+  // ORIGINAL XATA:
+  // const suppliersRaw = await xata.db.Suppliers
+  //   .select(['id', 'name'])
+  //   .sort('name', 'asc')
+  //   .getAll();
 
   // Fetch all suppliers for the dropdown (for edit mode)
-  const suppliersRaw = await xata.db.Suppliers
-    .select(['id', 'name'])
-    .sort('name', 'asc')
-    .getAll();
+  const suppliersRaw = await db.query.suppliers.findMany({
+    orderBy: [asc(suppliers.name)],
+  });
+
+  // ORIGINAL XATA:
+  // const unallocatedXeroImports = (role === 'superadmin' && sale.source === 'atelier')
+  //   ? await xata.db.Sales
+  //       .filter({
+  //         $all: [
+  //           { source: 'xero_import' },
+  //           { needs_allocation: true },
+  //           { $not: { $exists: 'deleted_at' } }
+  //         ]
+  //       })
+  //       .select([...])
+  //       .sort('sale_date', 'desc')
+  //       .getAll()
+  //   : [];
 
   // Fetch unallocated Xero imports for superadmin linking (for all Atelier sales, even if already linked)
   const unallocatedXeroImports = (role === 'superadmin' && sale.source === 'atelier')
-    ? await xata.db.Sales
-        .filter({
-          $all: [
-            { source: 'xero_import' },
-            { needs_allocation: true },
-            { $not: { $exists: 'deleted_at' } }
-          ]
-        })
-        .select([
-          'id',
-          'xero_invoice_number',
-          'sale_date',
-          'sale_amount_inc_vat',
-          'currency',
-          'buyer.name',
-        ])
-        .sort('sale_date', 'desc')
-        .getAll()
+    ? await db.query.sales.findMany({
+        where: and(
+          eq(sales.source, 'xero_import'),
+          eq(sales.needsAllocation, true),
+          isNull(sales.deletedAt)
+        ),
+        with: {
+          buyer: true,
+        },
+        orderBy: [desc(sales.saleDate)],
+      })
     : [];
 
   // Serialize data for client component
   const serializedSale = {
     id: sale.id,
-    sale_reference: sale.sale_reference || null,
+    sale_reference: sale.saleReference || null,
     source: sale.source || null,
-    xero_invoice_number: sale.xero_invoice_number || null,
-    xero_invoice_url: sale.xero_invoice_url || null,
-    xero_invoice_id: sale.xero_invoice_id || null,
-    sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
-    sale_amount_inc_vat: sale.sale_amount_inc_vat || 0,
-    sale_amount_ex_vat: sale.sale_amount_ex_vat || 0,
+    xero_invoice_number: sale.xeroInvoiceNumber || null,
+    xero_invoice_url: sale.xeroInvoiceUrl || null,
+    xero_invoice_id: sale.xeroInvoiceId || null,
+    sale_date: sale.saleDate ? sale.saleDate.toISOString() : null,
+    sale_amount_inc_vat: sale.saleAmountIncVat || 0,
+    sale_amount_ex_vat: sale.saleAmountExVat || 0,
     currency: sale.currency || 'GBP',
     brand: sale.brand || null,
     category: sale.category || null,
-    item_title: sale.item_title || null,
+    item_title: sale.itemTitle || null,
     quantity: sale.quantity || 1,
-    buy_price: sale.buy_price || 0,
-    shipping_cost: sale.shipping_cost || 0,
-    shipping_method: (sale as any).shipping_method || null,
-    shipping_cost_confirmed: (sale as any).shipping_cost_confirmed || false,
-    card_fees: sale.card_fees || 0,
-    direct_costs: sale.direct_costs || 0,
-    gross_margin: sale.gross_margin || 0,
-    commissionable_margin: sale.commissionable_margin || null,
-    branding_theme: sale.branding_theme || null,
-    invoice_status: sale.invoice_status || null,
-    invoice_paid_date: sale.invoice_paid_date ? sale.invoice_paid_date.toISOString() : null,
-    xero_payment_date: sale.xero_payment_date ? sale.xero_payment_date.toISOString() : null,
-    commission_locked: sale.commission_locked || false,
-    commission_paid: sale.commission_paid || false,
-    commission_amount: sale.commission_amount || null,
-    commission_clawback: sale.commission_clawback || false,
-    commission_clawback_date: sale.commission_clawback_date ? sale.commission_clawback_date.toISOString() : null,
-    commission_clawback_reason: sale.commission_clawback_reason || null,
-    internal_notes: sale.internal_notes || null,
-    has_introducer: (sale as any).has_introducer || false,
-    introducer_commission: (sale as any).introducer_commission || null,
-    is_payment_plan: (sale as any).is_payment_plan || false,
-    payment_plan_instalments: (sale as any).payment_plan_instalments || null,
+    buy_price: sale.buyPrice || 0,
+    shipping_cost: sale.shippingCost || 0,
+    shipping_method: sale.shippingMethod || null,
+    shipping_cost_confirmed: sale.shippingCostConfirmed || false,
+    card_fees: sale.cardFees || 0,
+    direct_costs: sale.directCosts || 0,
+    gross_margin: sale.grossMargin || 0,
+    commissionable_margin: sale.commissionableMargin || null,
+    branding_theme: sale.brandingTheme || null,
+    invoice_status: sale.invoiceStatus || null,
+    invoice_paid_date: sale.invoicePaidDate ? sale.invoicePaidDate.toISOString() : null,
+    xero_payment_date: sale.xeroPaymentDate ? sale.xeroPaymentDate.toISOString() : null,
+    commission_locked: sale.commissionLocked || false,
+    commission_paid: sale.commissionPaid || false,
+    commission_amount: sale.commissionAmount || null,
+    commission_clawback: sale.commissionClawback || false,
+    commission_clawback_date: sale.commissionClawbackDate ? sale.commissionClawbackDate.toISOString() : null,
+    commission_clawback_reason: sale.commissionClawbackReason || null,
+    internal_notes: sale.internalNotes || null,
+    has_introducer: sale.hasIntroducer || false,
+    introducer_commission: sale.introducerCommission || null,
+    is_payment_plan: sale.isPaymentPlan || false,
+    payment_plan_instalments: sale.paymentPlanInstalments || null,
     buyer: sale.buyer ? {
       id: sale.buyer.id,
       name: sale.buyer.name || 'Unknown',
@@ -137,7 +169,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
       id: sale.introducer.id,
       name: sale.introducer.name || 'Unknown',
     } : null,
-    linked_invoices: (sale as any).linked_invoices || [],
+    linked_invoices: (sale.linkedInvoices as any[] | null) || [],
   };
 
   // Debug: Log serialized data
@@ -149,7 +181,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
     branding_theme: serializedSale.branding_theme,
   });
 
-  const serializedShoppers = shoppers.map(s => ({
+  const serializedShoppers = shoppersData.map(s => ({
     id: s.id,
     name: s.name || 'Unknown',
   }));
@@ -161,9 +193,9 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
 
   const serializedXeroImports = unallocatedXeroImports.map(imp => ({
     id: imp.id,
-    xero_invoice_number: imp.xero_invoice_number || 'Unknown',
-    sale_date: imp.sale_date ? imp.sale_date.toISOString() : null,
-    sale_amount_inc_vat: imp.sale_amount_inc_vat || 0,
+    xero_invoice_number: imp.xeroInvoiceNumber || 'Unknown',
+    sale_date: imp.saleDate ? imp.saleDate.toISOString() : null,
+    sale_amount_inc_vat: imp.saleAmountIncVat || 0,
     currency: imp.currency || 'GBP',
     buyer_name: imp.buyer?.name || 'Unknown',
   }));

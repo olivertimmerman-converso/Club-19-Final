@@ -197,5 +197,14 @@ export function getNavigationItems(role: UserRole): NavItem[] {
     });
   }
 
+  // Reconciliation - for roles that can adopt invoices
+  if (canAccessRoute(role, '/admin/sync')) {
+    items.push({
+      label: 'Reconciliation',
+      href: '/admin/sync',
+      icon: 'RefreshCw',
+    });
+  }
+
   return items;
 }

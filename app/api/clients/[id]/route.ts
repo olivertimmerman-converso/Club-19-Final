@@ -8,7 +8,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
+import { db } from "@/db";
+import { buyers, shoppers } from "@/db/schema";
+import { eq } from "drizzle-orm";
+// ORIGINAL XATA: import { getXataClient } from '@/src/xata';
 import * as logger from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -30,11 +33,35 @@ export async function GET(
     const { id } = await params;
     logger.info('CLIENTS_API', 'Fetching client', { clientId: id });
 
-    const xata = getXataClient();
-    const client = await xata.db.Buyers
-      .select(['*', 'owner.id', 'owner.name'])
-      .filter({ id })
-      .getFirst();
+    // ORIGINAL XATA:
+    // const xata = getXataClient();
+    // const client = await xata.db.Buyers
+    //   .select(['*', 'owner.id', 'owner.name'])
+    //   .filter({ id })
+    //   .getFirst();
+
+    const results = await db
+      .select({
+        id: buyers.id,
+        name: buyers.name,
+        email: buyers.email,
+        xeroContactId: buyers.xeroContactId,
+        ownerId: buyers.ownerId,
+        ownerChangedAt: buyers.ownerChangedAt,
+        ownerChangedBy: buyers.ownerChangedBy,
+        createdAt: buyers.createdAt,
+        updatedAt: buyers.updatedAt,
+        owner: {
+          id: shoppers.id,
+          name: shoppers.name,
+        },
+      })
+      .from(buyers)
+      .leftJoin(shoppers, eq(buyers.ownerId, shoppers.id))
+      .where(eq(buyers.id, id))
+      .limit(1);
+
+    const client = results[0] || null;
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
@@ -77,17 +104,20 @@ export async function PATCH(
     const body = await request.json();
     logger.info('CLIENTS_API', 'Update client request', { clientId: id, fields: Object.keys(body) });
 
-    const xata = getXataClient();
+    // ORIGINAL XATA: const xata = getXataClient();
 
     // Build update object from allowed fields
     const updateData: Record<string, any> = {};
 
     // Handle owner assignment (link field)
     if (body.owner !== undefined) {
-      updateData.owner = body.owner || null;
+      // ORIGINAL XATA: updateData.owner = body.owner || null;
+      updateData.ownerId = body.owner || null;
       // Track when and who changed the owner
-      updateData.owner_changed_at = new Date();
-      updateData.owner_changed_by = userId;
+      // ORIGINAL XATA: updateData.owner_changed_at = new Date();
+      updateData.ownerChangedAt = new Date();
+      // ORIGINAL XATA: updateData.owner_changed_by = userId;
+      updateData.ownerChangedBy = userId;
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -99,8 +129,16 @@ export async function PATCH(
 
     logger.info('CLIENTS_API', 'Updating client', { clientId: id, updateFields: Object.keys(updateData) });
 
-    // Note: owner, owner_changed_at, owner_changed_by fields must be added to Xata schema
-    const updatedClient = await xata.db.Buyers.update(id, updateData as any);
+    // ORIGINAL XATA:
+    // const updatedClient = await xata.db.Buyers.update(id, updateData as any);
+
+    const updatedResults = await db
+      .update(buyers)
+      .set(updateData)
+      .where(eq(buyers.id, id))
+      .returning();
+
+    const updatedClient = updatedResults[0] || null;
 
     if (!updatedClient) {
       return NextResponse.json(

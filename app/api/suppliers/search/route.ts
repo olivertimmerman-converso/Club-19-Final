@@ -3,14 +3,22 @@
  *
  * GET endpoint for searching suppliers by name
  * Used by Deal Studio for supplier autocomplete
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getXataClient } from "@/src/xata";
 import * as logger from "@/lib/logger";
 
-const xata = getXataClient();
+// Drizzle imports
+import { db } from "@/db";
+import { suppliers } from "@/db/schema";
+import { ilike, asc } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from "@/src/xata";
+// const xata = getXataClient();
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,26 +39,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
-    // Search Suppliers by name (case-insensitive, partial match)
-    // Note: Xata's $contains is case-sensitive, we should use $iContains for case-insensitive
-    const suppliers = await xata.db.Suppliers.filter({
-      name: { $iContains: query },
-    })
-      .select(["id", "name", "email"])
-      .sort("name", "asc")
-      .getMany();
+    // ORIGINAL XATA:
+    // const suppliers = await xata.db.Suppliers.filter({
+    //   name: { $iContains: query },
+    // })
+    //   .select(["id", "name", "email"])
+    //   .sort("name", "asc")
+    //   .getMany();
 
-    // Limit to first 20 results for autocomplete
-    const limitedSuppliers = suppliers.slice(0, 20);
+    // DRIZZLE:
+    // Search Suppliers by name (case-insensitive, partial match)
+    const supplierResults = await db
+      .select({
+        id: suppliers.id,
+        name: suppliers.name,
+        email: suppliers.email,
+      })
+      .from(suppliers)
+      .where(ilike(suppliers.name, `%${query}%`))
+      .orderBy(asc(suppliers.name))
+      .limit(20);
 
     logger.info('SUPPLIER_SEARCH', 'Search completed', {
-      totalResults: suppliers.length,
-      returnedResults: limitedSuppliers.length,
-      firstThree: limitedSuppliers.slice(0, 3).map(s => s.name)
+      returnedResults: supplierResults.length,
+      firstThree: supplierResults.slice(0, 3).map(s => s.name)
     });
 
     // Format response for autocomplete
-    const results = limitedSuppliers.map((supplier) => ({
+    const results = supplierResults.map((supplier) => ({
       id: supplier.id,
       name: supplier.name || "",
       email: supplier.email || "",

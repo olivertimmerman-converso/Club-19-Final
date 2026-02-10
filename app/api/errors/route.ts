@@ -8,7 +8,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { errors, sales } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { withRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -18,16 +21,17 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // ============================================================================
-// XATA CLIENT
+// ORIGINAL XATA CLIENT (REMOVED)
 // ============================================================================
 
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
+// ORIGINAL XATA:
+// let _xata: ReturnType<typeof getXataClient> | null = null;
+//
+// function xata() {
+//   if (_xata) return _xata;
+//   _xata = getXataClient();
+//   return _xata;
+// }
 
 // ============================================================================
 // GET HANDLER
@@ -82,51 +86,91 @@ export async function GET(req: NextRequest) {
     });
 
     // STEP 2: Build query with filters
-    let query = xata().db.Errors.select([
-      "id",
-      "sale.id",
-      "sale.sale_reference",
-      "sale.brand",
-      "sale.category",
-      "severity",
-      "source",
-      "message",
-      "timestamp",
-      "resolved",
-      "resolved_by",
-    ]);
+    // ORIGINAL XATA:
+    // let query = xata().db.Errors.select([
+    //   "id",
+    //   "sale.id",
+    //   "sale.sale_reference",
+    //   "sale.brand",
+    //   "sale.category",
+    //   "severity",
+    //   "source",
+    //   "message",
+    //   "timestamp",
+    //   "resolved",
+    //   "resolved_by",
+    // ]);
 
-    // Apply filters
-    const filters: Record<string, string | boolean> = {};
+    // Build filter conditions
+    const conditions = [];
 
     // Note: error_type and triggered_by fields don't exist in schema, removed filter logic
 
     if (severity) {
-      filters.severity = severity;
+      conditions.push(eq(errors.severity, severity));
     }
 
     if (saleId) {
-      filters["sale.id"] = saleId;
+      conditions.push(eq(errors.saleId, saleId));
     }
 
     if (resolved !== null && resolved !== undefined) {
-      filters.resolved = resolved === "true";
+      conditions.push(eq(errors.resolved, resolved === "true"));
     }
 
-    // Apply filters if any exist
-    if (Object.keys(filters).length > 0) {
-      query = query.filter(filters);
-    }
+    // ORIGINAL XATA:
+    // // Apply filters if any exist
+    // if (Object.keys(filters).length > 0) {
+    //   query = query.filter(filters);
+    // }
+    // // STEP 3: Fetch errors
+    // const errors = await query.sort("timestamp", "desc").getMany();
 
-    // STEP 3: Fetch errors
-    const errors = await query.sort("timestamp", "desc").getMany();
+    // Execute Drizzle query with joins
+    const errorRecords = await db
+      .select({
+        id: errors.id,
+        saleId: errors.saleId,
+        saleReference: sales.saleReference,
+        brand: sales.brand,
+        category: sales.category,
+        severity: errors.severity,
+        source: errors.source,
+        message: errors.message,
+        timestamp: errors.timestamp,
+        resolved: errors.resolved,
+        resolvedBy: errors.resolvedBy,
+      })
+      .from(errors)
+      .leftJoin(sales, eq(errors.saleId, sales.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(errors.timestamp));
 
-    logger.info("ERRORS", `Found ${errors.length} errors`);
+    // Transform results to match original format with nested sale object
+    const transformedErrors = errorRecords.map((err) => ({
+      id: err.id,
+      sale: err.saleId
+        ? {
+            id: err.saleId,
+            sale_reference: err.saleReference,
+            brand: err.brand,
+            category: err.category,
+          }
+        : null,
+      severity: err.severity,
+      source: err.source,
+      message: err.message,
+      timestamp: err.timestamp,
+      resolved: err.resolved,
+      resolved_by: err.resolvedBy,
+    }));
+
+    logger.info("ERRORS", `Found ${transformedErrors.length} errors`);
 
     // STEP 4: Return response
     return NextResponse.json({
-      errors,
-      count: errors.length,
+      errors: transformedErrors,
+      count: transformedErrors.length,
     });
   } catch (error: any) {
     logger.error("ERRORS", "Failed to fetch errors", { error });

@@ -2,19 +2,58 @@
  * Xata Sales OS - Master Backend Module
  *
  * Consolidated integration layer for Club 19 Sales OS
- * Handles all Xata database operations for sales tracking
+ * Handles all database operations for sales tracking
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
+ * Original Xata code is preserved as comments above each Drizzle query
  */
 
-import { XataClient } from "@/src/xata";
-import type {
-  ShoppersRecord,
-  BuyersRecord,
-  SuppliersRecord,
-  IntroducersRecord,
-  CommissionBandsRecord,
-  SalesRecord,
-  LineItemsRecord,
-} from "@/src/xata";
+// ============================================================================
+// DRIZZLE IMPORTS (Replaces Xata SDK)
+// ============================================================================
+import { db } from "@/db";
+import {
+  shoppers,
+  buyers,
+  suppliers,
+  introducers,
+  commissionBands,
+  sales,
+  errors,
+  lineItems,
+  type Shopper,
+  type Buyer,
+  type Supplier,
+  type Introducer,
+  type CommissionBand,
+  type Sale,
+  type LineItem,
+} from "@/db/schema";
+import { eq, and, lte, desc, asc } from "drizzle-orm";
+
+// ============================================================================
+// LEGACY XATA IMPORTS (Preserved for reference - DO NOT USE)
+// ============================================================================
+// import { XataClient } from "@/src/xata";
+// import type {
+//   ShoppersRecord,
+//   BuyersRecord,
+//   SuppliersRecord,
+//   IntroducersRecord,
+//   CommissionBandsRecord,
+//   SalesRecord,
+//   LineItemsRecord,
+// } from "@/src/xata";
+
+// Type aliases for backwards compatibility with existing code
+export type ShoppersRecord = Shopper;
+export type BuyersRecord = Buyer;
+export type SuppliersRecord = Supplier;
+export type IntroducersRecord = Introducer;
+export type CommissionBandsRecord = CommissionBand;
+export type SalesRecord = Sale;
+export type LineItemsRecord = LineItem;
+
 import { calculateCommission } from "./commission-engine";
 import { transitionSaleStatus } from "./deal-lifecycle";
 import { validateSaleInput, formatValidationErrors } from "./validation";
@@ -27,17 +66,6 @@ import {
 } from "./sanitize";
 import { calculateSaleEconomics as calculateEconomics } from "./economics";
 import * as logger from "./logger";
-
-// ============================================================================
-// CLIENT SINGLETON
-// ============================================================================
-
-let _xata: XataClient | null = null;
-
-export function xata() {
-  if (!_xata) _xata = new XataClient();
-  return _xata;
-}
 
 // ============================================================================
 // UPSTREAM TABLE HELPERS - SHOPPERS
@@ -54,16 +82,38 @@ export function xata() {
  */
 export async function getOrCreateShopperByName(
   name: string
-): Promise<ShoppersRecord> {
-  const existing = await xata().db.Shoppers.filter({ name }).getFirst();
+): Promise<Shopper> {
+  // ORIGINAL XATA:
+  // const existing = await xata().db.Shoppers.filter({ name }).getFirst();
+  // if (existing) return existing;
+  //
+  // return await xata().db.Shoppers.create({
+  //   name,
+  //   email: "",
+  //   commission_scheme: "",
+  //   active: true,
+  // });
+
+  // DRIZZLE:
+  const [existing] = await db
+    .select()
+    .from(shoppers)
+    .where(eq(shoppers.name, name))
+    .limit(1);
+
   if (existing) return existing;
 
-  return await xata().db.Shoppers.create({
-    name,
-    email: "",
-    commission_scheme: "",
-    active: true,
-  });
+  const [created] = await db
+    .insert(shoppers)
+    .values({
+      name,
+      email: "",
+      commissionScheme: "",
+      active: true,
+    })
+    .returning();
+
+  return created;
 }
 
 /**
@@ -77,10 +127,20 @@ export async function getOrCreateShopperByName(
  */
 export async function getShopperByClerkId(
   clerkId: string
-): Promise<ShoppersRecord | null> {
+): Promise<Shopper | null> {
+  // ORIGINAL XATA:
+  // return await xata().db.Shoppers.filter({ name: clerkId }).getFirst();
+
+  // DRIZZLE:
   // Assuming clerk_id is stored in a custom field or matched by name
   // Adjust this based on your actual Clerk integration
-  return await xata().db.Shoppers.filter({ name: clerkId }).getFirst();
+  const [result] = await db
+    .select()
+    .from(shoppers)
+    .where(eq(shoppers.name, clerkId))
+    .limit(1);
+
+  return result || null;
 }
 
 // ============================================================================
@@ -107,25 +167,54 @@ export async function getOrCreateBuyer(
   name: string,
   email?: string,
   xero_contact_id?: string
-): Promise<BuyersRecord> {
+): Promise<Buyer> {
+  // ORIGINAL XATA:
+  // let existing = await xata().db.Buyers.filter({ name }).getFirst();
+  // if (existing) return existing;
+  //
+  // if (xero_contact_id) {
+  //   existing = await xata().db.Buyers.filter({ xero_contact_id }).getFirst();
+  //   if (existing) return existing;
+  // }
+  //
+  // return await xata().db.Buyers.create({
+  //   name,
+  //   email: email || "",
+  //   xero_contact_id: xero_contact_id || "",
+  // });
+
+  // DRIZZLE:
   // Try to find by name first
-  let existing = await xata().db.Buyers.filter({ name }).getFirst();
+  let [existing] = await db
+    .select()
+    .from(buyers)
+    .where(eq(buyers.name, name))
+    .limit(1);
+
   if (existing) return existing;
 
   // Try to find by Xero contact ID if provided
   if (xero_contact_id) {
-    existing = await xata()
-      .db.Buyers.filter({ xero_contact_id })
-      .getFirst();
+    [existing] = await db
+      .select()
+      .from(buyers)
+      .where(eq(buyers.xeroContactId, xero_contact_id))
+      .limit(1);
+
     if (existing) return existing;
   }
 
   // Create new buyer
-  return await xata().db.Buyers.create({
-    name,
-    email: email || "",
-    xero_contact_id: xero_contact_id || "",
-  });
+  const [created] = await db
+    .insert(buyers)
+    .values({
+      name,
+      email: email || "",
+      xeroContactId: xero_contact_id || "",
+    })
+    .returning();
+
+  return created;
 }
 
 // ============================================================================
@@ -152,25 +241,54 @@ export async function getOrCreateSupplier(
   name: string,
   email?: string,
   xero_contact_id?: string
-): Promise<SuppliersRecord> {
+): Promise<Supplier> {
+  // ORIGINAL XATA:
+  // let existing = await xata().db.Suppliers.filter({ name }).getFirst();
+  // if (existing) return existing;
+  //
+  // if (xero_contact_id) {
+  //   existing = await xata().db.Suppliers.filter({ xero_contact_id }).getFirst();
+  //   if (existing) return existing;
+  // }
+  //
+  // return await xata().db.Suppliers.create({
+  //   name,
+  //   email: email || "",
+  //   xero_contact_id: xero_contact_id || "",
+  // });
+
+  // DRIZZLE:
   // Try to find by name first
-  let existing = await xata().db.Suppliers.filter({ name }).getFirst();
+  let [existing] = await db
+    .select()
+    .from(suppliers)
+    .where(eq(suppliers.name, name))
+    .limit(1);
+
   if (existing) return existing;
 
   // Try to find by Xero contact ID if provided
   if (xero_contact_id) {
-    existing = await xata()
-      .db.Suppliers.filter({ xero_contact_id })
-      .getFirst();
+    [existing] = await db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.xeroContactId, xero_contact_id))
+      .limit(1);
+
     if (existing) return existing;
   }
 
   // Create new supplier
-  return await xata().db.Suppliers.create({
-    name,
-    email: email || "",
-    xero_contact_id: xero_contact_id || "",
-  });
+  const [created] = await db
+    .insert(suppliers)
+    .values({
+      name,
+      email: email || "",
+      xeroContactId: xero_contact_id || "",
+    })
+    .returning();
+
+  return created;
 }
 
 // ============================================================================
@@ -180,14 +298,34 @@ export async function getOrCreateSupplier(
 export async function getOrCreateIntroducer(
   name: string,
   commission_percent?: number
-): Promise<IntroducersRecord> {
-  const existing = await xata().db.Introducers.filter({ name }).getFirst();
+): Promise<Introducer> {
+  // ORIGINAL XATA:
+  // const existing = await xata().db.Introducers.filter({ name }).getFirst();
+  // if (existing) return existing;
+  //
+  // return await xata().db.Introducers.create({
+  //   name,
+  //   commission_percent: commission_percent || 0,
+  // });
+
+  // DRIZZLE:
+  const [existing] = await db
+    .select()
+    .from(introducers)
+    .where(eq(introducers.name, name))
+    .limit(1);
+
   if (existing) return existing;
 
-  return await xata().db.Introducers.create({
-    name,
-    commission_percent: commission_percent || 0,
-  });
+  const [created] = await db
+    .insert(introducers)
+    .values({
+      name,
+      commissionPercent: commission_percent || 0,
+    })
+    .returning();
+
+  return created;
 }
 
 // ============================================================================
@@ -196,14 +334,29 @@ export async function getOrCreateIntroducer(
 
 export async function getCommissionBandForMargin(
   margin: number
-): Promise<CommissionBandsRecord | null> {
+): Promise<CommissionBand | null> {
+  // ORIGINAL XATA:
+  // const bands = await xata().db.CommissionBands.getAll();
+  //
+  // for (const band of bands) {
+  //   if (
+  //     margin >= (band.min_threshold || 0) &&
+  //     margin <= (band.max_threshold || Infinity)
+  //   ) {
+  //     return band;
+  //   }
+  // }
+  //
+  // return null;
+
+  // DRIZZLE:
   // Find the band where margin falls between min and max threshold
-  const bands = await xata().db.CommissionBands.getAll();
+  const bands = await db.select().from(commissionBands);
 
   for (const band of bands) {
     if (
-      margin >= (band.min_threshold || 0) &&
-      margin <= (band.max_threshold || Infinity)
+      margin >= (band.minThreshold || 0) &&
+      margin <= (band.maxThreshold || Infinity)
     ) {
       return band;
     }
@@ -319,7 +472,7 @@ export interface CreateSalePayload {
 
 export async function createSaleFromAppPayload(
   payload: CreateSalePayload
-): Promise<SalesRecord> {
+): Promise<Sale> {
   // A) SANITIZE ALL USER INPUT
   logger.info("XATA", "Sanitizing input");
 
@@ -365,7 +518,7 @@ export async function createSaleFromAppPayload(
   );
   logger.info("XATA", "Supplier resolved", { name: supplier.name, id: supplier.id });
 
-  let introducer: IntroducersRecord | null = null;
+  let introducer: Introducer | null = null;
   if (sanitizedPayload.introducerName) {
     introducer = await getOrCreateIntroducer(
       sanitizedPayload.introducerName,
@@ -401,8 +554,8 @@ export async function createSaleFromAppPayload(
   );
   if (commissionBand) {
     logger.info("XATA", "Commission band found", {
-      bandType: commissionBand.band_type,
-      commissionPercent: commissionBand.commission_percent
+      bandType: commissionBand.bandType,
+      commissionPercent: commissionBand.commissionPercent
     });
   }
 
@@ -411,11 +564,11 @@ export async function createSaleFromAppPayload(
 
   const commissionResult = await calculateCommission({
     commissionable_margin: economics.commissionable_margin,
-    introducer: introducer && introducer.commission_percent != null ? {
-      commission_percent: introducer.commission_percent,
+    introducer: introducer && introducer.commissionPercent != null ? {
+      commission_percent: introducer.commissionPercent,
     } : null,
-    commission_band: commissionBand && commissionBand.commission_percent != null ? {
-      commission_percent: commissionBand.commission_percent,
+    commission_band: commissionBand && commissionBand.commissionPercent != null ? {
+      commission_percent: commissionBand.commissionPercent,
     } : null,
     admin_override_commission_percent: sanitizedPayload.admin_override_commission_percent ?? null,
     admin_override_notes: sanitizedPayload.admin_override_notes ?? null,
@@ -435,85 +588,91 @@ export async function createSaleFromAppPayload(
     });
   }
 
-  // D) INSERT INTO XATA SALES TABLE
+  // D) INSERT INTO SALES TABLE
   logger.info("XATA", "Creating sale record");
 
-  const sale = await xata().db.Sales.create({
-    // Core identifiers
-    sale_reference: sanitizedPayload.sale_reference,
-    sale_date: sanitizedPayload.sale_date,
-    source: 'atelier', // Mark as created via Atelier (Trade Wizard or direct API)
+  // ORIGINAL XATA:
+  // const sale = await xata().db.Sales.create({
+  //   sale_reference: sanitizedPayload.sale_reference,
+  //   sale_date: sanitizedPayload.sale_date,
+  //   source: 'atelier',
+  //   shopper: shopper.id,
+  //   buyer: buyer.id,
+  //   supplier: supplier.id,
+  //   introducer: introducer?.id,
+  //   commission_band: commissionBand?.id,
+  //   ... (all other fields)
+  // });
 
-    // Relationships
-    shopper: shopper.id,
-    buyer: buyer.id,
-    supplier: supplier.id,
-    introducer: introducer?.id,
-    commission_band: commissionBand?.id,
+  // DRIZZLE:
+  const [sale] = await db
+    .insert(sales)
+    .values({
+      // Core identifiers
+      saleReference: sanitizedPayload.sale_reference,
+      saleDate: sanitizedPayload.sale_date,
+      source: 'atelier', // Mark as created via Atelier (Trade Wizard or direct API)
 
-    // Item metadata
-    brand: sanitizedPayload.brand || "",
-    category: sanitizedPayload.category || "",
-    item_title: sanitizedPayload.item_title || "",
-    quantity: sanitizedPayload.quantity || 1,
+      // Relationships (foreign keys)
+      shopperId: shopper.id,
+      buyerId: buyer.id,
+      supplierId: supplier.id,
+      introducerId: introducer?.id,
+      commissionBandId: commissionBand?.id,
 
-    // Financial fields
-    sale_amount_inc_vat: sanitizedPayload.sale_amount_inc_vat,
-    sale_amount_ex_vat: economics.sale_amount_ex_vat,
-    buy_price: sanitizedPayload.buy_price,
-    card_fees: sanitizedPayload.card_fees || 0,
-    shipping_cost: sanitizedPayload.shipping_cost || 0,
-    direct_costs: economics.direct_costs,
+      // Item metadata
+      brand: sanitizedPayload.brand || "",
+      category: sanitizedPayload.category || "",
+      itemTitle: sanitizedPayload.item_title || "",
+      quantity: sanitizedPayload.quantity || 1,
 
-    // Economics
-    implied_shipping: economics.implied_shipping,
-    gross_margin: economics.gross_margin,
-    commissionable_margin: economics.commissionable_margin,
+      // Financial fields
+      saleAmountIncVat: sanitizedPayload.sale_amount_inc_vat,
+      saleAmountExVat: economics.sale_amount_ex_vat,
+      buyPrice: sanitizedPayload.buy_price,
+      cardFees: sanitizedPayload.card_fees || 0,
+      shippingCost: sanitizedPayload.shipping_cost || 0,
+      directCosts: economics.direct_costs,
 
-    // Commission (from Commission Engine V1)
-    commission_amount: commissionResult.commission_amount,
-    commission_split_introducer: commissionResult.commission_split_introducer,
-    commission_split_shopper: commissionResult.commission_split_shopper,
-    introducer_share_percent: commissionResult.introducer_share_percent,
-    admin_override_commission_percent: commissionResult.admin_override_commission_percent,
-    admin_override_notes: commissionResult.admin_override_notes,
+      // Economics
+      impliedShipping: economics.implied_shipping,
+      grossMargin: economics.gross_margin,
+      commissionableMargin: economics.commissionable_margin,
 
-    // Status (default to "invoiced" for new sales)
-    status: "invoiced",
+      // Commission (from Commission Engine V1)
+      commissionAmount: commissionResult.commission_amount,
+      commissionSplitIntroducer: commissionResult.commission_split_introducer,
+      commissionSplitShopper: commissionResult.commission_split_shopper,
+      introducerSharePercent: commissionResult.introducer_share_percent,
+      adminOverrideCommissionPercent: commissionResult.admin_override_commission_percent,
+      adminOverrideNotes: commissionResult.admin_override_notes ? [commissionResult.admin_override_notes] : undefined,
 
-    // Error tracking
-    error_flag: hasCommissionErrors,
-    error_message: hasCommissionErrors ? commissionResult.errors : undefined,
+      // Status (default to "invoiced" for new sales)
+      status: "invoiced",
 
-    // Xero metadata
-    currency: sanitizedPayload.currency || "GBP",
-    branding_theme: sanitizedPayload.branding_theme || "",
-    xero_invoice_number: sanitizedPayload.xero_invoice_number || "",
-    xero_invoice_id: sanitizedPayload.xero_invoice_id || "",
-    xero_invoice_url: sanitizedPayload.xero_invoice_url || "",
-    invoice_status: sanitizedPayload.invoice_status || "DRAFT",
-    invoice_paid_date: sanitizedPayload.invoice_paid_date,
+      // Error tracking
+      errorFlag: hasCommissionErrors,
+      errorMessage: hasCommissionErrors ? commissionResult.errors : undefined,
 
-    // Commission tracking (defaults)
-    commission_locked: false,
-    commission_paid: false,
-    commission_lock_date: undefined,
-    commission_paid_date: undefined,
+      // Xero metadata
+      currency: sanitizedPayload.currency || "GBP",
+      brandingTheme: sanitizedPayload.branding_theme || "",
+      xeroInvoiceNumber: sanitizedPayload.xero_invoice_number || "",
+      xeroInvoiceId: sanitizedPayload.xero_invoice_id || "",
+      xeroInvoiceUrl: sanitizedPayload.xero_invoice_url || "",
+      invoiceStatus: sanitizedPayload.invoice_status || "DRAFT",
+      invoicePaidDate: sanitizedPayload.invoice_paid_date,
 
-    // NOTE: The following fields exist in TypeScript schema but NOT in actual Xata database
-    // Commenting out to prevent "column not found" errors until schema is migrated
-    // buyer_type: sanitizedPayload.buyerType || "",
-    // authenticity_status: sanitizedPayload.authenticity_status || "not_verified",
-    // supplier_receipt_attached: sanitizedPayload.supplier_receipt_attached || false,
-    // buyer_name: buyer.name,
-    // supplier_name: supplier.name,
-    // shopper_name: shopper.name,
-    // introducer_name: introducer?.name || "",
-    // invoice_due_date: sanitizedPayload.invoice_due_date,
+      // Commission tracking (defaults)
+      commissionLocked: false,
+      commissionPaid: false,
+      commissionLockDate: undefined,
+      commissionPaidDate: undefined,
 
-    // Notes
-    internal_notes: sanitizedPayload.internal_notes || "",
-  });
+      // Notes
+      internalNotes: sanitizedPayload.internal_notes || "",
+    })
+    .returning();
 
   logger.info("XATA", "Sale created", { saleId: sale.id });
 
@@ -525,8 +684,19 @@ export async function createSaleFromAppPayload(
     // End client sales with < 5% margin
     if (sanitizedPayload.buyerType === "end_client" && marginPercent < 5) {
       try {
-        await xata().db.Errors.create({
-          sale: sale.id,
+        // ORIGINAL XATA:
+        // await xata().db.Errors.create({
+        //   sale: sale.id,
+        //   severity: "medium",
+        //   source: "economics-sanity-check",
+        //   message: [...],
+        //   timestamp: new Date(),
+        //   resolved: false,
+        // });
+
+        // DRIZZLE:
+        await db.insert(errors).values({
+          saleId: sale.id,
           severity: "medium",
           source: "economics-sanity-check",
           message: [`Low margin alert: End client sale with only ${marginPercent.toFixed(2)}% margin (£${economics.commissionable_margin.toFixed(2)})`],
@@ -542,8 +712,9 @@ export async function createSaleFromAppPayload(
     // B2B sales with > 50% margin
     if (sanitizedPayload.buyerType === "b2b" && marginPercent > 50) {
       try {
-        await xata().db.Errors.create({
-          sale: sale.id,
+        // DRIZZLE:
+        await db.insert(errors).values({
+          saleId: sale.id,
           severity: "medium",
           source: "economics-sanity-check",
           message: [`High margin alert: B2B sale with ${marginPercent.toFixed(2)}% margin (£${economics.commissionable_margin.toFixed(2)}) - verify pricing`],
@@ -561,8 +732,20 @@ export async function createSaleFromAppPayload(
   if (hasCommissionErrors) {
     try {
       const errorMessage = commissionResult.errors.join("; ");
-      await xata().db.Errors.create({
-        sale: sale.id,
+
+      // ORIGINAL XATA:
+      // await xata().db.Errors.create({
+      //   sale: sale.id,
+      //   severity: "high",
+      //   source: "commission-engine",
+      //   message: [errorMessage],
+      //   timestamp: new Date(),
+      //   resolved: false,
+      // });
+
+      // DRIZZLE:
+      await db.insert(errors).values({
+        saleId: sale.id,
         severity: "high",
         source: "commission-engine",
         message: [errorMessage],
@@ -581,15 +764,34 @@ export async function createSaleFromAppPayload(
     try {
       const validationErrorMessage = formatValidationErrors(validation);
 
+      // ORIGINAL XATA:
+      // await xata().db.Sales.update(sale.id, {
+      //   error_flag: true,
+      //   error_message: [validationErrorMessage],
+      // });
+      //
+      // await xata().db.Errors.create({
+      //   sale: sale.id,
+      //   severity: "high",
+      //   source: "validation",
+      //   message: [validationErrorMessage],
+      //   timestamp: new Date(),
+      //   resolved: false,
+      // });
+
+      // DRIZZLE:
       // Update sale with error flag and message
-      await xata().db.Sales.update(sale.id, {
-        error_flag: true,
-        error_message: [validationErrorMessage],
-      });
+      await db
+        .update(sales)
+        .set({
+          errorFlag: true,
+          errorMessage: [validationErrorMessage],
+        })
+        .where(eq(sales.id, sale.id));
 
       // Log to Errors table
-      await xata().db.Errors.create({
-        sale: sale.id,
+      await db.insert(errors).values({
+        saleId: sale.id,
         severity: "high",
         source: "validation",
         message: [validationErrorMessage],
@@ -604,7 +806,7 @@ export async function createSaleFromAppPayload(
   }
 
   // G) RETURN THE CREATED SALE RECORD
-  return sale as SalesRecord;
+  return sale;
 }
 
 // ============================================================================
@@ -655,7 +857,7 @@ export interface AppFormData {
 export async function syncInvoiceAndAppDataToXata(params: {
   xeroInvoice: XeroInvoiceData;
   formData: AppFormData;
-}): Promise<SalesRecord | null> {
+}): Promise<Sale | null> {
   try {
     logger.info("XATA", "Starting invoice sync");
     logger.debug("XATA", "Incoming Xero invoice", { invoice: params.xeroInvoice as any });
@@ -750,42 +952,61 @@ export interface LineItemData {
  * Creates LineItems records linked to the parent sale
  *
  * @param saleId - The sale record ID
- * @param lineItems - Array of line item data
+ * @param items - Array of line item data
  * @returns Array of created LineItems records
  */
 export async function saveLineItems(
   saleId: string,
-  lineItems: LineItemData[]
-): Promise<LineItemsRecord[]> {
-  if (!lineItems || lineItems.length === 0) {
+  items: LineItemData[]
+): Promise<LineItem[]> {
+  if (!items || items.length === 0) {
     logger.info("XATA", "No line items to save");
     return [];
   }
 
   logger.info("XATA", "Saving line items", {
     saleId,
-    lineItemCount: lineItems.length,
+    lineItemCount: items.length,
   });
 
-  const created: LineItemsRecord[] = [];
+  const created: LineItem[] = [];
 
-  for (const item of lineItems) {
+  for (const item of items) {
     try {
-      const record = await xata().db.LineItems.create({
-        sale: saleId,
-        line_number: item.lineNumber,
-        brand: item.brand,
-        category: item.category,
-        description: item.description,
-        quantity: item.quantity,
-        buy_price: item.buyPrice,
-        sell_price: item.sellPrice,
-        line_total: item.lineTotal,
-        line_margin: item.lineMargin,
-        supplier: item.supplierId || undefined,
-      });
+      // ORIGINAL XATA:
+      // const record = await xata().db.LineItems.create({
+      //   sale: saleId,
+      //   line_number: item.lineNumber,
+      //   brand: item.brand,
+      //   category: item.category,
+      //   description: item.description,
+      //   quantity: item.quantity,
+      //   buy_price: item.buyPrice,
+      //   sell_price: item.sellPrice,
+      //   line_total: item.lineTotal,
+      //   line_margin: item.lineMargin,
+      //   supplier: item.supplierId || undefined,
+      // });
 
-      created.push(record as LineItemsRecord);
+      // DRIZZLE:
+      const [record] = await db
+        .insert(lineItems)
+        .values({
+          saleId: saleId,
+          lineNumber: item.lineNumber,
+          brand: item.brand,
+          category: item.category,
+          description: item.description,
+          quantity: item.quantity,
+          buyPrice: item.buyPrice,
+          sellPrice: item.sellPrice,
+          lineTotal: item.lineTotal,
+          lineMargin: item.lineMargin,
+          supplierId: item.supplierId || undefined,
+        })
+        .returning();
+
+      created.push(record);
       logger.debug("XATA", "Line item created", {
         lineNumber: item.lineNumber,
         brand: item.brand,
@@ -801,28 +1022,67 @@ export async function saveLineItems(
   logger.info("XATA", "Line items saved", {
     saleId,
     savedCount: created.length,
-    totalCount: lineItems.length,
+    totalCount: items.length,
   });
 
   return created;
 }
 
 /**
+ * Backwards-compatible line item type (snake_case for API consumers)
+ */
+export interface LineItemLegacy {
+  id: string;
+  line_number: number | null;
+  brand: string | null;
+  category: string | null;
+  description: string | null;
+  quantity: number | null;
+  buy_price: number | null;
+  sell_price: number | null;
+  line_total: number | null;
+  line_margin: number | null;
+  supplier?: { id: string | null; name?: string | null } | null;
+}
+
+/**
  * Get line items for a sale
  *
  * @param saleId - The sale record ID
- * @returns Array of LineItems records
+ * @returns Array of LineItems records (with legacy snake_case properties for backwards compatibility)
  */
 export async function getLineItemsForSale(
   saleId: string
-): Promise<LineItemsRecord[]> {
-  const items = await xata()
-    .db.LineItems.filter({ "sale.id": saleId })
-    .select(["*", "supplier.id", "supplier.name"])
-    .sort("line_number", "asc")
-    .getMany();
+): Promise<LineItemLegacy[]> {
+  // ORIGINAL XATA:
+  // const items = await xata()
+  //   .db.LineItems.filter({ "sale.id": saleId })
+  //   .select(["*", "supplier.id", "supplier.name"])
+  //   .sort("line_number", "asc")
+  //   .getMany();
 
-  return items as LineItemsRecord[];
+  // DRIZZLE:
+  // Note: For supplier relation, use a join or query.with() if needed
+  const items = await db
+    .select()
+    .from(lineItems)
+    .where(eq(lineItems.saleId, saleId))
+    .orderBy(asc(lineItems.lineNumber));
+
+  // Map to legacy format for backwards compatibility with existing API consumers
+  return items.map(item => ({
+    id: item.id,
+    line_number: item.lineNumber,
+    brand: item.brand,
+    category: item.category,
+    description: item.description,
+    quantity: item.quantity,
+    buy_price: item.buyPrice,
+    sell_price: item.sellPrice,
+    line_total: item.lineTotal,
+    line_margin: item.lineMargin,
+    supplier: item.supplierId ? { id: item.supplierId } : null,
+  }));
 }
 
 // ============================================================================
@@ -832,11 +1092,19 @@ export async function getLineItemsForSale(
 /**
  * Get all sales for a specific shopper
  */
-export async function getSalesByShopperId(shopperId: string): Promise<SalesRecord[]> {
-  return (await xata()
-    .db.Sales.filter({ "shopper.id": shopperId })
-    .sort("sale_date", "desc")
-    .getMany()) as SalesRecord[];
+export async function getSalesByShopperId(shopperId: string): Promise<Sale[]> {
+  // ORIGINAL XATA:
+  // return (await xata()
+  //   .db.Sales.filter({ "shopper.id": shopperId })
+  //   .sort("sale_date", "desc")
+  //   .getMany()) as SalesRecord[];
+
+  // DRIZZLE:
+  return await db
+    .select()
+    .from(sales)
+    .where(eq(sales.shopperId, shopperId))
+    .orderBy(desc(sales.saleDate));
 }
 
 /**
@@ -845,33 +1113,73 @@ export async function getSalesByShopperId(shopperId: string): Promise<SalesRecor
 export async function getUnpaidCommissionForShopper(
   shopperId: string
 ): Promise<number> {
-  const sales = await xata()
-    .db.Sales.filter({
-      "shopper.id": shopperId,
-      commission_paid: false,
-    })
-    .getMany();
+  // ORIGINAL XATA:
+  // const sales = await xata()
+  //   .db.Sales.filter({
+  //     "shopper.id": shopperId,
+  //     commission_paid: false,
+  //   })
+  //   .getMany();
+  //
+  // return sales.reduce((sum, sale) => sum + (sale.commissionable_margin || 0), 0);
 
-  return sales.reduce((sum, sale) => sum + (sale.commissionable_margin || 0), 0);
+  // DRIZZLE:
+  const results = await db
+    .select()
+    .from(sales)
+    .where(
+      and(
+        eq(sales.shopperId, shopperId),
+        eq(sales.commissionPaid, false)
+      )
+    );
+
+  return results.reduce((sum, sale) => sum + (sale.commissionableMargin || 0), 0);
 }
 
 /**
  * Lock all unpaid commissions up to a specific date
  */
 export async function lockCommissionsUpToDate(date: Date): Promise<number> {
-  const sales = await xata()
-    .db.Sales.filter({
-      sale_date: { $le: date },
-      commission_locked: false,
-    })
-    .getMany();
+  // ORIGINAL XATA:
+  // const sales = await xata()
+  //   .db.Sales.filter({
+  //     sale_date: { $le: date },
+  //     commission_locked: false,
+  //   })
+  //   .getMany();
+  //
+  // let count = 0;
+  // for (const sale of sales) {
+  //   await xata().db.Sales.update(sale.id, {
+  //     commission_locked: true,
+  //     commission_lock_date: new Date(),
+  //   });
+  //   count++;
+  // }
+  //
+  // return count;
+
+  // DRIZZLE:
+  const salesToLock = await db
+    .select()
+    .from(sales)
+    .where(
+      and(
+        lte(sales.saleDate, date),
+        eq(sales.commissionLocked, false)
+      )
+    );
 
   let count = 0;
-  for (const sale of sales) {
-    await xata().db.Sales.update(sale.id, {
-      commission_locked: true,
-      commission_lock_date: new Date(),
-    });
+  for (const sale of salesToLock) {
+    await db
+      .update(sales)
+      .set({
+        commissionLocked: true,
+        commissionLockDate: new Date(),
+      })
+      .where(eq(sales.id, sale.id));
     count++;
   }
 
@@ -890,12 +1198,20 @@ export async function lockCommissionsUpToDate(date: Date): Promise<number> {
  */
 export async function findSaleByInvoiceNumber(
   invoiceNumber: string
-): Promise<SalesRecord | null> {
+): Promise<Sale | null> {
   logger.info("XATA", "Looking up sale by invoice number", { invoiceNumber });
 
-  const sale = await xata()
-    .db.Sales.filter({ xero_invoice_number: invoiceNumber })
-    .getFirst();
+  // ORIGINAL XATA:
+  // const sale = await xata()
+  //   .db.Sales.filter({ xero_invoice_number: invoiceNumber })
+  //   .getFirst();
+
+  // DRIZZLE:
+  const [sale] = await db
+    .select()
+    .from(sales)
+    .where(eq(sales.xeroInvoiceNumber, invoiceNumber))
+    .limit(1);
 
   if (sale) {
     logger.info("XATA", "Found sale", { saleId: sale.id });
@@ -903,7 +1219,7 @@ export async function findSaleByInvoiceNumber(
     logger.warn("XATA", "No sale found for invoice", { invoiceNumber });
   }
 
-  return sale as SalesRecord | null;
+  return sale || null;
 }
 
 /**

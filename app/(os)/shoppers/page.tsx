@@ -8,11 +8,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Users, Plus } from "lucide-react";
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, shoppers } from "@/db/schema";
 import { getUserRole } from "@/lib/getUserRole";
 import { canAccess } from "@/lib/rbac";
 
-const xata = getXataClient();
+// ORIGINAL XATA: const xata = getXataClient();
 
 // Helper to format currency
 const formatCurrency = (value: number | null | undefined) => {
@@ -30,36 +32,46 @@ export default async function ShoppersPage() {
     redirect("/unauthorised");
   }
 
+  // ORIGINAL XATA:
+  // const shoppers = await xata.db.Shoppers.select([
+  //   "id",
+  //   "name",
+  //   "email",
+  //   "commission_scheme",
+  //   "active",
+  // ]).getAll();
+
   // Fetch all shoppers
-  const shoppers = await xata.db.Shoppers.select([
-    "id",
-    "name",
-    "email",
-    "commission_scheme",
-    "active",
-  ]).getAll();
+  const shoppersData = await db.query.shoppers.findMany();
+
+  // ORIGINAL XATA:
+  // const allSales = await xata.db.Sales.select([
+  //   "id",
+  //   "shopper.id",
+  //   "sale_amount_inc_vat",
+  //   "gross_margin",
+  // ]).getAll();
 
   // Fetch all sales to calculate metrics for each shopper
-  const allSales = await xata.db.Sales.select([
-    "id",
-    "shopper.id",
-    "sale_amount_inc_vat",
-    "gross_margin",
-  ]).getAll();
+  const allSales = await db.query.sales.findMany({
+    with: {
+      shopper: true,
+    },
+  });
 
   // Calculate metrics for each shopper
-  const shopperMetrics = shoppers.map((shopper) => {
+  const shopperMetrics = shoppersData.map((shopper) => {
     const shopperSales = allSales.filter(
-      (sale) => sale.shopper?.id === shopper.id
+      (sale) => sale.shopperId === shopper.id
     );
 
     const totalSales = shopperSales.length;
     const totalRevenue = shopperSales.reduce(
-      (sum, sale) => sum + (sale.sale_amount_inc_vat || 0),
+      (sum, sale) => sum + (sale.saleAmountIncVat || 0),
       0
     );
     const totalMargin = shopperSales.reduce(
-      (sum, sale) => sum + (sale.gross_margin || 0),
+      (sum, sale) => sum + (sale.grossMargin || 0),
       0
     );
 
@@ -113,10 +125,10 @@ export default async function ShoppersPage() {
               Total Shoppers
             </div>
             <div className="text-3xl font-bold text-gray-900">
-              {shoppers.length}
+              {shoppersData.length}
             </div>
             <div className="text-sm text-gray-500 mt-1">
-              {shoppers.filter((s) => s.active).length} active
+              {shoppersData.filter((s) => s.active).length} active
             </div>
           </div>
 
@@ -125,7 +137,7 @@ export default async function ShoppersPage() {
               Total Sales
             </div>
             <div className="text-3xl font-bold text-gray-900">
-              {allSales.filter((s) => s.shopper?.id).length}
+              {allSales.filter((s) => s.shopperId).length}
             </div>
             <div className="text-sm text-gray-500 mt-1">
               Across all shoppers
@@ -139,8 +151,8 @@ export default async function ShoppersPage() {
             <div className="text-3xl font-bold text-gray-900">
               {formatCurrency(
                 allSales
-                  .filter((s) => s.shopper?.id)
-                  .reduce((sum, s) => sum + (s.sale_amount_inc_vat || 0), 0)
+                  .filter((s) => s.shopperId)
+                  .reduce((sum, s) => sum + (s.saleAmountIncVat || 0), 0)
               )}
             </div>
             <div className="text-sm text-gray-500 mt-1">From all shoppers</div>
@@ -207,7 +219,7 @@ export default async function ShoppersPage() {
                       {shopper.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {shopper.commission_scheme || "standard"}
+                      {shopper.commissionScheme || "standard"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                       {shopper.totalSales}

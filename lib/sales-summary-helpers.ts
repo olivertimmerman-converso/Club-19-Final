@@ -3,9 +3,15 @@
  *
  * Utility functions for computing derived fields and flags for sale summaries.
  * Used by /api/sales/summary and /api/sales/analytics endpoints.
+ *
+ * MIGRATION STATUS: Type import updated from SalesRecord to Sale (Feb 2026)
  */
 
-import type { SalesRecord } from "@/src/xata";
+// ORIGINAL XATA:
+// import type { SalesRecord } from "@/src/xata";
+
+// DRIZZLE TYPE IMPORT
+import type { Sale } from "@/db/schema";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -36,10 +42,10 @@ export type AuthenticityRisk = "clean" | "missing_receipt" | "not_verified" | "h
 /**
  * Compute payment and commission lifecycle flags
  *
- * @param sale - Sale record from Xata
+ * @param sale - Sale record from Drizzle
  * @returns Payment and lock status flags
  */
-export function computePaymentFlags(sale: SalesRecord): PaymentFlags {
+export function computePaymentFlags(sale: Sale): PaymentFlags {
   const status = sale.status || "";
 
   // Payment status
@@ -69,10 +75,10 @@ export function computePaymentFlags(sale: SalesRecord): PaymentFlags {
 /**
  * Compute overdue flags based on invoice due date
  *
- * @param sale - Sale record from Xata
+ * @param sale - Sale record from Drizzle
  * @returns Overdue status and days overdue
  */
-export function computeOverdueFlags(sale: SalesRecord): OverdueFlags {
+export function computeOverdueFlags(sale: Sale): OverdueFlags {
   const { isPaid } = computePaymentFlags(sale);
 
   // Not overdue if already paid
@@ -100,12 +106,12 @@ export function computeOverdueFlags(sale: SalesRecord): OverdueFlags {
 /**
  * Compute margin percentage
  *
- * @param sale - Sale record from Xata
+ * @param sale - Sale record from Drizzle
  * @returns Margin metrics
  */
-export function computeMarginMetrics(sale: SalesRecord): MarginMetrics {
-  const commissionableMargin = sale.commissionable_margin || 0;
-  const saleAmountIncVat = sale.sale_amount_inc_vat || 0;
+export function computeMarginMetrics(sale: Sale): MarginMetrics {
+  const commissionableMargin = sale.commissionableMargin || 0;
+  const saleAmountIncVat = sale.saleAmountIncVat || 0;
 
   // Avoid division by zero
   if (saleAmountIncVat === 0) {
@@ -124,10 +130,10 @@ export function computeMarginMetrics(sale: SalesRecord): MarginMetrics {
 /**
  * Compute authenticity risk level based on verification status and receipt
  *
- * @param sale - Sale record from Xata
+ * @param sale - Sale record from Drizzle
  * @returns Authenticity risk level
  */
-export function computeAuthenticityRisk(sale: SalesRecord): AuthenticityRisk {
+export function computeAuthenticityRisk(sale: Sale): AuthenticityRisk {
   // Note: authenticity_status and supplier_receipt_attached fields don't exist in current schema
   // Always return "not_verified" for now
   return "not_verified";

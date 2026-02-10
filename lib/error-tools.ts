@@ -3,22 +3,14 @@
  *
  * Admin functions for resolving errors, clearing sale error flags,
  * and managing error lifecycle
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
-import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { errors, sales } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import * as logger from './logger';
-
-// ============================================================================
-// CLIENT SINGLETON
-// ============================================================================
-
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-export function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
 
 // ============================================================================
 // ADMIN RESOLUTION FUNCTIONS
@@ -43,10 +35,20 @@ export async function resolveError(
   logger.info('ERRORS', `Resolving error ${errorId} by ${adminEmail}`);
 
   try {
-    await xata().db.Errors.update(errorId, {
-      resolved: true,
-      resolved_by: adminEmail,
-    });
+    // ORIGINAL XATA:
+    // await xata().db.Errors.update(errorId, {
+    //   resolved: true,
+    //   resolved_by: adminEmail,
+    // });
+
+    // DRIZZLE:
+    await db
+      .update(errors)
+      .set({
+        resolved: true,
+        resolvedBy: adminEmail,
+      })
+      .where(eq(errors.id, errorId));
 
     logger.info('ERRORS', `Error ${errorId} resolved`);
 
@@ -75,10 +77,20 @@ export async function clearSaleErrorFlag(
   logger.info('ERRORS', `Clearing error flag for sale ${saleId}`);
 
   try {
-    await xata().db.Sales.update(saleId, {
-      error_flag: false,
-      error_message: [],
-    });
+    // ORIGINAL XATA:
+    // await xata().db.Sales.update(saleId, {
+    //   error_flag: false,
+    //   error_message: [],
+    // });
+
+    // DRIZZLE:
+    await db
+      .update(sales)
+      .set({
+        errorFlag: false,
+        errorMessage: [],
+      })
+      .where(eq(sales.id, saleId));
 
     logger.info('ERRORS', `Sale ${saleId} error flag cleared`);
 
@@ -109,13 +121,24 @@ export async function resolveAllErrorsForSale(
   logger.info('ERRORS', `Resolving all errors for sale ${saleId}`);
 
   try {
-    // Find all unresolved errors for this sale
-    const unresolvedErrors = await xata()
-      .db.Errors.filter({
-        "sale.id": saleId,
-        resolved: false,
-      })
-      .getMany();
+    // ORIGINAL XATA:
+    // const unresolvedErrors = await xata()
+    //   .db.Errors.filter({
+    //     "sale.id": saleId,
+    //     resolved: false,
+    //   })
+    //   .getMany();
+
+    // DRIZZLE:
+    const unresolvedErrors = await db
+      .select()
+      .from(errors)
+      .where(
+        and(
+          eq(errors.saleId, saleId),
+          eq(errors.resolved, false)
+        )
+      );
 
     logger.info('ERRORS', `Found ${unresolvedErrors.length} unresolved errors for sale ${saleId}`);
 
@@ -164,11 +187,15 @@ export async function getErrorCountsByType(): Promise<
   logger.info('ERRORS', 'Getting error counts by type');
 
   try {
-    const errors = await xata().db.Errors.getMany();
+    // ORIGINAL XATA:
+    // const errors = await xata().db.Errors.getMany();
+
+    // DRIZZLE:
+    const allErrors = await db.select().from(errors);
 
     const counts: Record<string, number> = {};
 
-    for (const error of errors) {
+    for (const error of allErrors) {
       const type = error.source || "unknown";
       counts[type] = (counts[type] || 0) + 1;
     }
@@ -189,11 +216,19 @@ export async function getErrorCountsByType(): Promise<
  */
 export async function getUnresolvedErrorCount(): Promise<number> {
   try {
-    const errors = await xata()
-      .db.Errors.filter({ resolved: false })
-      .getMany();
+    // ORIGINAL XATA:
+    // const errors = await xata()
+    //   .db.Errors.filter({ resolved: false })
+    //   .getMany();
+    // return errors.length;
 
-    return errors.length;
+    // DRIZZLE:
+    const unresolvedErrors = await db
+      .select()
+      .from(errors)
+      .where(eq(errors.resolved, false));
+
+    return unresolvedErrors.length;
   } catch (err: any) {
     logger.error('ERRORS', 'Failed to get unresolved error count', err);
     return 0;

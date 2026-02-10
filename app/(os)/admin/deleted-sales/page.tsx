@@ -10,7 +10,10 @@ export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getUserRole } from "@/lib/getUserRole";
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { isNotNull, desc } from "drizzle-orm";
 import { DeletedSalesClient } from "./DeletedSalesClient";
 
 export default async function DeletedSalesPage() {
@@ -22,38 +25,49 @@ export default async function DeletedSalesPage() {
     redirect('/dashboard');
   }
 
-  const xata = getXataClient();
+  // ORIGINAL XATA: const xata = getXataClient();
+
+  // ORIGINAL XATA:
+  // // Get all deleted Sales records
+  // const deletedSales = await xata.db.Sales
+  //   .filter({
+  //     deleted_at: { $isNot: null }
+  //   })
+  //   .select([
+  //     "id",
+  //     "sale_reference",
+  //     "sale_date",
+  //     "xero_invoice_number",
+  //     "brand",
+  //     "item_title",
+  //     "sale_amount_inc_vat",
+  //     "deleted_at",
+  //     "buyer.name",
+  //     "shopper.name"
+  //   ])
+  //   .sort('deleted_at', 'desc')
+  //   .getAll();
 
   // Get all deleted Sales records
-  const deletedSales = await xata.db.Sales
-    .filter({
-      deleted_at: { $isNot: null }
-    })
-    .select([
-      "id",
-      "sale_reference",
-      "sale_date",
-      "xero_invoice_number",
-      "brand",
-      "item_title",
-      "sale_amount_inc_vat",
-      "deleted_at",
-      "buyer.name",
-      "shopper.name"
-    ])
-    .sort('deleted_at', 'desc')
-    .getAll();
+  const deletedSales = await db.query.sales.findMany({
+    where: isNotNull(sales.deletedAt),
+    with: {
+      buyer: true,
+      shopper: true,
+    },
+    orderBy: [desc(sales.deletedAt)],
+  });
 
   // Serialize for client component
   const serializedSales = deletedSales.map(sale => ({
     id: sale.id,
-    sale_reference: sale.sale_reference || null,
-    sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
-    xero_invoice_number: sale.xero_invoice_number || null,
+    sale_reference: sale.saleReference || null,
+    sale_date: sale.saleDate ? sale.saleDate.toISOString() : null,
+    xero_invoice_number: sale.xeroInvoiceNumber || null,
     brand: sale.brand || 'Unknown',
-    item_title: sale.item_title || 'N/A',
-    sale_amount_inc_vat: sale.sale_amount_inc_vat || 0,
-    deleted_at: sale.deleted_at ? sale.deleted_at.toISOString() : null,
+    item_title: sale.itemTitle || 'N/A',
+    sale_amount_inc_vat: sale.saleAmountIncVat || 0,
+    deleted_at: sale.deletedAt ? sale.deletedAt.toISOString() : null,
     buyer_name: sale.buyer?.name || 'Unknown',
     shopper_name: sale.shopper?.name || 'Unassigned',
   }));

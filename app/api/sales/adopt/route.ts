@@ -8,7 +8,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, buyers } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
 import { getValidTokens } from "@/lib/xero-auth";
 import { getUserRole } from "@/lib/getUserRole";
 import { calculateMargins } from "@/lib/economics";
@@ -17,22 +20,29 @@ import * as logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-const xata = getXataClient();
+// ORIGINAL XATA: const xata = getXataClient();
 
 /**
  * Generate next sale_reference in format C19-XXXX
  */
 async function generateSaleReference(): Promise<string> {
-  const latestSale = await xata.db.Sales
-    .select(["sale_reference"])
-    .sort("xata.createdAt", "desc")
-    .getFirst();
+  // ORIGINAL XATA:
+  // const latestSale = await xata.db.Sales
+  //   .select(["sale_reference"])
+  //   .sort("xata.createdAt", "desc")
+  //   .getFirst();
+  const latestSaleResults = await db
+    .select({ saleReference: sales.saleReference })
+    .from(sales)
+    .orderBy(desc(sales.createdAt))
+    .limit(1);
+  const latestSale = latestSaleResults[0] || null;
 
-  if (!latestSale || !latestSale.sale_reference) {
+  if (!latestSale || !latestSale.saleReference) {
     return "C19-0001";
   }
 
-  const match = latestSale.sale_reference.match(/C19-(\d+)/);
+  const match = latestSale.saleReference.match(/C19-(\d+)/);
   if (!match) {
     return "C19-0001";
   }
@@ -84,16 +94,27 @@ export async function POST(request: NextRequest) {
     });
 
     // Check if this invoice has already been adopted (exclude deleted records and unallocated imports)
-    // Note: Xata's filter on null datetime fields is unreliable, so we filter in JS
-    const existingSaleRaw = await xata.db.Sales
-      .filter({ xero_invoice_id: xeroInvoiceId })
-      .select(['id', 'deleted_at', 'needs_allocation', 'source'])
-      .getFirst();
+    // ORIGINAL XATA:
+    // const existingSaleRaw = await xata.db.Sales
+    //   .filter({ xero_invoice_id: xeroInvoiceId })
+    //   .select(['id', 'deleted_at', 'needs_allocation', 'source'])
+    //   .getFirst();
+    const existingSaleRawResults = await db
+      .select({
+        id: sales.id,
+        deletedAt: sales.deletedAt,
+        needsAllocation: sales.needsAllocation,
+        source: sales.source,
+      })
+      .from(sales)
+      .where(eq(sales.xeroInvoiceId, xeroInvoiceId))
+      .limit(1);
+    const existingSaleRaw = existingSaleRawResults[0] || null;
 
     // Only block if we find a NON-deleted record that has ALREADY been adopted
     // Allow if: deleted, OR needs_allocation is true (it's an unallocated import waiting to be adopted)
-    const isDeleted = existingSaleRaw?.deleted_at;
-    const isUnallocatedImport = existingSaleRaw?.needs_allocation === true;
+    const isDeleted = existingSaleRaw?.deletedAt;
+    const isUnallocatedImport = existingSaleRaw?.needsAllocation === true;
     const existingSale = existingSaleRaw && !isDeleted && !isUnallocatedImport ? existingSaleRaw : null;
 
     if (existingSale) {
@@ -177,17 +198,34 @@ export async function POST(request: NextRequest) {
     let buyerId: string | undefined;
     if (invoice.Contact?.ContactID) {
       // Check if buyer exists with this Xero contact ID
-      let buyer = await xata.db.Buyers
-        .filter({ xero_contact_id: invoice.Contact.ContactID })
-        .getFirst();
+      // ORIGINAL XATA:
+      // let buyer = await xata.db.Buyers
+      //   .filter({ xero_contact_id: invoice.Contact.ContactID })
+      //   .getFirst();
+      const buyerResults = await db
+        .select()
+        .from(buyers)
+        .where(eq(buyers.xeroContactId, invoice.Contact.ContactID))
+        .limit(1);
+      let buyer = buyerResults[0] || null;
 
       if (!buyer) {
         // Create new buyer
-        buyer = await xata.db.Buyers.create({
-          name: invoice.Contact.Name || "Unknown Client",
-          email: invoice.Contact.EmailAddress || null,
-          xero_contact_id: invoice.Contact.ContactID,
-        });
+        // ORIGINAL XATA:
+        // buyer = await xata.db.Buyers.create({
+        //   name: invoice.Contact.Name || "Unknown Client",
+        //   email: invoice.Contact.EmailAddress || null,
+        //   xero_contact_id: invoice.Contact.ContactID,
+        // });
+        const newBuyerResults = await db
+          .insert(buyers)
+          .values({
+            name: invoice.Contact.Name || "Unknown Client",
+            email: invoice.Contact.EmailAddress || null,
+            xeroContactId: invoice.Contact.ContactID,
+          })
+          .returning();
+        buyer = newBuyerResults[0];
         logger.info("ADOPT", "Created new buyer", { buyerId: buyer.id, name: buyer.name });
       }
       buyerId = buyer.id;
@@ -229,52 +267,86 @@ export async function POST(request: NextRequest) {
     const isPaid = invoiceStatus === "PAID";
 
     // Create the Sale record
-    const saleRecord = await xata.db.Sales.create({
-      // Metadata
-      sale_reference: saleReference,
-      sale_date: saleDate,
-      status: "active",
-      source: "adopted", // Mark as adopted from Xero
+    // ORIGINAL XATA:
+    // const saleRecord = await xata.db.Sales.create({
+    //   sale_reference: saleReference,
+    //   sale_date: saleDate,
+    //   status: "active",
+    //   source: "adopted",
+    //   buyer: buyerId,
+    //   shopper: shopperId,
+    //   supplier: supplierId,
+    //   brand,
+    //   category,
+    //   item_title: description || invoice.LineItems?.[0]?.Description || `${brand} ${category}`,
+    //   quantity: 1,
+    //   buy_price: roundedBuyPrice,
+    //   sale_amount_ex_vat: saleAmountExVat,
+    //   sale_amount_inc_vat: saleAmountIncVat,
+    //   currency: invoice.CurrencyCode || "GBP",
+    //   gross_margin: marginResult.grossMargin,
+    //   commissionable_margin: marginResult.commissionableMargin,
+    //   xero_invoice_number: invoice.InvoiceNumber,
+    //   xero_invoice_id: invoice.InvoiceID,
+    //   xero_invoice_url: `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${invoice.InvoiceID}`,
+    //   invoice_status: invoiceStatus,
+    //   invoice_paid_date: isPaid ? new Date() : undefined,
+    //   xero_payment_date: isPaid ? new Date() : undefined,
+    //   commission_locked: false,
+    //   commission_paid: false,
+    //   error_flag: false,
+    //   needs_allocation: false,
+    // });
+    const saleRecordResults = await db
+      .insert(sales)
+      .values({
+        // Metadata
+        saleReference,
+        saleDate,
+        status: "active",
+        source: "adopted", // Mark as adopted from Xero
 
-      // Relationships
-      buyer: buyerId,
-      shopper: shopperId,
-      supplier: supplierId,
+        // Relationships
+        buyerId,
+        shopperId,
+        supplierId,
 
-      // Item details
-      brand,
-      category,
-      item_title: description || invoice.LineItems?.[0]?.Description || `${brand} ${category}`,
-      quantity: 1,
+        // Item details
+        brand,
+        category,
+        itemTitle: description || invoice.LineItems?.[0]?.Description || `${brand} ${category}`,
+        quantity: 1,
 
-      // Pricing
-      buy_price: roundedBuyPrice,
-      sale_amount_ex_vat: saleAmountExVat,
-      sale_amount_inc_vat: saleAmountIncVat,
-      currency: invoice.CurrencyCode || "GBP",
+        // Pricing
+        buyPrice: roundedBuyPrice,
+        saleAmountExVat,
+        saleAmountIncVat,
+        currency: invoice.CurrencyCode || "GBP",
 
-      // Margins
-      gross_margin: marginResult.grossMargin,
-      commissionable_margin: marginResult.commissionableMargin,
+        // Margins
+        grossMargin: marginResult.grossMargin,
+        commissionableMargin: marginResult.commissionableMargin,
 
-      // Xero integration
-      xero_invoice_number: invoice.InvoiceNumber,
-      xero_invoice_id: invoice.InvoiceID,
-      xero_invoice_url: `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${invoice.InvoiceID}`,
-      invoice_status: invoiceStatus,
+        // Xero integration
+        xeroInvoiceNumber: invoice.InvoiceNumber,
+        xeroInvoiceId: invoice.InvoiceID,
+        xeroInvoiceUrl: `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${invoice.InvoiceID}`,
+        invoiceStatus,
 
-      // Payment tracking
-      invoice_paid_date: isPaid ? new Date() : undefined,
-      xero_payment_date: isPaid ? new Date() : undefined,
+        // Payment tracking
+        invoicePaidDate: isPaid ? new Date() : undefined,
+        xeroPaymentDate: isPaid ? new Date() : undefined,
 
-      // Commission tracking (defaults)
-      commission_locked: false,
-      commission_paid: false,
-      error_flag: false,
+        // Commission tracking (defaults)
+        commissionLocked: false,
+        commissionPaid: false,
+        errorFlag: false,
 
-      // Allocation - mark as NOT needing allocation (it's being adopted with full details)
-      needs_allocation: false,
-    });
+        // Allocation - mark as NOT needing allocation (it's being adopted with full details)
+        needsAllocation: false,
+      })
+      .returning();
+    const saleRecord = saleRecordResults[0];
 
     logger.info("ADOPT", "Sale record created", {
       saleId: saleRecord.id,
@@ -289,7 +361,8 @@ export async function POST(request: NextRequest) {
         oldId: existingUnallocatedId,
         newId: saleRecord.id,
       });
-      await xata.db.Sales.delete(existingUnallocatedId);
+      // ORIGINAL XATA: await xata.db.Sales.delete(existingUnallocatedId);
+      await db.delete(sales).where(eq(sales.id, existingUnallocatedId));
     }
 
     return NextResponse.json({

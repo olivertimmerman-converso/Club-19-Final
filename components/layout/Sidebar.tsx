@@ -25,6 +25,7 @@ import {
   Menu,
   X,
   HeartPulse,
+  RefreshCw,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -35,6 +36,7 @@ const iconMap: Record<string, React.ElementType> = {
   Calculator,
   Settings,
   HeartPulse,
+  RefreshCw,
 };
 
 interface SidebarProps {

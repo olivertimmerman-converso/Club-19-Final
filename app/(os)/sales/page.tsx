@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, shoppers } from "@/db/schema";
+import { eq, and, isNull, gte, lte, ne, desc, asc, isNotNull } from "drizzle-orm";
 import { getUserRole } from "@/lib/getUserRole";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { MonthPicker } from "@/components/ui/MonthPicker";
@@ -11,7 +14,7 @@ export const dynamic = "force-dynamic";
 /**
  * Club 19 Sales OS - Sales Overview
  *
- * Displays all sales from the Xata database with inline shopper editing
+ * Displays all sales from the database with inline shopper editing
  * Shoppers see only their own sales, others see all sales
  * Superadmin sees deleted sales in a separate section
  */
@@ -22,7 +25,7 @@ interface SalesPageProps {
 
 export default async function SalesPage({ searchParams }: SalesPageProps) {
   try {
-    const xata = getXataClient();
+    // ORIGINAL XATA: const xata = getXataClient();
 
     // Get role for filtering
     const role = await getUserRole();
@@ -36,37 +39,38 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     const dateRange = getMonthDateRange(monthParam);
     console.log('[SalesPage] Date range:', dateRange);
 
-    // Query ALL Sales from Xata (exclude xero_import records)
-    // Then filter active vs deleted in JavaScript for reliability
-    // Note: We fetch ALL records and filter in JS because Xata's $isNot excludes null values
-    let allSalesQuery = xata.db.Sales
-      .select([
-        'id',
-        'sale_reference',
-        'sale_date',
-        'brand',
-        'category',
-        'item_title',
-        'buy_price',
-        'sale_amount_inc_vat',
-        'gross_margin',
-        'xero_invoice_number',
-        'invoice_status',
-        'currency',
-        'source',
-        'buyer.name',
-        'shopper.id',
-        'shopper.name',
-        'supplier.id',
-        'deleted_at',
-        'is_payment_plan',
-        'payment_plan_instalments',
-        'shipping_cost_confirmed',
-        'has_introducer',
-        'introducer.id',
-        'introducer.name',
-        'introducer_commission',
-      ]);
+    // ORIGINAL XATA:
+    // let allSalesQuery = xata.db.Sales
+    //   .select([
+    //     'id',
+    //     'sale_reference',
+    //     'sale_date',
+    //     'brand',
+    //     'category',
+    //     'item_title',
+    //     'buy_price',
+    //     'sale_amount_inc_vat',
+    //     'gross_margin',
+    //     'xero_invoice_number',
+    //     'invoice_status',
+    //     'currency',
+    //     'source',
+    //     'buyer.name',
+    //     'shopper.id',
+    //     'shopper.name',
+    //     'supplier.id',
+    //     'deleted_at',
+    //     'is_payment_plan',
+    //     'payment_plan_instalments',
+    //     'shipping_cost_confirmed',
+    //     'has_introducer',
+    //     'introducer.id',
+    //     'introducer.name',
+    //     'introducer_commission',
+    //   ]);
+
+    // Build conditions for sales query
+    const conditions: any[] = [];
 
     // Filter for shoppers - only show their own sales
     if (role === 'shopper') {
@@ -74,12 +78,13 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       const currentUser = await getCurrentUser();
       console.log('[SalesPage] Current user:', currentUser?.fullName);
       if (currentUser?.fullName) {
-        // Look up the Shopper record by name to get the ID
-        const shopper = await xata.db.Shoppers.filter({ name: currentUser.fullName }).getFirst();
+        // ORIGINAL XATA: const shopper = await xata.db.Shoppers.filter({ name: currentUser.fullName }).getFirst();
+        const shopper = await db.query.shoppers.findFirst({
+          where: eq(shoppers.name, currentUser.fullName),
+        });
         console.log('[SalesPage] Found shopper:', shopper?.id);
         if (shopper) {
-          // Filter Sales by the shopper link ID
-          allSalesQuery = allSalesQuery.filter({ shopper: shopper.id });
+          conditions.push(eq(sales.shopperId, shopper.id));
         }
       }
     }
@@ -87,26 +92,31 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     // Apply date range filter if specified
     if (dateRange) {
       console.log('[SalesPage] Applying date range filter');
-      allSalesQuery = allSalesQuery.filter({
-        sale_date: {
-          $ge: dateRange.start,
-          $le: dateRange.end,
-        },
-      });
+      conditions.push(gte(sales.saleDate, dateRange.start));
+      conditions.push(lte(sales.saleDate, dateRange.end));
     }
 
     console.log('[SalesPage] Executing query...');
-    // Fetch all sales, then split by deleted_at in JavaScript
-    const allSalesRaw = await allSalesQuery.sort('sale_date', 'desc').getAll();
+    // ORIGINAL XATA: const allSalesRaw = await allSalesQuery.sort('sale_date', 'desc').getAll();
+    const allSalesRaw = await db.query.sales.findMany({
+      where: conditions.length > 0 ? and(...conditions) : undefined,
+      with: {
+        buyer: true,
+        shopper: true,
+        supplier: true,
+        introducer: true,
+      },
+      orderBy: [desc(sales.saleDate)],
+    });
     console.log('[SalesPage] Total sales fetched:', allSalesRaw.length);
 
-    // Filter out xero_import records in JavaScript (Xata's $isNot excludes null values, so we do it here)
+    // Filter out xero_import records in JavaScript (keeping consistent with original)
     const nonImportedSales = allSalesRaw.filter(sale => sale.source !== 'xero_import');
     console.log('[SalesPage] After excluding xero_import:', nonImportedSales.length);
 
     // Split into active and deleted using JavaScript (reliable!)
-    const salesRaw = nonImportedSales.filter(sale => !sale.deleted_at);
-    const deletedSalesRaw = role === 'superadmin' ? nonImportedSales.filter(sale => sale.deleted_at) : [];
+    const salesRaw = nonImportedSales.filter(sale => !sale.deletedAt);
+    const deletedSalesRaw = role === 'superadmin' ? nonImportedSales.filter(sale => sale.deletedAt) : [];
 
     console.log('[SalesPage] Active sales count:', salesRaw.length);
     console.log('[SalesPage] Deleted sales count:', deletedSalesRaw.length);
@@ -115,76 +125,81 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     if (salesRaw.length > 0) {
       console.log('[SalesPage] Sample active sale:', {
         id: salesRaw[0].id,
-        ref: salesRaw[0].sale_reference,
-        deleted_at: salesRaw[0].deleted_at,
-        invoice_status: salesRaw[0].invoice_status
+        ref: salesRaw[0].saleReference,
+        deleted_at: salesRaw[0].deletedAt,
+        invoice_status: salesRaw[0].invoiceStatus
       });
     }
     if (deletedSalesRaw.length > 0) {
       console.log('[SalesPage] Sample deleted sale:', {
         id: deletedSalesRaw[0].id,
-        ref: deletedSalesRaw[0].sale_reference,
-        deleted_at: deletedSalesRaw[0].deleted_at,
-        invoice_status: deletedSalesRaw[0].invoice_status
+        ref: deletedSalesRaw[0].saleReference,
+        deleted_at: deletedSalesRaw[0].deletedAt,
+        invoice_status: deletedSalesRaw[0].invoiceStatus
       });
     }
 
+    // ORIGINAL XATA:
+    // const shoppersRaw = await xata.db.Shoppers
+    //   .select(['id', 'name'])
+    //   .sort('name', 'asc')
+    //   .getAll();
+
     // Fetch all shoppers for the dropdown
-    const shoppersRaw = await xata.db.Shoppers
-      .select(['id', 'name'])
-      .sort('name', 'asc')
-      .getAll();
+    const shoppersRaw = await db.query.shoppers.findMany({
+      orderBy: [asc(shoppers.name)],
+    });
 
     // Serialize data for client component
-    const sales = salesRaw.map(sale => ({
+    const salesData = salesRaw.map(sale => ({
       id: sale.id,
-      sale_reference: sale.sale_reference || null,
-      sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
+      sale_reference: sale.saleReference || null,
+      sale_date: sale.saleDate ? sale.saleDate.toISOString() : null,
       brand: sale.brand || null,
       category: sale.category || null,
-      item_title: sale.item_title || null,
-      buy_price: sale.buy_price || null,
-      sale_amount_inc_vat: sale.sale_amount_inc_vat || null,
-      gross_margin: sale.gross_margin || null,
-      xero_invoice_number: sale.xero_invoice_number || null,
-      invoice_status: sale.invoice_status || null,
+      item_title: sale.itemTitle || null,
+      buy_price: sale.buyPrice || null,
+      sale_amount_inc_vat: sale.saleAmountIncVat || null,
+      gross_margin: sale.grossMargin || null,
+      xero_invoice_number: sale.xeroInvoiceNumber || null,
+      invoice_status: sale.invoiceStatus || null,
       currency: sale.currency || null,
       buyer: sale.buyer ? { name: sale.buyer.name || 'Unknown' } : null,
       shopper: sale.shopper ? { id: sale.shopper.id, name: sale.shopper.name || 'Unknown' } : null,
       supplier: sale.supplier ? { id: sale.supplier.id } : null,
-      is_payment_plan: (sale as any).is_payment_plan || false,
-      payment_plan_instalments: (sale as any).payment_plan_instalments || null,
-      shipping_cost_confirmed: (sale as any).shipping_cost_confirmed || false,
-      has_introducer: (sale as any).has_introducer || false,
+      is_payment_plan: sale.isPaymentPlan || false,
+      payment_plan_instalments: sale.paymentPlanInstalments || null,
+      shipping_cost_confirmed: sale.shippingCostConfirmed || false,
+      has_introducer: sale.hasIntroducer || false,
       introducer: sale.introducer ? { id: sale.introducer.id, name: sale.introducer.name || 'Unknown' } : null,
-      introducer_commission: sale.introducer_commission || null,
+      introducer_commission: sale.introducerCommission || null,
     }));
 
     const deletedSales = deletedSalesRaw.map(sale => ({
       id: sale.id,
-      sale_reference: sale.sale_reference || null,
-      sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
+      sale_reference: sale.saleReference || null,
+      sale_date: sale.saleDate ? sale.saleDate.toISOString() : null,
       brand: sale.brand || null,
       category: sale.category || null,
-      item_title: sale.item_title || null,
-      buy_price: sale.buy_price || null,
-      sale_amount_inc_vat: sale.sale_amount_inc_vat || null,
-      gross_margin: sale.gross_margin || null,
-      xero_invoice_number: sale.xero_invoice_number || null,
-      invoice_status: sale.invoice_status || null,
+      item_title: sale.itemTitle || null,
+      buy_price: sale.buyPrice || null,
+      sale_amount_inc_vat: sale.saleAmountIncVat || null,
+      gross_margin: sale.grossMargin || null,
+      xero_invoice_number: sale.xeroInvoiceNumber || null,
+      invoice_status: sale.invoiceStatus || null,
       currency: sale.currency || null,
       buyer: sale.buyer ? { name: sale.buyer.name || 'Unknown' } : null,
       shopper: sale.shopper ? { id: sale.shopper.id, name: sale.shopper.name || 'Unknown' } : null,
       supplier: sale.supplier ? { id: sale.supplier.id } : null,
-      is_payment_plan: (sale as any).is_payment_plan || false,
-      payment_plan_instalments: (sale as any).payment_plan_instalments || null,
-      shipping_cost_confirmed: (sale as any).shipping_cost_confirmed || false,
-      has_introducer: (sale as any).has_introducer || false,
+      is_payment_plan: sale.isPaymentPlan || false,
+      payment_plan_instalments: sale.paymentPlanInstalments || null,
+      shipping_cost_confirmed: sale.shippingCostConfirmed || false,
+      has_introducer: sale.hasIntroducer || false,
       introducer: sale.introducer ? { id: sale.introducer.id, name: sale.introducer.name || 'Unknown' } : null,
-      introducer_commission: sale.introducer_commission || null,
+      introducer_commission: sale.introducerCommission || null,
     }));
 
-    const shoppers = shoppersRaw.map(s => ({
+    const shoppersData = shoppersRaw.map(s => ({
       id: s.id,
       name: s.name || 'Unknown',
     }));
@@ -196,7 +211,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
         <div>
           <h1 className="text-3xl font-semibold text-gray-900 mb-2">Sales</h1>
           <p className="text-gray-600">
-            {sales.length} active sale{sales.length !== 1 ? 's' : ''}
+            {salesData.length} active sale{salesData.length !== 1 ? 's' : ''}
             {role === 'superadmin' && deletedSales.length > 0 && ` • ${deletedSales.length} deleted`}
           </p>
         </div>
@@ -227,7 +242,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       {/* Active Sales Section */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Sales</h2>
-        {sales.length === 0 ? (
+        {salesData.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
             <svg
               className="mx-auto h-12 w-12 text-gray-400"
@@ -269,7 +284,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
             </div>
           </div>
         ) : (
-          <SalesTableClient sales={sales} shoppers={shoppers} userRole={role} />
+          <SalesTableClient sales={salesData} shoppers={shoppersData} userRole={role} />
         )}
       </div>
 
@@ -277,14 +292,14 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       {role === 'superadmin' && deletedSales.length > 0 && (
         <div className="mt-12">
           <h2 className="text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <span>🗑️ Deleted Sales</span>
+            <span>Deleted Sales</span>
             <span className="text-xs font-normal text-gray-500">(hidden from reports)</span>
           </h2>
           <p className="text-sm text-gray-500 mb-4">
             These sales have been soft-deleted and are excluded from all analytics and reports.
           </p>
           <div className="opacity-60">
-            <SalesTableClient sales={deletedSales} shoppers={shoppers} userRole={role} isDeletedSection />
+            <SalesTableClient sales={deletedSales} shoppers={shoppersData} userRole={role} isDeletedSection />
           </div>
         </div>
       )}

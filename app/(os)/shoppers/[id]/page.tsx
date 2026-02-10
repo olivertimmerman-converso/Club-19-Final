@@ -8,11 +8,14 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { ArrowLeft, Mail, Award, TrendingUp, DollarSign } from "lucide-react";
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, shoppers } from "@/db/schema";
+import { eq, and, gte, lte } from "drizzle-orm";
 import { getUserRole } from "@/lib/getUserRole";
 import { canAccess } from "@/lib/rbac";
 
-const xata = getXataClient();
+// ORIGINAL XATA: const xata = getXataClient();
 
 // Helper to format currency
 const formatCurrency = (value: number | null | undefined) => {
@@ -52,8 +55,12 @@ export default async function ShopperDetailPage({
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
 
+  // ORIGINAL XATA: const shopper = await xata.db.Shoppers.filter({ id }).getFirst();
+
   // Fetch the shopper
-  const shopper = await xata.db.Shoppers.filter({ id }).getFirst();
+  const shopper = await db.query.shoppers.findFirst({
+    where: eq(shoppers.id, id),
+  });
 
   if (!shopper) {
     notFound();
@@ -74,83 +81,87 @@ export default async function ShopperDetailPage({
   // Calculate YTD dates
   const ytdStart = new Date(currentYear, 0, 1);
 
+  // ORIGINAL XATA:
+  // const monthSales = await xata.db.Sales.filter({
+  //   "shopper.id": id,
+  //   sale_date: {
+  //     $ge: monthStart,
+  //     $le: monthEnd,
+  //   },
+  // })
+  //   .select([...])
+  //   .getAll();
+
   // Fetch sales for this shopper (filtered by month)
-  const monthSales = await xata.db.Sales.filter({
-    "shopper.id": id,
-    sale_date: {
-      $ge: monthStart,
-      $le: monthEnd,
+  const monthSales = await db.query.sales.findMany({
+    where: and(
+      eq(sales.shopperId, id),
+      gte(sales.saleDate, monthStart),
+      lte(sales.saleDate, monthEnd)
+    ),
+    with: {
+      buyer: true,
     },
-  })
-    .select([
-      "id",
-      "sale_date",
-      "buyer.id",
-      "buyer.name",
-      "sale_amount_inc_vat",
-      "gross_margin",
-      "commissionable_margin",
-      "commission_locked",
-      "commission_paid",
-      "invoice_status",
-    ])
-    .getAll();
+  });
+
+  // ORIGINAL XATA:
+  // const ytdSales = await xata.db.Sales.filter({
+  //   "shopper.id": id,
+  //   sale_date: {
+  //     $ge: ytdStart,
+  //     $le: monthEnd,
+  //   },
+  // })
+  //   .select([...])
+  //   .getAll();
 
   // Fetch YTD sales for this shopper
-  const ytdSales = await xata.db.Sales.filter({
-    "shopper.id": id,
-    sale_date: {
-      $ge: ytdStart,
-      $le: monthEnd,
-    },
-  })
-    .select([
-      "sale_amount_inc_vat",
-      "gross_margin",
-      "commissionable_margin",
-      "commission_locked",
-      "commission_paid",
-    ])
-    .getAll();
+  const ytdSales = await db.query.sales.findMany({
+    where: and(
+      eq(sales.shopperId, id),
+      gte(sales.saleDate, ytdStart),
+      lte(sales.saleDate, monthEnd)
+    ),
+  });
 
   // Calculate metrics
   const thisMonthMetrics = {
     sales: monthSales.length,
     revenue: monthSales.reduce(
-      (sum, s) => sum + (s.sale_amount_inc_vat || 0),
+      (sum, s) => sum + (s.saleAmountIncVat || 0),
       0
     ),
-    margin: monthSales.reduce((sum, s) => sum + (s.gross_margin || 0), 0),
+    margin: monthSales.reduce((sum, s) => sum + (s.grossMargin || 0), 0),
     commissionPending: monthSales
-      .filter((s) => !s.commission_locked && !s.commission_paid)
-      .reduce((sum, s) => sum + (s.commissionable_margin || 0), 0),
+      .filter((s) => !s.commissionLocked && !s.commissionPaid)
+      .reduce((sum, s) => sum + (s.commissionableMargin || 0), 0),
     commissionLocked: monthSales
-      .filter((s) => s.commission_locked && !s.commission_paid)
-      .reduce((sum, s) => sum + (s.commissionable_margin || 0), 0),
+      .filter((s) => s.commissionLocked && !s.commissionPaid)
+      .reduce((sum, s) => sum + (s.commissionableMargin || 0), 0),
     commissionPaid: monthSales
-      .filter((s) => s.commission_paid)
-      .reduce((sum, s) => sum + (s.commissionable_margin || 0), 0),
+      .filter((s) => s.commissionPaid)
+      .reduce((sum, s) => sum + (s.commissionableMargin || 0), 0),
   };
 
   const ytdMetrics = {
     sales: ytdSales.length,
-    revenue: ytdSales.reduce((sum, s) => sum + (s.sale_amount_inc_vat || 0), 0),
-    margin: ytdSales.reduce((sum, s) => sum + (s.gross_margin || 0), 0),
+    revenue: ytdSales.reduce((sum, s) => sum + (s.saleAmountIncVat || 0), 0),
+    margin: ytdSales.reduce((sum, s) => sum + (s.grossMargin || 0), 0),
     commissionPending: ytdSales
-      .filter((s) => !s.commission_locked && !s.commission_paid)
-      .reduce((sum, s) => sum + (s.commissionable_margin || 0), 0),
+      .filter((s) => !s.commissionLocked && !s.commissionPaid)
+      .reduce((sum, s) => sum + (s.commissionableMargin || 0), 0),
     commissionLocked: ytdSales
-      .filter((s) => s.commission_locked && !s.commission_paid)
-      .reduce((sum, s) => sum + (s.commissionable_margin || 0), 0),
+      .filter((s) => s.commissionLocked && !s.commissionPaid)
+      .reduce((sum, s) => sum + (s.commissionableMargin || 0), 0),
     commissionPaid: ytdSales
-      .filter((s) => s.commission_paid)
-      .reduce((sum, s) => sum + (s.commissionable_margin || 0), 0),
+      .filter((s) => s.commissionPaid)
+      .reduce((sum, s) => sum + (s.commissionableMargin || 0), 0),
   };
 
   // Sort sales by date (most recent first)
   const sortedSales = monthSales.sort((a, b) => {
-    const dateA = a.sale_date ? new Date(a.sale_date).getTime() : 0;
-    const dateB = b.sale_date ? new Date(b.sale_date).getTime() : 0;
+    const dateA = a.saleDate ? new Date(a.saleDate).getTime() : 0;
+    const dateB = b.saleDate ? new Date(b.saleDate).getTime() : 0;
     return dateB - dateA;
   });
 
@@ -180,7 +191,7 @@ export default async function ShopperDetailPage({
                 </div>
                 <div className="flex items-center gap-2">
                   <Award size={16} />
-                  Commission: {shopper.commission_scheme || "standard"}
+                  Commission: {shopper.commissionScheme || "standard"}
                 </div>
               </div>
             </div>
@@ -396,16 +407,16 @@ export default async function ShopperDetailPage({
                   </tr>
                 ) : (
                   sortedSales.map((sale) => {
-                    const commissionStatus = sale.commission_paid
+                    const commissionStatus = sale.commissionPaid
                       ? "Paid"
-                      : sale.commission_locked
+                      : sale.commissionLocked
                         ? "Locked"
                         : "Pending";
 
                     return (
                       <tr key={sale.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(sale.sale_date)}
+                          {formatDate(sale.saleDate)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Link
@@ -416,13 +427,13 @@ export default async function ShopperDetailPage({
                           </Link>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                          {formatCurrency(sale.sale_amount_inc_vat)}
+                          {formatCurrency(sale.saleAmountIncVat)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                          {formatCurrency(sale.gross_margin)}
+                          {formatCurrency(sale.grossMargin)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-green-600">
-                          {formatCurrency(sale.commissionable_margin)}
+                          {formatCurrency(sale.commissionableMargin)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <span

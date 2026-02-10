@@ -8,7 +8,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, errors } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { withRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -20,16 +23,17 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // ============================================================================
-// XATA CLIENT
+// ORIGINAL XATA CLIENT (REMOVED)
 // ============================================================================
 
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
+// ORIGINAL XATA:
+// let _xata: ReturnType<typeof getXataClient> | null = null;
+//
+// function xata() {
+//   if (_xata) return _xata;
+//   _xata = getXataClient();
+//   return _xata;
+// }
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -92,10 +96,19 @@ export async function POST(req: NextRequest) {
     // STEP 2: Fetch all sales with status = "locked"
     logger.info("COMMISSIONS", "Fetching locked sales...");
 
-    const lockedSales = await xata()
-      .db.Sales.filter({ status: "locked" })
-      .select(["id", "sale_reference", "status"])
-      .getMany();
+    // ORIGINAL XATA:
+    // const lockedSales = await xata()
+    //   .db.Sales.filter({ status: "locked" })
+    //   .select(["id", "sale_reference", "status"])
+    //   .getMany();
+    const lockedSales = await db
+      .select({
+        id: sales.id,
+        saleReference: sales.saleReference,
+        status: sales.status,
+      })
+      .from(sales)
+      .where(eq(sales.status, "locked"));
 
     logger.info("COMMISSIONS", `Found ${lockedSales.length} locked sales`);
 
@@ -118,7 +131,7 @@ export async function POST(req: NextRequest) {
 
     for (const sale of lockedSales) {
       try {
-        logger.info("COMMISSIONS", "Processing sale", { saleId: sale.id, saleReference: sale.sale_reference });
+        logger.info("COMMISSIONS", "Processing sale", { saleId: sale.id, saleReference: sale.saleReference });
 
         const transitionResult = await transitionSaleStatus({
           saleId: sale.id,
@@ -131,27 +144,36 @@ export async function POST(req: NextRequest) {
           total_commission_paid++;
           results.push({
             sale_id: sale.id,
-            sale_reference: sale.sale_reference || "",
+            sale_reference: sale.saleReference || "",
             status: "commission_paid",
           });
-          logger.info("COMMISSIONS", "Commission paid", { saleReference: sale.sale_reference });
+          logger.info("COMMISSIONS", "Commission paid", { saleReference: sale.saleReference });
         } else {
           total_failed++;
           results.push({
             sale_id: sale.id,
-            sale_reference: sale.sale_reference || "",
+            sale_reference: sale.saleReference || "",
             status: "failed",
             error: transitionResult.error || "Unknown error",
           });
           logger.error("COMMISSIONS", "Failed to pay commission", {
-            saleReference: sale.sale_reference,
+            saleReference: sale.saleReference,
             error: transitionResult.error
           });
 
           // Log error to Errors table
           try {
-            await xata().db.Errors.create({
-              sale: sale.id,
+            // ORIGINAL XATA:
+            // await xata().db.Errors.create({
+            //   sale: sale.id,
+            //   severity: "high",
+            //   source: "pay-commissions",
+            //   message: [transitionResult.error || "Failed to pay commission"],
+            //   timestamp: new Date(),
+            //   resolved: false,
+            // });
+            await db.insert(errors).values({
+              saleId: sale.id,
               severity: "high",
               source: "pay-commissions",
               message: [transitionResult.error || "Failed to pay commission"],
@@ -166,7 +188,7 @@ export async function POST(req: NextRequest) {
         total_failed++;
         results.push({
           sale_id: sale.id,
-          sale_reference: sale.sale_reference || "",
+          sale_reference: sale.saleReference || "",
           status: "failed",
           error: saleErr.message || "Unexpected error",
         });

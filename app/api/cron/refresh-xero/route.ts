@@ -19,7 +19,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { clerkClient } from '@clerk/nextjs/server';
 import { refreshTokens, getValidTokens } from '@/lib/xero-auth';
-import { getXataClient } from '@/src/xata';
+// ORIGINAL XATA: import { getXataClient } from '@/src/xata';
+import { db } from "@/db";
+import { errors } from "@/db/schema";
 import * as logger from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -89,7 +91,7 @@ export async function GET(request: NextRequest) {
 
     let refreshed = 0;
     let failed = 0;
-    const errors: string[] = [];
+    const errorMessages: string[] = [];
 
     try {
       logger.info('XERO_CRON', 'Refreshing token for integration user', {
@@ -127,13 +129,21 @@ export async function GET(request: NextRequest) {
         integrationUserId: INTEGRATION_USER_ID,
         error: errorMessage,
       });
-      errors.push(`Integration user: ${errorMessage}`);
+      errorMessages.push(`Integration user: ${errorMessage}`);
       failed++;
 
-      // Log critical error to Xata for visibility
+      // Log critical error to database for visibility
       try {
-        const xata = getXataClient();
-        await xata.db.Errors.create({
+        // ORIGINAL XATA:
+        // const xata = getXataClient();
+        // await xata.db.Errors.create({
+        //   severity: 'high',
+        //   source: 'xero-cron',
+        //   message: [`Cron refresh failed for integration user: ${errorMessage}`],
+        //   timestamp: new Date(),
+        //   resolved: false,
+        // });
+        await db.insert(errors).values({
           severity: 'high',
           source: 'xero-cron',
           message: [`Cron refresh failed for integration user: ${errorMessage}`],
@@ -141,7 +151,7 @@ export async function GET(request: NextRequest) {
           resolved: false,
         });
       } catch (logErr) {
-        logger.error('XERO_CRON', 'Failed to log error to Xata', {
+        logger.error('XERO_CRON', 'Failed to log error to database', {
           error: logErr instanceof Error ? logErr.message : String(logErr),
         });
       }
@@ -164,7 +174,7 @@ export async function GET(request: NextRequest) {
           body: JSON.stringify({
             text: `🚨 URGENT: Xero token refresh failed. Admin must reconnect at ${appUrl}/trade/new`,
             priority: 'high',
-            errors: errors,
+            errors: errorMessages,
             timestamp: new Date().toISOString(),
           }),
         });
@@ -180,7 +190,7 @@ export async function GET(request: NextRequest) {
       success: true,
       refreshed,
       failed,
-      errors: errors.length > 0 ? errors : undefined,
+      errors: errorMessages.length > 0 ? errorMessages : undefined,
       alertSent: failed > 0 && !!process.env.ALERT_WEBHOOK_URL,
       duration,
       architecture: 'stage1-integration-user',

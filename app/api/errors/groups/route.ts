@@ -8,7 +8,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { errors } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { withRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -18,16 +20,17 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // ============================================================================
-// XATA CLIENT
+// ORIGINAL XATA CLIENT (REMOVED)
 // ============================================================================
 
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
+// ORIGINAL XATA:
+// let _xata: ReturnType<typeof getXataClient> | null = null;
+//
+// function xata() {
+//   if (_xata) return _xata;
+//   _xata = getXataClient();
+//   return _xata;
+// }
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -78,19 +81,28 @@ export async function GET(req: NextRequest) {
     // STEP 2: Fetch all errors with minimal fields
     logger.info("ERROR_GROUPS", "Fetching errors...");
 
-    const errors = await xata()
-      .db.Errors.select(["id", "source", "severity", "resolved"])
-      .getMany();
+    // ORIGINAL XATA:
+    // const errors = await xata()
+    //   .db.Errors.select(["id", "source", "severity", "resolved"])
+    //   .getMany();
+    const errorRecords = await db
+      .select({
+        id: errors.id,
+        source: errors.source,
+        severity: errors.severity,
+        resolved: errors.resolved,
+      })
+      .from(errors);
 
-    logger.info("ERROR_GROUPS", `Found ${errors.length} errors`);
+    logger.info("ERROR_GROUPS", `Found ${errorRecords.length} errors`);
 
     // STEP 3: Compute summaries
-    let total_errors = errors.length;
+    let total_errors = errorRecords.length;
     let unresolved_errors = 0;
     const errors_by_source: Record<string, number> = {};
     const errors_by_severity: Record<string, number> = {};
 
-    for (const error of errors) {
+    for (const error of errorRecords) {
       // Count unresolved
       if (!error.resolved) {
         unresolved_errors++;

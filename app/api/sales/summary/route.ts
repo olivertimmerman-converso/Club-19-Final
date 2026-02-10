@@ -5,11 +5,11 @@
  * Returns complete sales data with computed flags, errors, and analytics
  *
  * Admin/Finance/Superadmin only endpoint
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getXataClient } from "@/src/xata";
-import type { SalesRecord, ErrorsRecord } from "@/src/xata";
 import { auth } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { withRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -22,20 +22,26 @@ import {
 } from "@/lib/sales-summary-helpers";
 import * as logger from "@/lib/logger";
 
+// Drizzle imports
+import { db } from "@/db";
+import { sales, errors } from "@/db/schema";
+import { desc } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from "@/src/xata";
+// import type { SalesRecord, ErrorsRecord } from "@/src/xata";
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// ============================================================================
-// XATA CLIENT
-// ============================================================================
-
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
+// ORIGINAL XATA:
+// let _xata: ReturnType<typeof getXataClient> | null = null;
+//
+// function xata() {
+//   if (_xata) return _xata;
+//   _xata = getXataClient();
+//   return _xata;
+// }
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -134,52 +140,72 @@ export async function GET(req: NextRequest) {
     // STEP 2: Fetch all sales with required fields
     logger.info("SALES_SUMMARY", "Fetching sales...");
 
-    const sales = await xata()
-      .db.Sales.select([
-        "id",
-        "sale_reference",
-        "status",
-        "buyer.name",
-        "supplier.name",
-        "shopper.name",
-        "introducer.name",
-        "buyer_type",
-        "xero_payment_date",
-        "commission_amount",
-        "commission_split_introducer",
-        "commission_split_shopper",
-        "commissionable_margin",
-        "sale_amount_inc_vat",
-        "buy_price",
-        "error_flag",
-        "error_message",
-      ])
-      .sort("sale_date", "desc")
-      .getMany();
+    // ORIGINAL XATA:
+    // const sales = await xata()
+    //   .db.Sales.select([
+    //     "id",
+    //     "sale_reference",
+    //     "status",
+    //     "buyer.name",
+    //     "supplier.name",
+    //     "shopper.name",
+    //     "introducer.name",
+    //     "buyer_type",
+    //     "xero_payment_date",
+    //     "commission_amount",
+    //     "commission_split_introducer",
+    //     "commission_split_shopper",
+    //     "commissionable_margin",
+    //     "sale_amount_inc_vat",
+    //     "buy_price",
+    //     "error_flag",
+    //     "error_message",
+    //   ])
+    //   .sort("sale_date", "desc")
+    //   .getMany();
 
-    logger.info("SALES_SUMMARY", "Found sales", { count: sales.length });
+    // DRIZZLE:
+    const salesData = await db.query.sales.findMany({
+      orderBy: [desc(sales.saleDate)],
+      with: {
+        buyer: true,
+        supplier: true,
+        shopper: true,
+        introducer: true,
+      },
+    });
+
+    logger.info("SALES_SUMMARY", "Found sales", { count: salesData.length });
 
     // STEP 3: Fetch all errors (we'll group by sale_id)
     logger.info("SALES_SUMMARY", "Fetching errors...");
 
-    const allErrors = await xata()
-      .db.Errors.select([
-        "id",
-        "sale.id",
-        "severity",
-        "source",
-        "message",
-        "timestamp",
-        "resolved",
-      ])
-      .getMany();
+    // ORIGINAL XATA:
+    // const allErrors = await xata()
+    //   .db.Errors.select([
+    //     "id",
+    //     "sale.id",
+    //     "severity",
+    //     "source",
+    //     "message",
+    //     "timestamp",
+    //     "resolved",
+    //   ])
+    //   .getMany();
+
+    // DRIZZLE:
+    const allErrors = await db.query.errors.findMany({
+      with: {
+        sale: true,
+      },
+    });
 
     logger.info("SALES_SUMMARY", "Found errors", { count: allErrors.length });
 
-    // Group errors by sale ID (using any to avoid Xata SelectedPick complexity)
-    const errorsBySale = new Map<string, any[]>();
+    // Group errors by sale ID
+    const errorsBySale = new Map<string, typeof allErrors>();
     for (const error of allErrors) {
-      const saleId = error.sale?.id;
+      const saleId = error.saleId;
       if (!saleId) continue;
 
       if (!errorsBySale.has(saleId)) {
@@ -191,18 +217,34 @@ export async function GET(req: NextRequest) {
     // STEP 4: Transform sales into summary format
     logger.info("SALES_SUMMARY", "Computing derived fields...");
 
-    const summaries: SaleSummary[] = sales.map((sale) => {
+    const summaries: SaleSummary[] = salesData.map((sale) => {
+      // Map Drizzle camelCase to snake_case for helper functions
+      const saleForHelpers = {
+        id: sale.id,
+        status: sale.status,
+        buyer_type: sale.buyerType,
+        sale_amount_inc_vat: sale.saleAmountIncVat,
+        buy_price: sale.buyPrice,
+        commissionable_margin: sale.commissionableMargin,
+        xero_payment_date: sale.xeroPaymentDate,
+        commission_locked: sale.commissionLocked,
+        commission_paid: sale.commissionPaid,
+        commission_amount: sale.commissionAmount,
+        commission_split_introducer: sale.commissionSplitIntroducer,
+        commission_split_shopper: sale.commissionSplitShopper,
+      };
+
       // Compute flags
-      const paymentFlags = computePaymentFlags(sale as SalesRecord);
-      const overdueFlags = computeOverdueFlags(sale as SalesRecord);
-      const marginMetrics = computeMarginMetrics(sale as SalesRecord);
-      const authenticityRisk = computeAuthenticityRisk(sale as SalesRecord);
+      const paymentFlags = computePaymentFlags(saleForHelpers as any);
+      const overdueFlags = computeOverdueFlags(saleForHelpers as any);
+      const marginMetrics = computeMarginMetrics(saleForHelpers as any);
+      const authenticityRisk = computeAuthenticityRisk(saleForHelpers as any);
 
       // Get errors for this sale
       const saleErrors = errorsBySale.get(sale.id) || [];
 
       // Separate errors and warnings
-      const errors: ErrorRecord[] = [];
+      const errorRecords: ErrorRecord[] = [];
       const warnings: ErrorRecord[] = [];
 
       for (const err of saleErrors) {
@@ -224,7 +266,7 @@ export async function GET(req: NextRequest) {
         if (severity === "low" || severity === "medium") {
           warnings.push(errorRecord);
         } else {
-          errors.push(errorRecord);
+          errorRecords.push(errorRecord);
         }
       }
 
@@ -233,7 +275,7 @@ export async function GET(req: NextRequest) {
 
       return {
         sale_id: sale.id,
-        sale_reference: sale.sale_reference || "",
+        sale_reference: sale.saleReference || "",
 
         // Parties
         buyer_name: sale.buyer?.name || "",
@@ -242,7 +284,7 @@ export async function GET(req: NextRequest) {
         introducer_name: sale.introducer?.name || "",
 
         // Classification
-        buyer_type: sale.buyer_type || "",
+        buyer_type: sale.buyerType || "",
         authenticity_status: "not_verified",
         authenticity_risk: authenticityRisk,
         supplier_receipt_attached: false,
@@ -253,18 +295,18 @@ export async function GET(req: NextRequest) {
 
         // Dates
         invoice_due_date: undefined,
-        xero_payment_date: sale.xero_payment_date,
+        xero_payment_date: sale.xeroPaymentDate,
         ...overdueFlags,
 
         // Economics
-        sale_amount_inc_vat: sale.sale_amount_inc_vat || 0,
-        buy_price: sale.buy_price || 0,
-        commissionable_margin: sale.commissionable_margin || 0,
-        commission_amount: sale.commission_amount || 0,
+        sale_amount_inc_vat: sale.saleAmountIncVat || 0,
+        buy_price: sale.buyPrice || 0,
+        commissionable_margin: sale.commissionableMargin || 0,
+        commission_amount: sale.commissionAmount || 0,
         ...marginMetrics,
 
         // Errors
-        errors,
+        errors: errorRecords,
         warnings,
         error_groups,
       };

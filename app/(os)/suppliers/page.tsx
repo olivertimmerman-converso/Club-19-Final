@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { XataClient } from "@/src/xata";
+// ORIGINAL XATA: import { XataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, suppliers } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +11,7 @@ export const dynamic = "force-dynamic";
  * Displays all suppliers with their transaction statistics
  */
 
-const xata = new XataClient();
+// ORIGINAL XATA: const xata = new XataClient();
 
 // Supplier with calculated stats
 interface SupplierWithStats {
@@ -23,50 +25,63 @@ interface SupplierWithStats {
 }
 
 export default async function SuppliersPage() {
+  // ORIGINAL XATA:
+  // const suppliers = await xata.db.Suppliers
+  //   .select(['*'])
+  //   .getMany({ pagination: { size: 200 } });
+
   // Fetch suppliers - limit to 200 for performance
-  const suppliers = await xata.db.Suppliers
-    .select(['*'])
-    .getMany({ pagination: { size: 200 } });
+  const suppliersData = await db.query.suppliers.findMany({
+    limit: 200,
+  });
+
+  // ORIGINAL XATA:
+  // const salesRaw = await xata.db.Sales
+  //   .select([
+  //     'supplier.id',
+  //     'buy_price',
+  //     'gross_margin',
+  //     'sale_date',
+  //     'invoice_status',
+  //     'deleted_at',
+  //     'source',
+  //   ])
+  //   .getMany({ pagination: { size: 1000 } });
 
   // Fetch sales - limit to last 1000 for performance (still covers recent supplier activity)
-  const salesRaw = await xata.db.Sales
-    .select([
-      'supplier.id',
-      'buy_price',
-      'gross_margin',
-      'sale_date',
-      'invoice_status',
-      'deleted_at',
-      'source',
-    ])
-    .getMany({ pagination: { size: 1000 } });
+  const salesRaw = await db.query.sales.findMany({
+    with: {
+      supplier: true,
+    },
+    limit: 1000,
+  });
 
-  // Filter out deleted sales in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
-  const sales = salesRaw.filter(sale => !sale.deleted_at);
+  // Filter out deleted sales in JavaScript (keeping consistent with original behavior)
+  const salesData = salesRaw.filter(sale => !sale.deletedAt);
 
   // Calculate stats for each supplier
-  const suppliersWithStats: SupplierWithStats[] = suppliers.map(supplier => {
+  const suppliersWithStats: SupplierWithStats[] = suppliersData.map(supplier => {
     // Find all sales for this supplier
-    const supplierSales = sales.filter(sale => sale.supplier?.id === supplier.id);
+    const supplierSales = salesData.filter(sale => sale.supplierId === supplier.id);
 
     // Filter to PAID invoices only for metrics
     const paidSales = supplierSales.filter(sale =>
-      sale.invoice_status?.toUpperCase() === 'PAID'
+      sale.invoiceStatus?.toUpperCase() === 'PAID'
     );
 
     // Calculate totals from PAID sales only
     const totalSourced = paidSales.reduce((sum, sale) =>
-      sum + (sale.buy_price || 0), 0
+      sum + (sale.buyPrice || 0), 0
     );
     const totalMargin = paidSales.reduce((sum, sale) =>
-      sum + (sale.gross_margin || 0), 0
+      sum + (sale.grossMargin || 0), 0
     );
     const tradesCount = paidSales.length;
 
     // Find last trade date
     const lastTradeDate = supplierSales.length > 0
       ? supplierSales.reduce((latest, sale) => {
-          const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+          const saleDate = sale.saleDate ? new Date(sale.saleDate) : null;
           if (!saleDate) return latest;
           if (!latest) return saleDate;
           return saleDate > latest ? saleDate : latest;

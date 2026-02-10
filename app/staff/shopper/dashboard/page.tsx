@@ -32,6 +32,7 @@ import {
   AlertTriangle,
   Shield,
   ShoppingBag,
+  FileEdit,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -39,6 +40,7 @@ export default function ShopperDashboardPage() {
   const { user } = useUser();
   const [sales, setSales] = useState<SaleSummary[]>([]);
   const [metrics, setMetrics] = useState<ShopperMetrics | null>(null);
+  const [incompleteCount, setIncompleteCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSale, setSelectedSale] = useState<SaleSummary | null>(null);
@@ -54,11 +56,17 @@ export default function ShopperDashboardPage() {
       setLoading(true);
       setError(null);
 
-      const shopperSales = await getShopperSalesSummary(user.fullName);
+      // Fetch sales summary and incomplete sales in parallel
+      const [shopperSales, incompleteResponse] = await Promise.all([
+        getShopperSalesSummary(user.fullName),
+        fetch("/api/sales/incomplete").then((res) => res.json()),
+      ]);
+
       const shopperMetrics = computeShopperMetrics(shopperSales);
 
       setSales(shopperSales);
       setMetrics(shopperMetrics);
+      setIncompleteCount(incompleteResponse.sales?.length || 0);
     } catch (err: any) {
       setError(err.message || "Failed to load dashboard data");
     } finally {
@@ -157,7 +165,7 @@ export default function ShopperDashboardPage() {
       </div>
 
       {/* Status Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <MetricCard title="Paid Sales" value={metrics.paid_sales} icon={CheckCircle} />
         <MetricCard title="Unpaid Sales" value={metrics.unpaid_sales} icon={XCircle} />
         <MetricCard
@@ -170,6 +178,14 @@ export default function ShopperDashboardPage() {
           value={metrics.authenticity_issues}
           icon={Shield}
         />
+        <Link href="/staff/shopper/sales" className="block">
+          <MetricCard
+            title="Data Completion"
+            value={incompleteCount > 0 ? incompleteCount : "All complete"}
+            icon={FileEdit}
+            subtitle={incompleteCount > 0 ? "sales need data" : undefined}
+          />
+        </Link>
       </div>
 
       {/* Recent Sales Table */}

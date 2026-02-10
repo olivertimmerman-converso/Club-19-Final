@@ -10,8 +10,11 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getXataClient } from "@/src/xata";
-import type { SalesRecord } from "@/src/xata";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: import type { SalesRecord } from "@/src/xata";
+import { db } from "@/db";
+import { sales, errors } from "@/db/schema";
+import type { Sale } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { withRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -28,16 +31,17 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // ============================================================================
-// XATA CLIENT
+// ORIGINAL XATA CLIENT (REMOVED)
 // ============================================================================
 
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
+// ORIGINAL XATA:
+// let _xata: ReturnType<typeof getXataClient> | null = null;
+//
+// function xata() {
+//   if (_xata) return _xata;
+//   _xata = getXataClient();
+//   return _xata;
+// }
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -110,18 +114,29 @@ export async function POST(req: NextRequest) {
     // STEP 2: Fetch all sales with required fields
     logger.info("MAINTENANCE", "Fetching sales...");
 
-    const sales = await xata()
-      .db.Sales.select([
-        "id",
-        "sale_reference",
-        "status",
-        "sale_amount_inc_vat",
-        "buy_price",
-        "commissionable_margin",
-      ])
-      .getMany();
+    // ORIGINAL XATA:
+    // const sales = await xata()
+    //   .db.Sales.select([
+    //     "id",
+    //     "sale_reference",
+    //     "status",
+    //     "sale_amount_inc_vat",
+    //     "buy_price",
+    //     "commissionable_margin",
+    //   ])
+    //   .getMany();
+    const salesRecords = await db
+      .select({
+        id: sales.id,
+        saleReference: sales.saleReference,
+        status: sales.status,
+        saleAmountIncVat: sales.saleAmountIncVat,
+        buyPrice: sales.buyPrice,
+        commissionableMargin: sales.commissionableMargin,
+      })
+      .from(sales);
 
-    logger.info("MAINTENANCE", `Found ${sales.length} sales`);
+    logger.info("MAINTENANCE", `Found ${salesRecords.length} sales`);
 
     // STEP 3: Task 1 - Flag overdue sales
     logger.info("MAINTENANCE", "Task 1: Flagging overdue sales...");
@@ -132,12 +147,22 @@ export async function POST(req: NextRequest) {
       days_overdue: number;
     }> = [];
 
-    for (const sale of sales) {
-      const overdueFlags = computeOverdueFlags(sale as SalesRecord);
+    for (const sale of salesRecords) {
+      // Convert to format expected by helper functions
+      const saleForHelper = {
+        id: sale.id,
+        sale_reference: sale.saleReference,
+        status: sale.status,
+        sale_amount_inc_vat: sale.saleAmountIncVat,
+        buy_price: sale.buyPrice,
+        commissionable_margin: sale.commissionableMargin,
+      } as any;
+
+      const overdueFlags = computeOverdueFlags(saleForHelper);
       if (overdueFlags.is_overdue) {
         overdueSales.push({
           sale_id: sale.id,
-          sale_reference: sale.sale_reference || "",
+          sale_reference: sale.saleReference || "",
           days_overdue: overdueFlags.days_overdue,
         });
       }
@@ -155,11 +180,21 @@ export async function POST(req: NextRequest) {
       message: string;
     }> = [];
 
-    for (const sale of sales) {
+    for (const sale of salesRecords) {
       const warnings: Array<{ type: string; message: string }> = [];
 
+      // Convert to format expected by helper functions
+      const saleForHelper = {
+        id: sale.id,
+        sale_reference: sale.saleReference,
+        status: sale.status,
+        sale_amount_inc_vat: sale.saleAmountIncVat,
+        buy_price: sale.buyPrice,
+        commissionable_margin: sale.commissionableMargin,
+      } as any;
+
       // Warning 1: Negative margin
-      const marginMetrics = computeMarginMetrics(sale as SalesRecord);
+      const marginMetrics = computeMarginMetrics(saleForHelper);
       if (marginMetrics.margin_percent < 0) {
         warnings.push({
           type: "negative_margin",
@@ -176,7 +211,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Warning 3: Zero sale amount
-      if ((sale.sale_amount_inc_vat || 0) === 0) {
+      if ((sale.saleAmountIncVat || 0) === 0) {
         warnings.push({
           type: "zero_sale_amount",
           message: "Sale amount is zero",
@@ -184,18 +219,27 @@ export async function POST(req: NextRequest) {
       }
 
       // Warning 4: Buy price exceeds sale amount
-      if ((sale.buy_price || 0) > (sale.sale_amount_inc_vat || 0)) {
+      if ((sale.buyPrice || 0) > (sale.saleAmountIncVat || 0)) {
         warnings.push({
           type: "buy_exceeds_sale",
-          message: `Buy price (${sale.buy_price}) exceeds sale amount (${sale.sale_amount_inc_vat})`,
+          message: `Buy price (${sale.buyPrice}) exceeds sale amount (${sale.saleAmountIncVat})`,
         });
       }
 
       // Create error records for each warning
       for (const warning of warnings) {
         try {
-          await xata().db.Errors.create({
-            sale: sale.id,
+          // ORIGINAL XATA:
+          // await xata().db.Errors.create({
+          //   sale: sale.id,
+          //   severity: "medium",
+          //   source: "daily-maintenance",
+          //   message: [warning.message],
+          //   timestamp: new Date(),
+          //   resolved: false,
+          // });
+          await db.insert(errors).values({
+            saleId: sale.id,
             severity: "medium",
             source: "daily-maintenance",
             message: [warning.message],
@@ -205,13 +249,13 @@ export async function POST(req: NextRequest) {
 
           warningsCreated.push({
             sale_id: sale.id,
-            sale_reference: sale.sale_reference || "",
+            sale_reference: sale.saleReference || "",
             warning_type: warning.type,
             message: warning.message,
           });
 
           logger.warn("MAINTENANCE", "Warning created", {
-            saleReference: sale.sale_reference,
+            saleReference: sale.saleReference,
             warningType: warning.type
           });
         } catch (createErr) {
@@ -230,14 +274,33 @@ export async function POST(req: NextRequest) {
 
     let authenticityWarningsCreated = 0;
 
-    for (const sale of sales) {
-      const authenticityRisk = computeAuthenticityRisk(sale as SalesRecord);
+    for (const sale of salesRecords) {
+      // Convert to format expected by helper functions
+      const saleForHelper = {
+        id: sale.id,
+        sale_reference: sale.saleReference,
+        status: sale.status,
+        sale_amount_inc_vat: sale.saleAmountIncVat,
+        buy_price: sale.buyPrice,
+        commissionable_margin: sale.commissionableMargin,
+      } as any;
+
+      const authenticityRisk = computeAuthenticityRisk(saleForHelper);
 
       // Create warning for high-risk items
       if (authenticityRisk === "high_risk") {
         try {
-          await xata().db.Errors.create({
-            sale: sale.id,
+          // ORIGINAL XATA:
+          // await xata().db.Errors.create({
+          //   sale: sale.id,
+          //   severity: "high",
+          //   source: "daily-maintenance",
+          //   message: ["Authenticity verification not performed - high risk"],
+          //   timestamp: new Date(),
+          //   resolved: false,
+          // });
+          await db.insert(errors).values({
+            saleId: sale.id,
             severity: "high",
             source: "daily-maintenance",
             message: ["Authenticity verification not performed - high risk"],
@@ -248,13 +311,13 @@ export async function POST(req: NextRequest) {
           authenticityWarningsCreated++;
           warningsCreated.push({
             sale_id: sale.id,
-            sale_reference: sale.sale_reference || "",
+            sale_reference: sale.saleReference || "",
             warning_type: "authenticity_high_risk",
             message: "Authenticity verification not performed - high risk",
           });
 
           logger.warn("MAINTENANCE", "Authenticity warning created", {
-            saleReference: sale.sale_reference
+            saleReference: sale.saleReference
           });
         } catch (createErr) {
           logger.error("MAINTENANCE", "Failed to create authenticity warning", {
@@ -269,7 +332,7 @@ export async function POST(req: NextRequest) {
 
     // STEP 6: Build and return response
     const response: DailyMaintenanceResponse = {
-      total_sales: sales.length,
+      total_sales: salesRecords.length,
       total_overdue_identified: overdueSales.length,
       total_warnings_created: warningsCreated.length,
       overdue_sales: overdueSales,

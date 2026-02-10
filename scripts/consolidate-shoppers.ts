@@ -8,11 +8,16 @@
  * - "MC" → "Mary Clair"
  *
  * Also updates "Hope" to "Hope Sherwin" if needed
+ *
+ * Run with: npx tsx scripts/consolidate-shoppers.ts
  */
 
-import { getXataClient } from '../src/xata';
+// ORIGINAL XATA: import { getXataClient } from '../src/xata';
+import { db } from '../db';
+import { shoppers, sales } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
-const xata = getXataClient();
+// ORIGINAL XATA: const xata = getXataClient();
 
 // Define the merge mappings: source (partial name) → target (full name)
 const MERGE_MAPPINGS = [
@@ -39,7 +44,15 @@ async function consolidateShoppers() {
 
   // First, show current state
   console.log('Current shoppers in database:\n');
-  const allShoppers = await xata.db.Shoppers.select(['id', 'name', 'email', 'active']).getAll();
+  // ORIGINAL XATA: const allShoppers = await xata.db.Shoppers.select(['id', 'name', 'email', 'active']).getAll();
+  const allShoppers = await db
+    .select({
+      id: shoppers.id,
+      name: shoppers.name,
+      email: shoppers.email,
+      active: shoppers.active,
+    })
+    .from(shoppers);
   allShoppers.forEach(s => {
     console.log(`  "${s.name}" (ID: ${s.id}) - Email: ${s.email || 'none'}`);
   });
@@ -52,8 +65,12 @@ async function consolidateShoppers() {
     console.log(`  Target ID: ${mapping.target.id}`);
 
     // Verify both records exist
-    const sourceRecord = await xata.db.Shoppers.read(mapping.source.id);
-    const targetRecord = await xata.db.Shoppers.read(mapping.target.id);
+    // ORIGINAL XATA: const sourceRecord = await xata.db.Shoppers.read(mapping.source.id);
+    // ORIGINAL XATA: const targetRecord = await xata.db.Shoppers.read(mapping.target.id);
+    const sourceResults = await db.select().from(shoppers).where(eq(shoppers.id, mapping.source.id)).limit(1);
+    const targetResults = await db.select().from(shoppers).where(eq(shoppers.id, mapping.target.id)).limit(1);
+    const sourceRecord = sourceResults[0] || null;
+    const targetRecord = targetResults[0] || null;
 
     if (!sourceRecord) {
       console.log(`  ⚠️  Source record not found - skipping (may already be merged)`);
@@ -66,48 +83,78 @@ async function consolidateShoppers() {
     }
 
     // Find all sales assigned to the source shopper
-    const salesToUpdate = await xata.db.Sales
-      .filter({ 'shopper.id': mapping.source.id })
-      .select(['id', 'sale_reference', 'sale_date', 'sale_amount_inc_vat'])
-      .getAll();
+    // ORIGINAL XATA: const salesToUpdate = await xata.db.Sales
+    //   .filter({ 'shopper.id': mapping.source.id })
+    //   .select(['id', 'sale_reference', 'sale_date', 'sale_amount_inc_vat'])
+    //   .getAll();
+    const salesToUpdate = await db
+      .select({
+        id: sales.id,
+        saleReference: sales.saleReference,
+        saleDate: sales.saleDate,
+        saleAmountIncVat: sales.saleAmountIncVat,
+      })
+      .from(sales)
+      .where(eq(sales.shopperId, mapping.source.id));
 
     console.log(`  Found ${salesToUpdate.length} sales to reassign`);
 
     if (salesToUpdate.length > 0) {
       // Update each sale to point to the target shopper
       for (const sale of salesToUpdate) {
-        await xata.db.Sales.update(sale.id, {
-          shopper: mapping.target.id,
-        });
-        console.log(`    ✓ Updated sale ${sale.sale_reference || sale.id}`);
+        // ORIGINAL XATA: await xata.db.Sales.update(sale.id, { shopper: mapping.target.id });
+        await db
+          .update(sales)
+          .set({ shopperId: mapping.target.id })
+          .where(eq(sales.id, sale.id));
+        console.log(`    ✓ Updated sale ${sale.saleReference || sale.id}`);
       }
     }
 
     // Copy email from source to target if target has no email
     if (sourceRecord.email && !targetRecord.email) {
-      await xata.db.Shoppers.update(mapping.target.id, {
-        email: sourceRecord.email,
-      });
+      // ORIGINAL XATA: await xata.db.Shoppers.update(mapping.target.id, { email: sourceRecord.email });
+      await db
+        .update(shoppers)
+        .set({ email: sourceRecord.email })
+        .where(eq(shoppers.id, mapping.target.id));
       console.log(`  ✓ Copied email "${sourceRecord.email}" to target`);
     }
 
     // Delete the source record
-    await xata.db.Shoppers.delete(mapping.source.id);
+    // ORIGINAL XATA: await xata.db.Shoppers.delete(mapping.source.id);
+    await db.delete(shoppers).where(eq(shoppers.id, mapping.source.id));
     console.log(`  ✓ Deleted source record "${mapping.source.name}"`);
   }
 
   // Final state
   console.log('\n\n=== Final Shoppers After Consolidation ===\n');
-  const finalShoppers = await xata.db.Shoppers.select(['id', 'name', 'email', 'active']).getAll();
+  // ORIGINAL XATA: const finalShoppers = await xata.db.Shoppers.select(['id', 'name', 'email', 'active']).getAll();
+  const finalShoppers = await db
+    .select({
+      id: shoppers.id,
+      name: shoppers.name,
+      email: shoppers.email,
+      active: shoppers.active,
+    })
+    .from(shoppers);
   finalShoppers.forEach(s => {
     console.log(`  "${s.name}" (ID: ${s.id}) - Email: ${s.email || 'none'}`);
   });
 
   // Verify sales assignments
   console.log('\n=== Sales by Shopper ===\n');
-  const allSales = await xata.db.Sales
-    .select(['id', 'shopper.id', 'shopper.name'])
-    .getAll();
+  // ORIGINAL XATA: const allSales = await xata.db.Sales
+  //   .select(['id', 'shopper.id', 'shopper.name'])
+  //   .getAll();
+  const allSales = await db.query.sales.findMany({
+    columns: { id: true },
+    with: {
+      shopper: {
+        columns: { id: true, name: true }
+      }
+    }
+  });
 
   const salesByShopperId = new Map<string, { name: string; count: number }>();
   allSales.forEach(sale => {
@@ -127,6 +174,10 @@ async function consolidateShoppers() {
     });
 
   console.log('\n✅ Consolidation complete!');
+  process.exit(0);
 }
 
-consolidateShoppers().catch(console.error);
+consolidateShoppers().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

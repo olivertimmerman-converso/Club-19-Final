@@ -10,10 +10,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { suppliers } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import * as logger from "@/lib/logger";
 
-const xata = getXataClient();
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: const xata = getXataClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,9 +45,15 @@ export async function POST(request: NextRequest) {
 
     // Check for duplicate by exact name match (case-insensitive)
     const normalizedName = name.trim();
-    const existing = await xata.db.Suppliers.filter({
-      name: { $is: normalizedName },
-    }).getFirst();
+    // ORIGINAL XATA: const existing = await xata.db.Suppliers.filter({
+    // ORIGINAL XATA:   name: { $is: normalizedName },
+    // ORIGINAL XATA: }).getFirst();
+    const existingResults = await db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.name, normalizedName))
+      .limit(1);
+    const existing = existingResults[0] || null;
 
     if (existing) {
       // Return the existing supplier instead of creating a duplicate
@@ -55,7 +64,7 @@ export async function POST(request: NextRequest) {
             id: existing.id,
             name: existing.name,
             email: existing.email,
-            pending_approval: (existing as any).pending_approval || false,
+            pending_approval: existing.pendingApproval || false,
           },
           message: "Supplier already exists",
         },
@@ -68,16 +77,25 @@ export async function POST(request: NextRequest) {
     const autoApprove = privilegedRoles.includes(userRole);
 
     // Create the supplier
-    // Note: pending_approval, created_by, approved_by, approved_at fields
-    // need to be added to Xata Suppliers table schema
-    const supplier = await xata.db.Suppliers.create({
-      name: normalizedName,
-      email: email?.trim() || null,
-      pending_approval: !autoApprove,
-      created_by: userId,
-      approved_by: autoApprove ? userId : null,
-      approved_at: autoApprove ? new Date() : null,
-    } as any); // Type cast until schema is regenerated
+    // ORIGINAL XATA: const supplier = await xata.db.Suppliers.create({
+    // ORIGINAL XATA:   name: normalizedName,
+    // ORIGINAL XATA:   email: email?.trim() || null,
+    // ORIGINAL XATA:   pending_approval: !autoApprove,
+    // ORIGINAL XATA:   created_by: userId,
+    // ORIGINAL XATA:   approved_by: autoApprove ? userId : null,
+    // ORIGINAL XATA:   approved_at: autoApprove ? new Date() : null,
+    // ORIGINAL XATA: } as any);
+    const [supplier] = await db
+      .insert(suppliers)
+      .values({
+        name: normalizedName,
+        email: email?.trim() || null,
+        pendingApproval: !autoApprove,
+        createdBy: userId,
+        approvedBy: autoApprove ? userId : null,
+        approvedAt: autoApprove ? new Date() : null,
+      })
+      .returning();
 
     logger.info('SUPPLIER_CREATE', 'Created new supplier', {
       id: supplier.id,

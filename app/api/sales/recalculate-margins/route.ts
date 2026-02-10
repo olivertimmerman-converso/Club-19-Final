@@ -8,19 +8,27 @@
  * It uses the correct formulas:
  * - Gross Margin = Sale Price (ex VAT) - Buy Price ONLY
  * - Commissionable Margin = Gross Margin - Shipping - Card Fees - Direct Costs - Introducer Commission
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getXataClient } from "@/src/xata";
 import { calculateMargins, toNumber } from "@/lib/economics";
 import { getUserRole } from "@/lib/getUserRole";
 import * as logger from "@/lib/logger";
 
+// Drizzle imports
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { eq, isNull, inArray } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from "@/src/xata";
+// const xata = getXataClient();
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-const xata = getXataClient();
 
 // GET handler for testing that the route is reachable
 export async function GET() {
@@ -68,35 +76,71 @@ export async function POST(request: NextRequest) {
     });
 
     // Fetch sales to recalculate
-    let sales;
+    let salesData;
     if (saleIds && saleIds.length > 0) {
-      // Specific sales
-      sales = await Promise.all(
-        saleIds.map((id) => xata.db.Sales.read(id))
-      );
-      sales = sales.filter(Boolean);
+      // ORIGINAL XATA:
+      // sales = await Promise.all(
+      //   saleIds.map((id) => xata.db.Sales.read(id))
+      // );
+      // sales = sales.filter(Boolean);
+
+      // DRIZZLE:
+      salesData = await db
+        .select({
+          id: sales.id,
+          saleReference: sales.saleReference,
+          saleAmountExVat: sales.saleAmountExVat,
+          buyPrice: sales.buyPrice,
+          shippingCost: sales.shippingCost,
+          cardFees: sales.cardFees,
+          directCosts: sales.directCosts,
+          commissionSplitIntroducer: sales.commissionSplitIntroducer,
+          grossMargin: sales.grossMargin,
+          commissionableMargin: sales.commissionableMargin,
+          status: sales.status,
+        })
+        .from(sales)
+        .where(inArray(sales.id, saleIds));
     } else {
-      // All non-deleted sales (not just "active" - includes paid, completed, etc.)
-      sales = await xata.db.Sales.filter({
-        deleted_at: { $is: null },
-      })
-        .select([
-          "id",
-          "sale_reference",
-          "sale_amount_ex_vat",
-          "buy_price",
-          "shipping_cost",
-          "card_fees",
-          "direct_costs",
-          "commission_split_introducer",
-          "gross_margin",
-          "commissionable_margin",
-          "status",
-        ])
-        .getAll();
+      // ORIGINAL XATA:
+      // sales = await xata.db.Sales.filter({
+      //   deleted_at: { $is: null },
+      // })
+      //   .select([
+      //     "id",
+      //     "sale_reference",
+      //     "sale_amount_ex_vat",
+      //     "buy_price",
+      //     "shipping_cost",
+      //     "card_fees",
+      //     "direct_costs",
+      //     "commission_split_introducer",
+      //     "gross_margin",
+      //     "commissionable_margin",
+      //     "status",
+      //   ])
+      //   .getAll();
+
+      // DRIZZLE:
+      salesData = await db
+        .select({
+          id: sales.id,
+          saleReference: sales.saleReference,
+          saleAmountExVat: sales.saleAmountExVat,
+          buyPrice: sales.buyPrice,
+          shippingCost: sales.shippingCost,
+          cardFees: sales.cardFees,
+          directCosts: sales.directCosts,
+          commissionSplitIntroducer: sales.commissionSplitIntroducer,
+          grossMargin: sales.grossMargin,
+          commissionableMargin: sales.commissionableMargin,
+          status: sales.status,
+        })
+        .from(sales)
+        .where(isNull(sales.deletedAt));
     }
 
-    logger.info("RECALC_MARGINS", `Found ${sales.length} sales to process`);
+    logger.info("RECALC_MARGINS", `Found ${salesData.length} sales to process`);
 
     const results = {
       processed: 0,
@@ -119,7 +163,7 @@ export async function POST(request: NextRequest) {
       errorDetails: [] as Array<{ id: string; error: string }>,
     };
 
-    for (const sale of sales) {
+    for (const sale of salesData) {
       if (!sale) continue;
 
       try {
@@ -127,16 +171,16 @@ export async function POST(request: NextRequest) {
 
         // Calculate correct margins using SINGLE SOURCE OF TRUTH
         const marginResult = calculateMargins({
-          saleAmountExVat: sale.sale_amount_ex_vat,
-          buyPrice: sale.buy_price,
-          shippingCost: sale.shipping_cost,
-          cardFees: sale.card_fees,
-          directCosts: sale.direct_costs,
-          introducerCommission: sale.commission_split_introducer,
+          saleAmountExVat: sale.saleAmountExVat,
+          buyPrice: sale.buyPrice,
+          shippingCost: sale.shippingCost,
+          cardFees: sale.cardFees,
+          directCosts: sale.directCosts,
+          introducerCommission: sale.commissionSplitIntroducer,
         });
 
-        const oldGrossMargin = toNumber(sale.gross_margin);
-        const oldCommissionableMargin = toNumber(sale.commissionable_margin);
+        const oldGrossMargin = toNumber(sale.grossMargin);
+        const oldCommissionableMargin = toNumber(sale.commissionableMargin);
         const newGrossMargin = marginResult.grossMargin;
         const newCommissionableMargin = marginResult.commissionableMargin;
 
@@ -147,11 +191,11 @@ export async function POST(request: NextRequest) {
         if (grossDiff > 0.01 || commDiff > 0.01) {
           results.changes.push({
             id: sale.id,
-            reference: sale.sale_reference || sale.id,
+            reference: sale.saleReference || sale.id,
             status: sale.status,
-            oldGrossMargin: sale.gross_margin,
+            oldGrossMargin: sale.grossMargin,
             newGrossMargin,
-            oldCommissionableMargin: sale.commissionable_margin,
+            oldCommissionableMargin: sale.commissionableMargin,
             newCommissionableMargin,
             inputs: {
               saleAmountExVat: marginResult.breakdown.saleAmountExVat,
@@ -161,15 +205,26 @@ export async function POST(request: NextRequest) {
 
           // Update if not dry run
           if (!dryRun) {
-            await xata.db.Sales.update(sale.id, {
-              gross_margin: newGrossMargin,
-              commissionable_margin: newCommissionableMargin,
-            });
+            // ORIGINAL XATA:
+            // await xata.db.Sales.update(sale.id, {
+            //   gross_margin: newGrossMargin,
+            //   commissionable_margin: newCommissionableMargin,
+            // });
+
+            // DRIZZLE:
+            await db
+              .update(sales)
+              .set({
+                grossMargin: newGrossMargin,
+                commissionableMargin: newCommissionableMargin,
+              })
+              .where(eq(sales.id, sale.id));
+
             results.updated++;
 
             logger.info("RECALC_MARGINS", "Updated sale margins", {
               saleId: sale.id,
-              reference: sale.sale_reference,
+              reference: sale.saleReference,
               oldGross: oldGrossMargin,
               newGross: newGrossMargin,
               oldComm: oldCommissionableMargin,

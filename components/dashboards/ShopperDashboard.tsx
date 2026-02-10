@@ -5,12 +5,15 @@
  */
 
 import Link from "next/link";
-import { XataClient } from "@/src/xata";
+// ORIGINAL XATA: import { XataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, shoppers, buyers } from "@/db/schema";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMonthDateRange } from "@/lib/dateUtils";
 
-const xata = new XataClient();
+// ORIGINAL XATA: const xata = new XataClient();
 
 interface ShopperDashboardProps {
   monthParam?: string;
@@ -47,10 +50,15 @@ export async function ShopperDashboard({
   // Get date range for filtering
   const dateRange = getMonthDateRange(monthParam);
 
-  // Fetch shopper's sales only - Look up the Shopper by name first
-  const shopper = await xata.db.Shoppers.filter({ name: shopperName }).getFirst();
+  // ORIGINAL XATA:
+  // const shopper = await xata.db.Shoppers.filter({ name: shopperName }).getFirst();
 
-  if (!shopper) {
+  // Fetch shopper's sales only - Look up the Shopper by name first using Drizzle
+  const shopperResult = await db.query.shoppers.findFirst({
+    where: eq(shoppers.name, shopperName),
+  });
+
+  if (!shopperResult) {
     return (
       <div className="p-8">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
@@ -63,62 +71,77 @@ export async function ShopperDashboard({
     );
   }
 
-  let salesQuery = xata.db.Sales
-    .select([
-      'id',
-      'sale_date',
-      'item_title',
-      'brand',
-      'sale_amount_inc_vat',
-      'gross_margin',
-      'commissionable_margin',
-      'commission_locked',
-      'commission_paid',
-      'buyer.name',
-      'source',
-      'deleted_at',
-    ])
-    .filter({
-      shopper: shopper.id
-    });
+  // ORIGINAL XATA:
+  // let salesQuery = xata.db.Sales
+  //   .select([
+  //     'id',
+  //     'sale_date',
+  //     'item_title',
+  //     'brand',
+  //     'sale_amount_inc_vat',
+  //     'gross_margin',
+  //     'commissionable_margin',
+  //     'commission_locked',
+  //     'commission_paid',
+  //     'buyer.name',
+  //     'source',
+  //     'deleted_at',
+  //   ])
+  //   .filter({
+  //     shopper: shopper.id
+  //   });
+  // if (dateRange) {
+  //   salesQuery = salesQuery.filter({
+  //     sale_date: {
+  //       $ge: dateRange.start,
+  //       $le: dateRange.end,
+  //     },
+  //   });
+  // }
+  // const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 100 } });
 
-  // Apply date range filter if specified
-  if (dateRange) {
-    salesQuery = salesQuery.filter({
-      sale_date: {
-        $ge: dateRange.start,
-        $le: dateRange.end,
-      },
-    });
-  }
+  // Query sales for this shopper using Drizzle
+  const whereConditions = dateRange
+    ? and(
+        eq(sales.shopperId, shopperResult.id),
+        gte(sales.saleDate, dateRange.start),
+        lte(sales.saleDate, dateRange.end)
+      )
+    : eq(sales.shopperId, shopperResult.id);
 
-  // Fetch sales and filter in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
-  const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 100 } });
+  const allSalesRaw = await db.query.sales.findMany({
+    where: whereConditions,
+    with: {
+      buyer: true,
+    },
+    orderBy: [desc(sales.saleDate)],
+    limit: 100,
+  });
 
   // Filter out xero_import and deleted sales in JavaScript
-  const sales = allSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deleted_at
+  const salesData = allSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deletedAt
   );
 
   // Calculate totals
-  const totalSales = sales.length;
-  const totalRevenue = sales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
-  const totalMargin = sales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
+  const totalSales = salesData.length;
+  const totalRevenue = salesData.reduce((sum, sale) => sum + (sale.saleAmountIncVat || 0), 0);
+  const totalMargin = salesData.reduce((sum, sale) => sum + (sale.grossMargin || 0), 0);
 
   // Commission breakdown
-  const pending = sales.filter(s => !s.commission_locked);
-  const locked = sales.filter(s => s.commission_locked && !s.commission_paid);
-  const paid = sales.filter(s => s.commission_paid);
+  const pending = salesData.filter(s => !s.commissionLocked);
+  const locked = salesData.filter(s => s.commissionLocked && !s.commissionPaid);
+  const paid = salesData.filter(s => s.commissionPaid);
 
   const pendingCommission = pending;
   const lockedCommission = locked;
   const paidCommission = paid;
-  const pendingCommissionAmount = pending.reduce((sum, s) => sum + (s.commissionable_margin || 0), 0);
-  const lockedCommissionAmount = locked.reduce((sum, s) => sum + (s.commissionable_margin || 0), 0);
-  const paidCommissionAmount = paid.reduce((sum, s) => sum + (s.commissionable_margin || 0), 0);
+  const pendingCommissionAmount = pending.reduce((sum, s) => sum + (s.commissionableMargin || 0), 0);
+  const lockedCommissionAmount = locked.reduce((sum, s) => sum + (s.commissionableMargin || 0), 0);
+  const paidCommissionAmount = paid.reduce((sum, s) => sum + (s.commissionableMargin || 0), 0);
 
   // Recent sales (last 10)
-  const recentSales = sales.slice(0, 10);
+  const recentSales = salesData.slice(0, 10);
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -274,36 +297,36 @@ export async function ShopperDashboard({
                   {recentSales.map((sale) => (
                     <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(sale.sale_date)}
+                        {formatDate(sale.saleDate)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
                         <Link
                           href={`/sales/${sale.id}`}
                           className="text-purple-600 hover:text-purple-900"
                         >
-                          {sale.brand && sale.item_title
-                            ? `${sale.brand} - ${sale.item_title}`
-                            : sale.brand || sale.item_title || '—'}
+                          {sale.brand && sale.itemTitle
+                            ? `${sale.brand} - ${sale.itemTitle}`
+                            : sale.brand || sale.itemTitle || '—'}
                         </Link>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {sale.buyer?.name || '—'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                        {formatCurrency(sale.sale_amount_inc_vat || 0)}
+                        {formatCurrency(sale.saleAmountIncVat || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-right font-medium">
-                        {formatCurrency(sale.gross_margin || 0)}
+                        {formatCurrency(sale.grossMargin || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          sale.commission_paid
+                          sale.commissionPaid
                             ? 'bg-green-100 text-green-800'
-                            : sale.commission_locked
+                            : sale.commissionLocked
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {sale.commission_paid ? 'Paid' : sale.commission_locked ? 'Locked' : 'Pending'}
+                          {sale.commissionPaid ? 'Paid' : sale.commissionLocked ? 'Locked' : 'Pending'}
                         </span>
                       </td>
                     </tr>

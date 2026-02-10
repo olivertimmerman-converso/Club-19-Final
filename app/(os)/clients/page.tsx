@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { XataClient } from "@/src/xata";
+// ORIGINAL XATA: import { XataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, shoppers, buyers } from "@/db/schema";
+import { eq, and, isNull, inArray } from "drizzle-orm";
 import { getUserRole } from "@/lib/getUserRole";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 
@@ -12,7 +15,7 @@ export const dynamic = "force-dynamic";
  * Shoppers see only clients they've sold to
  */
 
-const xata = new XataClient();
+// ORIGINAL XATA: const xata = new XataClient();
 
 // Client with calculated stats (hybrid: lifetime + 2026 + pipeline)
 interface ClientWithStats {
@@ -37,71 +40,96 @@ export default async function ClientsPage() {
     // Get role for filtering
     const role = await getUserRole();
 
-    // Fetch all sales to calculate stats
-    let salesQuery = xata.db.Sales
-      .select([
-        'buyer.id',
-        'sale_amount_inc_vat',
-        'gross_margin',
-        'sale_date',
-        'shopper.name',
-        'source',
-        'invoice_status',
-      ])
-      .filter({
-        deleted_at: { $is: null }
-      });
+    // ORIGINAL XATA:
+    // let salesQuery = xata.db.Sales
+    //   .select([
+    //     'buyer.id',
+    //     'sale_amount_inc_vat',
+    //     'gross_margin',
+    //     'sale_date',
+    //     'shopper.name',
+    //     'source',
+    //     'invoice_status',
+    //   ])
+    //   .filter({
+    //     deleted_at: { $is: null }
+    //   });
+
+    // Build conditions for sales query
+    const conditions: any[] = [isNull(sales.deletedAt)];
 
     // Filter sales for shoppers - only their own sales
     if (role === 'shopper') {
       const currentUser = await getCurrentUser();
       if (currentUser?.fullName) {
-        const shopper = await xata.db.Shoppers.filter({ name: currentUser.fullName }).getFirst();
+        // ORIGINAL XATA: const shopper = await xata.db.Shoppers.filter({ name: currentUser.fullName }).getFirst();
+        const shopper = await db.query.shoppers.findFirst({
+          where: eq(shoppers.name, currentUser.fullName),
+        });
         if (shopper) {
-          salesQuery = salesQuery.filter({ shopper: shopper.id });
+          conditions.push(eq(sales.shopperId, shopper.id));
         }
       }
     }
 
-    const sales = await salesQuery.getMany({ pagination: { size: 1000 } });
+    // ORIGINAL XATA: const sales = await salesQuery.getMany({ pagination: { size: 1000 } });
+    const salesData = await db.query.sales.findMany({
+      where: and(...conditions),
+      with: {
+        buyer: true,
+        shopper: true,
+      },
+      limit: 1000,
+    });
 
     // Get unique buyer IDs from sales
-    const uniqueBuyerIds = [...new Set(sales.map(sale => sale.buyer?.id).filter((id): id is string => !!id))];
+    const uniqueBuyerIds = [...new Set(salesData.map(sale => sale.buyerId).filter((id): id is string => !!id))];
+
+    // ORIGINAL XATA:
+    // const buyers = uniqueBuyerIds.length > 0
+    //   ? await xata.db.Buyers
+    //       .select(['id', 'name', 'email', 'owner.id', 'owner.name'])
+    //       .filter({ id: { $any: uniqueBuyerIds } })
+    //       .getMany({ pagination: { size: 100 } })
+    //   : [];
 
     // Fetch buyers with owner data
-    const buyers = uniqueBuyerIds.length > 0
-      ? await xata.db.Buyers
-          .select(['id', 'name', 'email', 'owner.id', 'owner.name'])
-          .filter({ id: { $any: uniqueBuyerIds } })
-          .getMany({ pagination: { size: 100 } })
+    const buyersData = uniqueBuyerIds.length > 0
+      ? await db.query.buyers.findMany({
+          where: inArray(buyers.id, uniqueBuyerIds),
+          with: {
+            owner: true,
+          },
+          limit: 100,
+        })
       : [];
 
     // Calculate stats for each buyer
-    const clientsWithStats: ClientWithStats[] = buyers.map(buyer => {
-      const buyerSales = sales.filter(sale => sale.buyer?.id === buyer.id);
+    const clientsWithStats: ClientWithStats[] = buyersData.map(buyer => {
+      const buyerSales = salesData.filter(sale => sale.buyerId === buyer.id);
 
       const paidSales = buyerSales.filter(sale =>
-        sale.invoice_status?.toUpperCase() === 'PAID'
+        sale.invoiceStatus?.toUpperCase() === 'PAID'
       );
 
       const sales2026 = paidSales.filter(sale => {
         if (sale.source !== 'atelier') return false;
-        const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+        const saleDate = sale.saleDate ? new Date(sale.saleDate) : null;
         if (!saleDate) return false;
         return saleDate >= new Date('2026-01-01');
       });
 
-      const totalSpend = paidSales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
-      const totalMargin = paidSales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
+      const totalSpend = paidSales.reduce((sum, sale) => sum + (sale.saleAmountIncVat || 0), 0);
+      const totalMargin = paidSales.reduce((sum, sale) => sum + (sale.grossMargin || 0), 0);
       const tradesCount = paidSales.length;
 
-      const spend2026 = sales2026.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
-      const margin2026 = sales2026.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
+      const spend2026 = sales2026.reduce((sum, sale) => sum + (sale.saleAmountIncVat || 0), 0);
+      const margin2026 = sales2026.reduce((sum, sale) => sum + (sale.grossMargin || 0), 0);
       const trades2026 = sales2026.length;
 
       const lastPurchaseDate = buyerSales.length > 0
         ? buyerSales.reduce((latest, sale) => {
-            const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+            const saleDate = sale.saleDate ? new Date(sale.saleDate) : null;
             if (!saleDate) return latest;
             if (!latest) return saleDate;
             return saleDate > latest ? saleDate : latest;
@@ -109,9 +137,9 @@ export default async function ClientsPage() {
         : null;
 
       const unpaidSales = buyerSales.filter(sale =>
-        sale.invoice_status?.toUpperCase() === 'AUTHORISED'
+        sale.invoiceStatus?.toUpperCase() === 'AUTHORISED'
       );
-      const pipelineValue = unpaidSales.reduce((sum, sale) => sum + (sale.sale_amount_inc_vat || 0), 0);
+      const pipelineValue = unpaidSales.reduce((sum, sale) => sum + (sale.saleAmountIncVat || 0), 0);
 
       return {
         id: buyer.id,

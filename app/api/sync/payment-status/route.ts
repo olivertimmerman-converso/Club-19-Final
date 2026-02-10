@@ -10,9 +10,13 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { and, ne, isNotNull, eq } from "drizzle-orm";
 import { getValidTokens } from '@/lib/xero-auth';
 import * as logger from '@/lib/logger';
+
+// ORIGINAL XATA: import { getXataClient } from '@/src/xata';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,16 +68,30 @@ export async function POST() {
     logger.info('PAYMENT_SYNC', 'Got valid Xero tokens');
 
     // 3. Fetch unpaid Sales from database
-    const xata = getXataClient();
-    const unpaidSales = await xata.db.Sales
-      .filter({
-        $all: [
-          { invoice_status: { $isNot: 'PAID' } },
-          { xero_invoice_id: { $isNot: null } }
-        ]
+    // ORIGINAL XATA: const xata = getXataClient();
+    // ORIGINAL XATA: const unpaidSales = await xata.db.Sales
+    // ORIGINAL XATA:   .filter({
+    // ORIGINAL XATA:     $all: [
+    // ORIGINAL XATA:       { invoice_status: { $isNot: 'PAID' } },
+    // ORIGINAL XATA:       { xero_invoice_id: { $isNot: null } }
+    // ORIGINAL XATA:     ]
+    // ORIGINAL XATA:   })
+    // ORIGINAL XATA:   .select(['id', 'xero_invoice_id', 'xero_invoice_number', 'invoice_status'])
+    // ORIGINAL XATA:   .getMany();
+    const unpaidSales = await db
+      .select({
+        id: sales.id,
+        xeroInvoiceId: sales.xeroInvoiceId,
+        xeroInvoiceNumber: sales.xeroInvoiceNumber,
+        invoiceStatus: sales.invoiceStatus,
       })
-      .select(['id', 'xero_invoice_id', 'xero_invoice_number', 'invoice_status'])
-      .getMany();
+      .from(sales)
+      .where(
+        and(
+          ne(sales.invoiceStatus, 'PAID'),
+          isNotNull(sales.xeroInvoiceId)
+        )
+      );
 
     logger.info('PAYMENT_SYNC', 'Found unpaid sales to check', { count: unpaidSales.length });
 
@@ -93,23 +111,23 @@ export async function POST() {
     // 4. Batch fetch invoice statuses from Xero
     let checkedCount = 0;
     let updatedCount = 0;
-    const errors: Array<{ saleId: string; invoiceNumber: string; error: string }> = [];
+    const errorsArray: Array<{ saleId: string; invoiceNumber: string; error: string }> = [];
 
     // Xero allows fetching multiple invoices by ID using comma-separated list
     // But for reliability and better error handling, we'll fetch individually
     for (const sale of unpaidSales) {
       try {
-        if (!sale.xero_invoice_id) {
+        if (!sale.xeroInvoiceId) {
           logger.info('PAYMENT_SYNC', 'Skipping sale - no xero_invoice_id', { saleId: sale.id });
           continue;
         }
 
         logger.info('PAYMENT_SYNC', 'Checking invoice', {
-          invoiceNumber: sale.xero_invoice_number,
-          invoiceId: sale.xero_invoice_id
+          invoiceNumber: sale.xeroInvoiceNumber,
+          invoiceId: sale.xeroInvoiceId
         });
 
-        const xeroUrl = `https://api.xero.com/api.xro/2.0/Invoices/${sale.xero_invoice_id}`;
+        const xeroUrl = `https://api.xero.com/api.xro/2.0/Invoices/${sale.xeroInvoiceId}`;
 
         const xeroResponse = await fetch(xeroUrl, {
           headers: {
@@ -122,13 +140,13 @@ export async function POST() {
         if (!xeroResponse.ok) {
           const errorText = await xeroResponse.text();
           logger.error('PAYMENT_SYNC', 'Xero API error', {
-            invoiceNumber: sale.xero_invoice_number,
+            invoiceNumber: sale.xeroInvoiceNumber,
             status: xeroResponse.status,
             errorText
           });
-          errors.push({
+          errorsArray.push({
             saleId: sale.id,
-            invoiceNumber: sale.xero_invoice_number || sale.xero_invoice_id,
+            invoiceNumber: sale.xeroInvoiceNumber || sale.xeroInvoiceId,
             error: `Xero API error: ${xeroResponse.status}`,
           });
           continue;
@@ -139,11 +157,11 @@ export async function POST() {
 
         if (!invoice) {
           logger.error('PAYMENT_SYNC', 'Invoice not found in Xero', {
-            invoiceNumber: sale.xero_invoice_number
+            invoiceNumber: sale.xeroInvoiceNumber
           });
-          errors.push({
+          errorsArray.push({
             saleId: sale.id,
-            invoiceNumber: sale.xero_invoice_number || sale.xero_invoice_id,
+            invoiceNumber: sale.xeroInvoiceNumber || sale.xeroInvoiceId,
             error: 'Invoice not found in Xero',
           });
           continue;
@@ -152,25 +170,32 @@ export async function POST() {
         checkedCount++;
 
         // Check if status changed
-        if (invoice.Status !== sale.invoice_status) {
+        if (invoice.Status !== sale.invoiceStatus) {
           logger.info('PAYMENT_SYNC', 'Status changed', {
-            invoiceNumber: sale.xero_invoice_number,
-            oldStatus: sale.invoice_status,
+            invoiceNumber: sale.xeroInvoiceNumber,
+            oldStatus: sale.invoiceStatus,
             newStatus: invoice.Status
           });
 
-          await xata.db.Sales.update(sale.id, {
-            invoice_status: invoice.Status,
-            invoice_paid_date: invoice.Status === 'PAID' ? new Date() : null,
-          });
+          // ORIGINAL XATA: await xata.db.Sales.update(sale.id, {
+          // ORIGINAL XATA:   invoice_status: invoice.Status,
+          // ORIGINAL XATA:   invoice_paid_date: invoice.Status === 'PAID' ? new Date() : null,
+          // ORIGINAL XATA: });
+          await db
+            .update(sales)
+            .set({
+              invoiceStatus: invoice.Status,
+              invoicePaidDate: invoice.Status === 'PAID' ? new Date() : null,
+            })
+            .where(eq(sales.id, sale.id));
 
           updatedCount++;
           logger.info('PAYMENT_SYNC', 'Updated invoice status', {
-            invoiceNumber: sale.xero_invoice_number
+            invoiceNumber: sale.xeroInvoiceNumber
           });
         } else {
           logger.info('PAYMENT_SYNC', 'No status change', {
-            invoiceNumber: sale.xero_invoice_number,
+            invoiceNumber: sale.xeroInvoiceNumber,
             status: invoice.Status
           });
         }
@@ -187,9 +212,9 @@ export async function POST() {
           saleId: sale.id,
           error: err as any
         });
-        errors.push({
+        errorsArray.push({
           saleId: sale.id,
-          invoiceNumber: sale.xero_invoice_number || sale.xero_invoice_id || 'unknown',
+          invoiceNumber: sale.xeroInvoiceNumber || sale.xeroInvoiceId || 'unknown',
           error: errorMessage,
         });
       }
@@ -200,7 +225,7 @@ export async function POST() {
       durationMs: duration,
       checked: checkedCount,
       updated: updatedCount,
-      errors: errors.length
+      errors: errorsArray.length
     });
 
     return NextResponse.json({
@@ -208,9 +233,9 @@ export async function POST() {
       summary: {
         checked: checkedCount,
         updated: updatedCount,
-        errors: errors.length,
+        errors: errorsArray.length,
       },
-      errors,
+      errors: errorsArray,
       duration: `${duration}ms`,
     });
   } catch (error) {

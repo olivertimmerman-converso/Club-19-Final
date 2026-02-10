@@ -6,12 +6,21 @@
  *
  * POST /api/introducers
  * Create new introducer
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getXataClient } from '@/src/xata';
 import * as logger from '@/lib/logger';
+
+// Drizzle imports
+import { db } from "@/db";
+import { introducers } from "@/db/schema";
+import { asc } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from '@/src/xata';
 
 export async function GET() {
   try {
@@ -24,16 +33,24 @@ export async function GET() {
       );
     }
 
-    const xata = getXataClient();
+    // ORIGINAL XATA:
+    // const xata = getXataClient();
+    // const introducers = await xata.db.Introducers
+    //   .select(['id', 'name'])
+    //   .sort('name', 'asc')
+    //   .getAll();
 
-    // Fetch all introducers, ordered by name
-    const introducers = await xata.db.Introducers
-      .select(['id', 'name'])
-      .sort('name', 'asc')
-      .getAll();
+    // DRIZZLE:
+    const introducersList = await db
+      .select({
+        id: introducers.id,
+        name: introducers.name,
+      })
+      .from(introducers)
+      .orderBy(asc(introducers.name));
 
     // Transform to friendly format
-    const formatted = introducers.map(i => ({
+    const formatted = introducersList.map(i => ({
       id: i.id,
       name: i.name || 'Unknown',
     }));
@@ -71,12 +88,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const xata = getXataClient();
+    // ORIGINAL XATA:
+    // const xata = getXataClient();
+    // const introducer = await xata.db.Introducers.create({
+    //   name: name.trim(),
+    // });
 
-    // Create new introducer
-    const introducer = await xata.db.Introducers.create({
-      name: name.trim(),
-    });
+    // DRIZZLE:
+    const [introducer] = await db
+      .insert(introducers)
+      .values({
+        name: name.trim(),
+      })
+      .returning();
 
     logger.info('INTRODUCERS_API', 'New introducer created', {
       introducerId: introducer.id,

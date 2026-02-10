@@ -5,14 +5,23 @@
  * Fetches invoices updated in last 7 days and creates/updates Sales records
  *
  * Auth: Superadmin, Operations, or Founder only
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
 import { getValidTokens } from '@/lib/xero-auth';
 import * as logger from '@/lib/logger';
+
+// Drizzle imports
+import { db } from "@/db";
+import { sales, buyers } from "@/db/schema";
+import { eq, ilike } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from '@/src/xata';
 
 export const dynamic = 'force-dynamic';
 
@@ -258,7 +267,7 @@ export async function POST(request: Request) {
     logger.info('XERO_SYNC', 'All invoices fetched', { total: invoices.length, pages: page - 1 });
 
     // 4. Process each invoice
-    const xata = getXataClient();
+    // ORIGINAL XATA: const xata = getXataClient();
     let newCount = 0;
     let updatedCount = 0;
     let skippedCount = 0;
@@ -288,20 +297,27 @@ export async function POST(request: Request) {
           fullyPaidOnDate: invoice.FullyPaidOnDate || 'N/A'
         });
 
-        // Check if invoice already exists
-        const existing = await xata.db.Sales.filter({
-          xero_invoice_id: invoice.InvoiceID
-        }).getFirst();
+        // ORIGINAL XATA:
+        // const existing = await xata.db.Sales.filter({
+        //   xero_invoice_id: invoice.InvoiceID
+        // }).getFirst();
+
+        // DRIZZLE:
+        const [existing] = await db
+          .select()
+          .from(sales)
+          .where(eq(sales.xeroInvoiceId, invoice.InvoiceID))
+          .limit(1);
 
         if (existing) {
           // Update status and/or date if changed
-          const statusChanged = existing.invoice_status !== invoice.Status;
-          const dateChanged = existing.sale_date && invoiceDate && existing.sale_date.getTime() !== invoiceDate.getTime();
+          const statusChanged = existing.invoiceStatus !== invoice.Status;
+          const dateChanged = existing.saleDate && invoiceDate && existing.saleDate.getTime() !== invoiceDate.getTime();
 
           // During full sync, update date even if existing date is null
           const shouldUpdateDate = fullSync && invoiceDate && (
-            !existing.sale_date ||
-            existing.sale_date.getTime() !== invoiceDate.getTime()
+            !existing.saleDate ||
+            existing.saleDate.getTime() !== invoiceDate.getTime()
           );
 
           // Detailed logging for debugging
@@ -309,7 +325,7 @@ export async function POST(request: Request) {
             invoiceNumber: invoice.InvoiceNumber,
             recordId: existing.id,
             fullSync,
-            existingDate: existing.sale_date?.toISOString() || 'null',
+            existingDate: existing.saleDate?.toISOString() || 'null',
             xeroDate: invoiceDate?.toISOString() || 'null',
             statusChanged,
             dateChanged,
@@ -318,15 +334,15 @@ export async function POST(request: Request) {
           });
 
           if (statusChanged || dateChanged || shouldUpdateDate) {
-            const updates: any = {};
+            const updates: Record<string, any> = {};
             if (statusChanged) {
-              updates.invoice_status = invoice.Status;
+              updates.invoiceStatus = invoice.Status;
               // Use actual paid date from Xero if available, otherwise null
-              updates.invoice_paid_date = invoice.FullyPaidOnDate ? safeDate(invoice.FullyPaidOnDate) : null;
+              updates.invoicePaidDate = invoice.FullyPaidOnDate ? safeDate(invoice.FullyPaidOnDate) : null;
             }
             if (shouldUpdateDate) {
               // Update dates during full sync to fix historical data
-              updates.sale_date = invoiceDate;
+              updates.saleDate = invoiceDate;
             }
 
             logger.info('XERO_SYNC', 'Updating invoice', {
@@ -334,14 +350,22 @@ export async function POST(request: Request) {
               fullSync,
               statusChanged,
               shouldUpdateDate,
-              oldStatus: existing.invoice_status,
+              oldStatus: existing.invoiceStatus,
               newStatus: invoice.Status,
-              oldDate: existing.sale_date?.toISOString().split('T')[0] || 'null',
+              oldDate: existing.saleDate?.toISOString().split('T')[0] || 'null',
               newDate: formattedDate,
               updateFields: Object.keys(updates)
             });
 
-            await xata.db.Sales.update(existing.id, updates);
+            // ORIGINAL XATA:
+            // await xata.db.Sales.update(existing.id, updates);
+
+            // DRIZZLE:
+            await db
+              .update(sales)
+              .set(updates)
+              .where(eq(sales.id, existing.id));
+
             updatedCount++;
           } else {
             logger.info('XERO_SYNC', 'Skipping - already exists with same data', {
@@ -387,20 +411,41 @@ export async function POST(request: Request) {
             total
           });
 
-          // Try to find or create buyer
-          let buyer = await xata.db.Buyers.filter({
-            name: { $iContains: contactName }
-          }).getFirst();
+          // ORIGINAL XATA:
+          // let buyer = await xata.db.Buyers.filter({
+          //   name: { $iContains: contactName }
+          // }).getFirst();
+
+          // DRIZZLE:
+          // Note: ilike is case-insensitive LIKE in PostgreSQL
+          let [buyer] = await db
+            .select()
+            .from(buyers)
+            .where(ilike(buyers.name, `%${contactName}%`))
+            .limit(1);
 
           if (buyer) {
             logger.info('XERO_SYNC', 'Found existing buyer', { buyerName: buyer.name });
           } else {
             // Create new buyer record
             logger.info('XERO_SYNC', 'Creating new buyer', { contactName });
-            buyer = await xata.db.Buyers.create({
-              name: contactName,
-              xero_contact_id: invoice.Contact?.ContactID || null,
-            });
+
+            // ORIGINAL XATA:
+            // buyer = await xata.db.Buyers.create({
+            //   name: contactName,
+            //   xero_contact_id: invoice.Contact?.ContactID || null,
+            // });
+
+            // DRIZZLE:
+            const [created] = await db
+              .insert(buyers)
+              .values({
+                name: contactName,
+                xeroContactId: invoice.Contact?.ContactID || null,
+              })
+              .returning();
+            buyer = created;
+
             logger.info('XERO_SYNC', 'Created buyer', { buyerName: buyer.name, buyerId: buyer.id });
           }
 
@@ -408,25 +453,32 @@ export async function POST(request: Request) {
           const dueDateNote = dueDate ? ` Due: ${safeISOString(dueDate) || 'Unknown'}` : '';
           const importNotes = `Auto-imported from Xero on ${safeISOString(currentDate) || currentDate.toString()}. Client: ${contactName}.${dueDateNote} Needs shopper allocation and cost details.`;
 
-          await xata.db.Sales.create({
-            xero_invoice_id: invoice.InvoiceID,
-            xero_invoice_number: invoice.InvoiceNumber,
-            invoice_status: invoice.Status,
-            sale_date: saleDate, // Use invoice date from Xero (validated above)
-            sale_amount_inc_vat: total,
-            sale_amount_ex_vat: invoice.SubTotal || (total / 1.2), // Use SubTotal or assume 20% VAT
-            currency: 'GBP',
-            source: 'xero_import', // Xero sync origin
-            needs_allocation: true, // Requires shopper assignment
-            buyer: buyer ? buyer.id : null,
-            brand: 'Unknown',
-            category: 'Unknown',
-            item_title: firstItem.Description || 'Imported from Xero',
-            quantity: firstItem.Quantity || 1,
-            buy_price: 0, // Unknown - Operations will need to fill in
-            gross_margin: 0,
-            internal_notes: importNotes,
-          });
+          // ORIGINAL XATA:
+          // await xata.db.Sales.create({...});
+
+          // DRIZZLE:
+          await db
+            .insert(sales)
+            .values({
+              xeroInvoiceId: invoice.InvoiceID,
+              xeroInvoiceNumber: invoice.InvoiceNumber,
+              invoiceStatus: invoice.Status,
+              saleDate: saleDate, // Use invoice date from Xero (validated above)
+              saleAmountIncVat: total,
+              saleAmountExVat: invoice.SubTotal || (total / 1.2), // Use SubTotal or assume 20% VAT
+              currency: 'GBP',
+              source: 'xero_import', // Xero sync origin
+              needsAllocation: true, // Requires shopper assignment
+              buyerId: buyer ? buyer.id : null,
+              brand: 'Unknown',
+              category: 'Unknown',
+              itemTitle: firstItem.Description || 'Imported from Xero',
+              quantity: firstItem.Quantity || 1,
+              buyPrice: 0, // Unknown - Operations will need to fill in
+              grossMargin: 0,
+              internalNotes: importNotes,
+            });
+
           newCount++;
           logger.info('XERO_SYNC', 'Created new sale', { invoiceNumber: invoice.InvoiceNumber });
         }

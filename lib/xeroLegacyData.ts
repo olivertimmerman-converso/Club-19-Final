@@ -2,9 +2,17 @@
  * Club 19 Sales OS - Xero Legacy Data Utilities
  *
  * Helper functions for analyzing xero_import Sales records
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA:
+// import { getXataClient } from "@/src/xata";
+
+// DRIZZLE IMPORTS
+import { db } from "@/db";
+import { sales, buyers } from "@/db/schema";
+import { eq, and, isNull, isNotNull, desc } from "drizzle-orm";
 
 export interface XeroSummary {
   totalRecords: number;
@@ -50,28 +58,56 @@ export interface RecentXeroInvoice {
  * Get summary statistics for xero_import records
  */
 export async function getXeroSummary(): Promise<XeroSummary> {
-  const xata = getXataClient();
+  // ORIGINAL XATA:
+  // const xata = getXataClient();
+  // const records = await xata.db.Sales
+  //   .filter({
+  //     $all: [
+  //       { source: 'xero_import' },
+  //       { deleted_at: { $is: null } }
+  //     ]
+  //   })
+  //   .select(["sale_amount_inc_vat", "invoice_status", "buyer.name"])
+  //   .getAll();
 
-  const records = await xata.db.Sales
-    .filter({
-      $all: [
-        { source: 'xero_import' },
-        { deleted_at: { $is: null } }
-      ]
+  // DRIZZLE:
+  const records = await db
+    .select({
+      saleAmountIncVat: sales.saleAmountIncVat,
+      invoiceStatus: sales.invoiceStatus,
+      buyerId: sales.buyerId,
     })
-    .select(["sale_amount_inc_vat", "invoice_status", "buyer.name"])
-    .getAll();
+    .from(sales)
+    .where(
+      and(
+        eq(sales.source, 'xero_import'),
+        isNull(sales.deletedAt)
+      )
+    );
+
+  // Get buyer names in a separate query for the unique count
+  const buyerIds = [...new Set(records.map(r => r.buyerId).filter(Boolean))] as string[];
+  let buyerMap = new Map<string, string>();
+
+  if (buyerIds.length > 0) {
+    const buyerRecords = await db
+      .select({ id: buyers.id, name: buyers.name })
+      .from(buyers);
+    buyerRecords.forEach(b => {
+      if (b.name) buyerMap.set(b.id, b.name);
+    });
+  }
 
   const totalRecords = records.length;
-  const totalSales = records.reduce((sum, r) => sum + (r.sale_amount_inc_vat || 0), 0);
+  const totalSales = records.reduce((sum, r) => sum + (r.saleAmountIncVat || 0), 0);
   const totalPaid = records
-    .filter(r => r.invoice_status === 'PAID')
-    .reduce((sum, r) => sum + (r.sale_amount_inc_vat || 0), 0);
+    .filter(r => r.invoiceStatus === 'PAID')
+    .reduce((sum, r) => sum + (r.saleAmountIncVat || 0), 0);
   const totalOutstanding = totalSales - totalPaid;
 
   const uniqueClientsSet = new Set(
     records
-      .map(r => r.buyer?.name)
+      .map(r => r.buyerId ? buyerMap.get(r.buyerId) : undefined)
       .filter((name): name is string => !!name)
   );
   const uniqueClients = uniqueClientsSet.size;
@@ -89,18 +125,34 @@ export async function getXeroSummary(): Promise<XeroSummary> {
  * Get monthly sales breakdown
  */
 export async function getXeroMonthlySales(): Promise<MonthlyXeroSales[]> {
-  const xata = getXataClient();
+  // ORIGINAL XATA:
+  // const xata = getXataClient();
+  // const records = await xata.db.Sales
+  //   .filter({
+  //     $all: [
+  //       { source: 'xero_import' },
+  //       { deleted_at: { $is: null } },
+  //       { sale_date: { $isNot: null } }
+  //     ]
+  //   })
+  //   .select(["sale_date", "sale_amount_inc_vat", "invoice_status"])
+  //   .getAll();
 
-  const records = await xata.db.Sales
-    .filter({
-      $all: [
-        { source: 'xero_import' },
-        { deleted_at: { $is: null } },
-        { sale_date: { $isNot: null } }
-      ]
+  // DRIZZLE:
+  const records = await db
+    .select({
+      saleDate: sales.saleDate,
+      saleAmountIncVat: sales.saleAmountIncVat,
+      invoiceStatus: sales.invoiceStatus,
     })
-    .select(["sale_date", "sale_amount_inc_vat", "invoice_status"])
-    .getAll();
+    .from(sales)
+    .where(
+      and(
+        eq(sales.source, 'xero_import'),
+        isNull(sales.deletedAt),
+        isNotNull(sales.saleDate)
+      )
+    );
 
   // Group by month
   const monthlyMap = new Map<string, {
@@ -110,9 +162,9 @@ export async function getXeroMonthlySales(): Promise<MonthlyXeroSales[]> {
   }>();
 
   for (const record of records) {
-    if (!record.sale_date) continue;
+    if (!record.saleDate) continue;
 
-    const date = new Date(record.sale_date);
+    const date = new Date(record.saleDate);
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
     const existing = monthlyMap.get(monthKey) || {
@@ -122,9 +174,9 @@ export async function getXeroMonthlySales(): Promise<MonthlyXeroSales[]> {
     };
 
     existing.invoiceCount++;
-    existing.totalValue += record.sale_amount_inc_vat || 0;
-    if (record.invoice_status === 'PAID') {
-      existing.paidValue += record.sale_amount_inc_vat || 0;
+    existing.totalValue += record.saleAmountIncVat || 0;
+    if (record.invoiceStatus === 'PAID') {
+      existing.paidValue += record.saleAmountIncVat || 0;
     }
 
     monthlyMap.set(monthKey, existing);
@@ -155,27 +207,54 @@ export async function getXeroMonthlySales(): Promise<MonthlyXeroSales[]> {
  * Get top clients by sales value
  */
 export async function getTopXeroClients(limit = 10): Promise<XeroClientData[]> {
-  const xata = getXataClient();
+  // ORIGINAL XATA:
+  // const xata = getXataClient();
+  // const records = await xata.db.Sales
+  //   .filter({
+  //     $all: [
+  //       { source: 'xero_import' },
+  //       { deleted_at: { $is: null } }
+  //     ]
+  //   })
+  //   .select(["sale_amount_inc_vat", "buyer.name"])
+  //   .getAll();
 
-  const records = await xata.db.Sales
-    .filter({
-      $all: [
-        { source: 'xero_import' },
-        { deleted_at: { $is: null } }
-      ]
+  // DRIZZLE:
+  const records = await db
+    .select({
+      saleAmountIncVat: sales.saleAmountIncVat,
+      buyerId: sales.buyerId,
     })
-    .select(["sale_amount_inc_vat", "buyer.name"])
-    .getAll();
+    .from(sales)
+    .where(
+      and(
+        eq(sales.source, 'xero_import'),
+        isNull(sales.deletedAt)
+      )
+    );
+
+  // Get buyer names
+  const buyerIds = [...new Set(records.map(r => r.buyerId).filter(Boolean))] as string[];
+  let buyerMap = new Map<string, string>();
+
+  if (buyerIds.length > 0) {
+    const buyerRecords = await db
+      .select({ id: buyers.id, name: buyers.name })
+      .from(buyers);
+    buyerRecords.forEach(b => {
+      if (b.name) buyerMap.set(b.id, b.name);
+    });
+  }
 
   // Group by client
   const clientMap = new Map<string, { tradeCount: number; totalSales: number }>();
 
   for (const record of records) {
-    const clientName = record.buyer?.name || 'Unknown';
+    const clientName = record.buyerId ? (buyerMap.get(record.buyerId) || 'Unknown') : 'Unknown';
 
     const existing = clientMap.get(clientName) || { tradeCount: 0, totalSales: 0 };
     existing.tradeCount++;
-    existing.totalSales += record.sale_amount_inc_vat || 0;
+    existing.totalSales += record.saleAmountIncVat || 0;
 
     clientMap.set(clientName, existing);
   }
@@ -197,27 +276,41 @@ export async function getTopXeroClients(limit = 10): Promise<XeroClientData[]> {
  * Get invoice status breakdown
  */
 export async function getInvoiceStatusBreakdown(): Promise<InvoiceStatusData[]> {
-  const xata = getXataClient();
+  // ORIGINAL XATA:
+  // const xata = getXataClient();
+  // const records = await xata.db.Sales
+  //   .filter({
+  //     $all: [
+  //       { source: 'xero_import' },
+  //       { deleted_at: { $is: null } }
+  //     ]
+  //   })
+  //   .select(["invoice_status", "sale_amount_inc_vat"])
+  //   .getAll();
 
-  const records = await xata.db.Sales
-    .filter({
-      $all: [
-        { source: 'xero_import' },
-        { deleted_at: { $is: null } }
-      ]
+  // DRIZZLE:
+  const records = await db
+    .select({
+      invoiceStatus: sales.invoiceStatus,
+      saleAmountIncVat: sales.saleAmountIncVat,
     })
-    .select(["invoice_status", "sale_amount_inc_vat"])
-    .getAll();
+    .from(sales)
+    .where(
+      and(
+        eq(sales.source, 'xero_import'),
+        isNull(sales.deletedAt)
+      )
+    );
 
   // Group by status
   const statusMap = new Map<string, { count: number; value: number }>();
 
   for (const record of records) {
-    const status = record.invoice_status || 'UNKNOWN';
+    const status = record.invoiceStatus || 'UNKNOWN';
 
     const existing = statusMap.get(status) || { count: 0, value: 0 };
     existing.count++;
-    existing.value += record.sale_amount_inc_vat || 0;
+    existing.value += record.saleAmountIncVat || 0;
 
     statusMap.set(status, existing);
   }
@@ -238,26 +331,60 @@ export async function getInvoiceStatusBreakdown(): Promise<InvoiceStatusData[]> 
  * Get recent invoices
  */
 export async function getRecentXeroInvoices(limit = 20): Promise<RecentXeroInvoice[]> {
-  const xata = getXataClient();
+  // ORIGINAL XATA:
+  // const xata = getXataClient();
+  // const records = await xata.db.Sales
+  //   .filter({
+  //     $all: [
+  //       { source: 'xero_import' },
+  //       { deleted_at: { $is: null } }
+  //     ]
+  //   })
+  //   .select(["*", "buyer.name"])
+  //   .sort('sale_date', 'desc')
+  //   .getPaginated({ pagination: { size: limit } });
 
-  const records = await xata.db.Sales
-    .filter({
-      $all: [
-        { source: 'xero_import' },
-        { deleted_at: { $is: null } }
-      ]
+  // DRIZZLE:
+  const records = await db
+    .select({
+      id: sales.id,
+      saleDate: sales.saleDate,
+      xeroInvoiceNumber: sales.xeroInvoiceNumber,
+      buyerId: sales.buyerId,
+      saleAmountIncVat: sales.saleAmountIncVat,
+      invoiceStatus: sales.invoiceStatus,
+      itemTitle: sales.itemTitle,
     })
-    .select(["*", "buyer.name"])
-    .sort('sale_date', 'desc')
-    .getPaginated({ pagination: { size: limit } });
+    .from(sales)
+    .where(
+      and(
+        eq(sales.source, 'xero_import'),
+        isNull(sales.deletedAt)
+      )
+    )
+    .orderBy(desc(sales.saleDate))
+    .limit(limit);
 
-  return records.records.map(r => ({
+  // Get buyer names
+  const buyerIds = [...new Set(records.map(r => r.buyerId).filter(Boolean))] as string[];
+  let buyerMap = new Map<string, string>();
+
+  if (buyerIds.length > 0) {
+    const buyerRecords = await db
+      .select({ id: buyers.id, name: buyers.name })
+      .from(buyers);
+    buyerRecords.forEach(b => {
+      if (b.name) buyerMap.set(b.id, b.name);
+    });
+  }
+
+  return records.map(r => ({
     id: r.id,
-    date: r.sale_date ?? null,
-    invoiceNumber: r.xero_invoice_number ?? null,
-    clientName: r.buyer?.name || 'Unknown',
-    amount: r.sale_amount_inc_vat || 0,
-    status: r.invoice_status ?? null,
-    itemTitle: r.item_title ?? null,
+    date: r.saleDate ?? null,
+    invoiceNumber: r.xeroInvoiceNumber ?? null,
+    clientName: r.buyerId ? (buyerMap.get(r.buyerId) || 'Unknown') : 'Unknown',
+    amount: r.saleAmountIncVat || 0,
+    status: r.invoiceStatus ?? null,
+    itemTitle: r.itemTitle ?? null,
   }));
 }

@@ -8,7 +8,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
+// ORIGINAL XATA: import { getXataClient } from '@/src/xata';
 import {
   calculateMargins,
   getVATRateForBrandingTheme,
@@ -68,16 +71,23 @@ export async function DELETE(
 
     logger.info('UNLINK_INVOICE', 'Unlink invoice request', { saleId, xero_invoice_id });
 
-    const xata = getXataClient();
+    // ORIGINAL XATA: const xata = getXataClient();
 
     // Fetch the sale
-    const sale = await xata.db.Sales.read(saleId);
+    // ORIGINAL XATA: const sale = await xata.db.Sales.read(saleId);
+    const saleResults = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.id, saleId))
+      .limit(1);
+    const sale = saleResults[0] || null;
+
     if (!sale) {
       return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
     }
 
     // Get existing linked invoices array
-    const existingLinked: LinkedInvoice[] = (sale as any).linked_invoices || [];
+    const existingLinked: LinkedInvoice[] = (sale as any).linkedInvoices || [];
 
     // Find the invoice to unlink
     const invoiceIndex = existingLinked.findIndex(
@@ -100,17 +110,27 @@ export async function DELETE(
 
     // Find the original import record to restore
     // It should be soft-deleted with the same xero_invoice_id
-    const originalImport = await xata.db.Sales
-      .filter({
-        xero_invoice_id: xero_invoice_id,
-        source: 'xero_import',
-      })
-      .getFirst();
+    // ORIGINAL XATA:
+    // const originalImport = await xata.db.Sales
+    //   .filter({
+    //     xero_invoice_id: xero_invoice_id,
+    //     source: 'xero_import',
+    //   })
+    //   .getFirst();
+    const originalImportResults = await db
+      .select()
+      .from(sales)
+      .where(and(
+        eq(sales.xeroInvoiceId, xero_invoice_id),
+        eq(sales.source, 'xero_import')
+      ))
+      .limit(1);
+    const originalImport = originalImportResults[0] || null;
 
     // Calculate new totals (original sale amount + remaining linked invoices)
     // We need to restore the original primary amount
     // Primary amount = current total - all linked amounts
-    const currentTotal = roundCurrency(toNumber(sale.sale_amount_inc_vat));
+    const currentTotal = roundCurrency(toNumber(sale.saleAmountIncVat));
     const allLinkedAmounts = existingLinked.reduce(
       (sum, inv) => addCurrency(sum, inv.amount_inc_vat),
       0
@@ -125,17 +145,23 @@ export async function DELETE(
     const newTotalIncVat = addCurrency(primaryAmount, newLinkedAmounts);
 
     // Recalculate ex-VAT using branding theme
-    const vatRate = getVATRateForBrandingTheme(sale.branding_theme);
+    // ORIGINAL XATA: const vatRate = getVATRateForBrandingTheme(sale.branding_theme);
+    const vatRate = getVATRateForBrandingTheme(sale.brandingTheme);
     const newTotalExVat = calculateExVatWithRate(newTotalIncVat, vatRate);
 
     // Recalculate margins
     const margins = calculateMargins({
       saleAmountExVat: newTotalExVat,
-      buyPrice: sale.buy_price,
-      shippingCost: sale.shipping_cost,
-      cardFees: sale.card_fees,
-      directCosts: sale.direct_costs,
-      introducerCommission: (sale as any).introducer_commission,
+      // ORIGINAL XATA: buyPrice: sale.buy_price,
+      buyPrice: sale.buyPrice,
+      // ORIGINAL XATA: shippingCost: sale.shipping_cost,
+      shippingCost: sale.shippingCost,
+      // ORIGINAL XATA: cardFees: sale.card_fees,
+      cardFees: sale.cardFees,
+      // ORIGINAL XATA: directCosts: sale.direct_costs,
+      directCosts: sale.directCosts,
+      // ORIGINAL XATA: introducerCommission: (sale as any).introducer_commission,
+      introducerCommission: sale.introducerCommission,
     });
 
     logger.info('UNLINK_INVOICE', 'Recalculated totals', {
@@ -149,21 +175,41 @@ export async function DELETE(
     });
 
     // Update the sale with updated linked invoices and recalculated totals
-    // Note: linked_invoices field must be added to Xata schema before this works
-    const updatedSale = await xata.db.Sales.update(saleId, {
-      linked_invoices: updatedLinked.length > 0 ? updatedLinked : null,
-      sale_amount_inc_vat: newTotalIncVat,
-      sale_amount_ex_vat: newTotalExVat,
-      gross_margin: margins.grossMargin,
-      commissionable_margin: margins.commissionableMargin,
-    } as any);
+    // ORIGINAL XATA:
+    // const updatedSale = await xata.db.Sales.update(saleId, {
+    //   linked_invoices: updatedLinked.length > 0 ? updatedLinked : null,
+    //   sale_amount_inc_vat: newTotalIncVat,
+    //   sale_amount_ex_vat: newTotalExVat,
+    //   gross_margin: margins.grossMargin,
+    //   commissionable_margin: margins.commissionableMargin,
+    // } as any);
+    const updatedSaleResults = await db
+      .update(sales)
+      .set({
+        linkedInvoices: updatedLinked.length > 0 ? updatedLinked : null,
+        saleAmountIncVat: newTotalIncVat,
+        saleAmountExVat: newTotalExVat,
+        grossMargin: margins.grossMargin,
+        commissionableMargin: margins.commissionableMargin,
+      })
+      .where(eq(sales.id, saleId))
+      .returning();
+    const updatedSale = updatedSaleResults[0] || null;
 
     // Restore the original import record if found
     if (originalImport) {
-      await xata.db.Sales.update(originalImport.id, {
-        deleted_at: null,
-        needs_allocation: true,
-      });
+      // ORIGINAL XATA:
+      // await xata.db.Sales.update(originalImport.id, {
+      //   deleted_at: null,
+      //   needs_allocation: true,
+      // });
+      await db
+        .update(sales)
+        .set({
+          deletedAt: null,
+          needsAllocation: true,
+        })
+        .where(eq(sales.id, originalImport.id));
       logger.info('UNLINK_INVOICE', 'Restored import as unallocated', {
         importId: originalImport.id,
         xeroInvoiceNumber: unlinkedInvoice.xero_invoice_number,

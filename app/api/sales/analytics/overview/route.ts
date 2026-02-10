@@ -5,11 +5,11 @@
  * Returns high-level KPIs and metrics for dashboard display
  *
  * Admin/Finance/Superadmin only endpoint
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getXataClient } from "@/src/xata";
-import type { SalesRecord } from "@/src/xata";
 import { auth } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { withRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -21,20 +21,25 @@ import {
 } from "@/lib/sales-summary-helpers";
 import * as logger from "@/lib/logger";
 
+// Drizzle imports
+import { db } from "@/db";
+import { sales, errors } from "@/db/schema";
+
+// ORIGINAL XATA:
+// import { getXataClient } from "@/src/xata";
+// import type { SalesRecord } from "@/src/xata";
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// ============================================================================
-// XATA CLIENT
-// ============================================================================
-
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
+// ORIGINAL XATA:
+// let _xata: ReturnType<typeof getXataClient> | null = null;
+//
+// function xata() {
+//   if (_xata) return _xata;
+//   _xata = getXataClient();
+//   return _xata;
+// }
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -64,6 +69,19 @@ interface AnalyticsOverview {
   // Error tracking
   errors_count_total: number;
   errors_by_group: Record<string, number>;
+}
+
+// Helper type for Drizzle result to match SalesRecord shape for helper functions
+interface SaleForHelpers {
+  id: string;
+  status: string | null;
+  buyerType: string | null;
+  saleAmountIncVat: number | null;
+  buyPrice: number | null;
+  commissionableMargin: number | null;
+  xeroPaymentDate?: Date | null;
+  commissionLocked?: boolean | null;
+  commissionPaid?: boolean | null;
 }
 
 // ============================================================================
@@ -104,27 +122,48 @@ export async function GET(req: NextRequest) {
     // STEP 2: Fetch all sales
     logger.info("ANALYTICS", "Fetching sales...");
 
-    const sales = await xata()
-      .db.Sales.select([
-        "id",
-        "status",
-        "buyer_type",
-        "sale_amount_inc_vat",
-        "buy_price",
-        "commissionable_margin",
-      ])
-      .getMany();
+    // ORIGINAL XATA:
+    // const sales = await xata()
+    //   .db.Sales.select([
+    //     "id",
+    //     "status",
+    //     "buyer_type",
+    //     "sale_amount_inc_vat",
+    //     "buy_price",
+    //     "commissionable_margin",
+    //   ])
+    //   .getMany();
 
-    logger.info("ANALYTICS", "Found sales", { count: sales.length });
+    // DRIZZLE:
+    const salesData = await db
+      .select({
+        id: sales.id,
+        status: sales.status,
+        buyerType: sales.buyerType,
+        saleAmountIncVat: sales.saleAmountIncVat,
+        buyPrice: sales.buyPrice,
+        commissionableMargin: sales.commissionableMargin,
+      })
+      .from(sales);
+
+    logger.info("ANALYTICS", "Found sales", { count: salesData.length });
 
     // STEP 3: Fetch all errors
     logger.info("ANALYTICS", "Fetching errors...");
 
-    const errors = await xata()
-      .db.Errors.select(["id"])
-      .getMany();
+    // ORIGINAL XATA:
+    // const errors = await xata()
+    //   .db.Errors.select(["id"])
+    //   .getMany();
 
-    logger.info("ANALYTICS", "Found errors", { count: errors.length });
+    // DRIZZLE:
+    const errorsData = await db
+      .select({
+        id: errors.id,
+      })
+      .from(errors);
+
+    logger.info("ANALYTICS", "Found errors", { count: errorsData.length });
 
     // STEP 4: Compute KPIs
     logger.info("ANALYTICS", "Computing KPIs...");
@@ -140,14 +179,24 @@ export async function GET(req: NextRequest) {
     let authenticity_high_risk_count = 0;
     let authenticity_missing_receipt_count = 0;
 
-    for (const sale of sales) {
+    for (const sale of salesData) {
       // Revenue & costs
-      total_revenue_inc_vat += sale.sale_amount_inc_vat || 0;
-      total_buy_cost += sale.buy_price || 0;
-      total_margin += sale.commissionable_margin || 0;
+      total_revenue_inc_vat += sale.saleAmountIncVat || 0;
+      total_buy_cost += sale.buyPrice || 0;
+      total_margin += sale.commissionableMargin || 0;
+
+      // Map Drizzle camelCase to snake_case for helper functions
+      const saleForHelpers = {
+        id: sale.id,
+        status: sale.status,
+        buyer_type: sale.buyerType,
+        sale_amount_inc_vat: sale.saleAmountIncVat,
+        buy_price: sale.buyPrice,
+        commissionable_margin: sale.commissionableMargin,
+      };
 
       // Payment status
-      const paymentFlags = computePaymentFlags(sale as SalesRecord);
+      const paymentFlags = computePaymentFlags(saleForHelpers as any);
       if (paymentFlags.isPaid) {
         count_paid++;
       } else {
@@ -155,20 +204,20 @@ export async function GET(req: NextRequest) {
       }
 
       // Overdue status
-      const overdueFlags = computeOverdueFlags(sale as SalesRecord);
+      const overdueFlags = computeOverdueFlags(saleForHelpers as any);
       if (overdueFlags.is_overdue) {
         count_overdue++;
       }
 
       // Buyer type
-      if (sale.buyer_type === "end_client") {
+      if (sale.buyerType === "end_client") {
         end_client_sales_count++;
-      } else if (sale.buyer_type === "b2b") {
+      } else if (sale.buyerType === "b2b") {
         b2b_sales_count++;
       }
 
       // Authenticity risk
-      const authenticityRisk = computeAuthenticityRisk(sale as SalesRecord);
+      const authenticityRisk = computeAuthenticityRisk(saleForHelpers as any);
       if (authenticityRisk === "high_risk") {
         authenticity_high_risk_count++;
       } else if (authenticityRisk === "missing_receipt") {
@@ -186,7 +235,7 @@ export async function GET(req: NextRequest) {
     // STEP 5: Build response
     const overview: AnalyticsOverview = {
       // General KPIs
-      total_sales_count: sales.length,
+      total_sales_count: salesData.length,
       total_revenue_inc_vat,
       total_buy_cost,
       total_margin,
@@ -206,7 +255,7 @@ export async function GET(req: NextRequest) {
       authenticity_missing_receipt_count,
 
       // Error tracking
-      errors_count_total: errors.length,
+      errors_count_total: errorsData.length,
       errors_by_group,
     };
 

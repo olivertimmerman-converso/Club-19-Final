@@ -1,7 +1,12 @@
+/**
+ * Club 19 Sales OS - Trade Creation API
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { TradeSchema } from "@/lib/schemas/trade";
 import { ZodError } from "zod";
-import { XataClient } from "@/src/xata";
 import { auth } from "@clerk/nextjs/server";
 import * as logger from "@/lib/logger";
 import { getBrandingThemeMapping, XERO_BRANDING_THEMES } from "@/lib/branding-theme-mappings";
@@ -11,25 +16,38 @@ import { calculateMargins } from "@/lib/economics";
 import { calculateVAT } from "@/lib/calculations/vat";
 import { roundCurrency, addCurrency } from "@/lib/utils/currency";
 
-// Initialize Xata client
-const xata = new XataClient();
+// Drizzle imports
+import { db } from "@/db";
+import { sales, buyers, suppliers } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { XataClient } from "@/src/xata";
+// const xata = new XataClient();
 
 /**
  * Generate next sale_reference in format C19-XXXX
  */
 async function generateSaleReference(): Promise<string> {
-  // Get the latest sale by creation date
-  const latestSale = await xata.db.Sales
-    .select(['sale_reference'])
-    .sort('xata.createdAt', 'desc')
-    .getFirst();
+  // ORIGINAL XATA:
+  // const latestSale = await xata.db.Sales
+  //   .select(['sale_reference'])
+  //   .sort('xata.createdAt', 'desc')
+  //   .getFirst();
 
-  if (!latestSale || !latestSale.sale_reference) {
+  // DRIZZLE:
+  const [latestSale] = await db
+    .select({ saleReference: sales.saleReference })
+    .from(sales)
+    .orderBy(desc(sales.createdAt))
+    .limit(1);
+
+  if (!latestSale || !latestSale.saleReference) {
     return 'C19-0001';
   }
 
   // Extract number from C19-XXXX format
-  const match = latestSale.sale_reference.match(/C19-(\d+)/);
+  const match = latestSale.saleReference.match(/C19-(\d+)/);
   if (!match) {
     return 'C19-0001';
   }
@@ -96,13 +114,24 @@ async function autoSyncXeroInvoice(saleId: string, saleReference: string): Promi
 
     const invoice = invoices[0]; // Take first match
 
-    // Update sale record with Xero invoice details
-    await xata.db.Sales.update(saleId, {
-      xero_invoice_id: invoice.InvoiceID,
-      xero_invoice_number: invoice.InvoiceNumber,
-      xero_invoice_url: `https://go.xero.com/AccountsReceivable/Edit.aspx?InvoiceID=${invoice.InvoiceID}`,
-      invoice_status: invoice.Status,
-    });
+    // ORIGINAL XATA:
+    // await xata.db.Sales.update(saleId, {
+    //   xero_invoice_id: invoice.InvoiceID,
+    //   xero_invoice_number: invoice.InvoiceNumber,
+    //   xero_invoice_url: `https://go.xero.com/AccountsReceivable/Edit.aspx?InvoiceID=${invoice.InvoiceID}`,
+    //   invoice_status: invoice.Status,
+    // });
+
+    // DRIZZLE:
+    await db
+      .update(sales)
+      .set({
+        xeroInvoiceId: invoice.InvoiceID,
+        xeroInvoiceNumber: invoice.InvoiceNumber,
+        xeroInvoiceUrl: `https://go.xero.com/AccountsReceivable/Edit.aspx?InvoiceID=${invoice.InvoiceID}`,
+        invoiceStatus: invoice.Status,
+      })
+      .where(eq(sales.id, saleId));
 
     logger.info('AUTO_SYNC', 'Successfully synced Xero invoice', {
       saleId,
@@ -123,52 +152,100 @@ async function autoSyncXeroInvoice(saleId: string, saleReference: string): Promi
 }
 
 /**
- * Find or create Buyer record in Xata
+ * Find or create Buyer record
  */
 async function findOrCreateBuyer(buyerName: string, xeroContactId?: string) {
-  // Try to find existing buyer by name
-  let buyer = await xata.db.Buyers
-    .filter({ name: buyerName })
-    .getFirst();
+  // ORIGINAL XATA:
+  // let buyer = await xata.db.Buyers
+  //   .filter({ name: buyerName })
+  //   .getFirst();
+
+  // DRIZZLE:
+  let [buyer] = await db
+    .select()
+    .from(buyers)
+    .where(eq(buyers.name, buyerName))
+    .limit(1);
 
   if (!buyer) {
-    // Create new buyer
-    buyer = await xata.db.Buyers.create({
-      name: buyerName,
-      xero_contact_id: xeroContactId,
-    });
-  } else if (xeroContactId && !buyer.xero_contact_id) {
-    // Update existing buyer with Xero contact ID if missing
-    buyer = await xata.db.Buyers.update(buyer.id, {
-      xero_contact_id: xeroContactId,
-    });
+    // ORIGINAL XATA:
+    // buyer = await xata.db.Buyers.create({
+    //   name: buyerName,
+    //   xero_contact_id: xeroContactId,
+    // });
+
+    // DRIZZLE:
+    const [created] = await db
+      .insert(buyers)
+      .values({
+        name: buyerName,
+        xeroContactId: xeroContactId,
+      })
+      .returning();
+    buyer = created;
+  } else if (xeroContactId && !buyer.xeroContactId) {
+    // ORIGINAL XATA:
+    // buyer = await xata.db.Buyers.update(buyer.id, {
+    //   xero_contact_id: xeroContactId,
+    // });
+
+    // DRIZZLE:
+    const [updated] = await db
+      .update(buyers)
+      .set({ xeroContactId: xeroContactId })
+      .where(eq(buyers.id, buyer.id))
+      .returning();
+    buyer = updated;
   }
 
   return buyer;
 }
 
 /**
- * Find or create Supplier record in Xata
+ * Find or create Supplier record
  */
 async function findOrCreateSupplier(supplierName: string, supplierXataId?: string) {
   // If we have a Xata ID, try to find by ID first
   if (supplierXataId) {
-    const supplier = await xata.db.Suppliers.read(supplierXataId);
+    // ORIGINAL XATA:
+    // const supplier = await xata.db.Suppliers.read(supplierXataId);
+
+    // DRIZZLE:
+    const [supplier] = await db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.id, supplierXataId))
+      .limit(1);
+
     if (supplier) {
       return supplier;
     }
   }
 
-  // Try to find existing supplier by name
-  let supplier = await xata.db.Suppliers
-    .filter({ name: supplierName })
-    .getFirst();
+  // ORIGINAL XATA:
+  // let supplier = await xata.db.Suppliers
+  //   .filter({ name: supplierName })
+  //   .getFirst();
+
+  // DRIZZLE:
+  let [supplier] = await db
+    .select()
+    .from(suppliers)
+    .where(eq(suppliers.name, supplierName))
+    .limit(1);
 
   if (!supplier) {
-    // Create new supplier
-    supplier = await xata.db.Suppliers.create({
-      name: supplierName,
-    });
+    // ORIGINAL XATA:
+    // supplier = await xata.db.Suppliers.create({
+    //   name: supplierName,
+    // });
+
+    // DRIZZLE:
+    const [created] = await db
+      .insert(suppliers)
+      .values({ name: supplierName })
+      .returning();
+    supplier = created;
   }
 
   return supplier;
@@ -331,7 +408,7 @@ export async function POST(request: NextRequest) {
 
     logger.info('TRADE_CREATE', 'Xero invoice created successfully, saving to Sales table');
 
-    // CRITICAL: Save deal to Xata Sales table
+    // CRITICAL: Save deal to Sales table
     try {
       // Generate sale reference (C19-XXXX format)
       const saleReference = await generateSaleReference();
@@ -354,8 +431,6 @@ export async function POST(request: NextRequest) {
           id: buyer.id
         });
       }
-
-      // Note: firstItem was already defined above for invoice creation
 
       // Find or create supplier record (from first item)
       const supplier = await findOrCreateSupplier(
@@ -451,61 +526,67 @@ export async function POST(request: NextRequest) {
         commissionableMargin
       });
 
-      // Create Sales record
-      const saleRecord = await xata.db.Sales.create({
-        // Metadata
-        sale_reference: saleReference,
-        sale_date: new Date(), // Date the invoice is created (today)
-        status: 'active',
-        source: 'atelier', // Sales Atelier origin
+      // ORIGINAL XATA:
+      // const saleRecord = await xata.db.Sales.create({...});
 
-        // Buyer (link to Buyers table) - only if buyer exists
-        buyer: buyer?.id || undefined,
+      // DRIZZLE:
+      const [saleRecord] = await db
+        .insert(sales)
+        .values({
+          // Metadata
+          saleReference: saleReference,
+          saleDate: new Date(), // Date the invoice is created (today)
+          status: 'active',
+          source: 'atelier', // Sales Atelier origin
 
-        // Supplier (link to Suppliers table) - only if supplier exists
-        supplier: supplier?.id || undefined,
+          // Buyer (link to Buyers table) - only if buyer exists
+          buyerId: buyer?.id || undefined,
 
-        // Note: Introducer link is NOT set at creation - will be added manually in Sales OS
-        // But we do set the has_introducer flag if the checkbox was ticked
-        has_introducer: hasIntroducer,
+          // Supplier (link to Suppliers table) - only if supplier exists
+          supplierId: supplier?.id || undefined,
 
-        // Item details (from first item)
-        brand: firstItem.brand,
-        category: firstItem.category,
-        item_title: firstItem.description,
-        quantity: firstItem.quantity,
+          // Note: Introducer link is NOT set at creation - will be added manually in Sales OS
+          // But we do set the has_introducer flag if the checkbox was ticked
+          hasIntroducer: hasIntroducer,
 
-        // Pricing with correct VAT calculation
-        buy_price: totalBuyPrice,
-        sale_amount_ex_vat: saleAmountExVat,
-        sale_amount_inc_vat: saleAmountIncVat,
-        currency: firstItem.sellCurrency || 'GBP',
+          // Item details (from first item)
+          brand: firstItem.brand,
+          category: firstItem.category,
+          itemTitle: firstItem.description,
+          quantity: firstItem.quantity,
 
-        // Costs
-        card_fees: trade.impliedCosts.cardFees,
-        shipping_cost: (body.shippingMethod === 'hand_delivery') ? 0 : null,
-        direct_costs: trade.impliedCosts.total,
+          // Pricing with correct VAT calculation
+          buyPrice: totalBuyPrice,
+          saleAmountExVat: saleAmountExVat,
+          saleAmountIncVat: saleAmountIncVat,
+          currency: firstItem.sellCurrency || 'GBP',
 
-        // Shipping method
-        shipping_method: body.shippingMethod || 'to_be_shipped',
-        shipping_cost_confirmed: body.shippingMethod === 'hand_delivery',
+          // Costs
+          cardFees: trade.impliedCosts.cardFees,
+          shippingCost: (body.shippingMethod === 'hand_delivery') ? 0 : null,
+          directCosts: trade.impliedCosts.total,
 
-        // Margins (calculated server-side for accuracy)
-        gross_margin: grossMargin,
-        commissionable_margin: commissionableMargin,
+          // Shipping method
+          shippingMethod: body.shippingMethod || 'to_be_shipped',
+          shippingCostConfirmed: body.shippingMethod === 'hand_delivery',
 
-        // Xero integration
-        xero_invoice_number: invoiceNumber,
-        xero_invoice_id: invoiceId,
-        xero_invoice_url: invoiceUrl,
-        invoice_status: 'DRAFT',
-        branding_theme: firstItem.brandTheme,
+          // Margins (calculated server-side for accuracy)
+          grossMargin: grossMargin,
+          commissionableMargin: commissionableMargin,
 
-        // Commission tracking (defaults)
-        commission_locked: false,
-        commission_paid: false,
-        error_flag: false,
-      });
+          // Xero integration
+          xeroInvoiceNumber: invoiceNumber,
+          xeroInvoiceId: invoiceId,
+          xeroInvoiceUrl: invoiceUrl,
+          invoiceStatus: 'DRAFT',
+          brandingTheme: firstItem.brandTheme,
+
+          // Commission tracking (defaults)
+          commissionLocked: false,
+          commissionPaid: false,
+          errorFlag: false,
+        })
+        .returning();
 
       logger.info('TRADE_CREATE', 'Sale saved to database', {
         saleId: saleRecord.id,

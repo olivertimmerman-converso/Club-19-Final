@@ -6,10 +6,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { suppliers } from "@/db/schema";
+import { eq } from "drizzle-orm";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
 import * as logger from "@/lib/logger";
 
-const xata = getXataClient();
+// ORIGINAL XATA: const xata = getXataClient();
 
 export async function POST(
   request: NextRequest,
@@ -38,17 +41,35 @@ export async function POST(
     const { id } = await params;
 
     // Get the supplier
-    const supplier = await xata.db.Suppliers.read(id);
+    // ORIGINAL XATA: const supplier = await xata.db.Suppliers.read(id);
+    const supplierResults = await db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.id, id))
+      .limit(1);
+    const supplier = supplierResults[0] || null;
+
     if (!supplier) {
       return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
     }
 
     // Update supplier to approved
-    const updated = await xata.db.Suppliers.update(id, {
-      pending_approval: false,
-      approved_by: userId,
-      approved_at: new Date(),
-    } as any);
+    // ORIGINAL XATA:
+    // const updated = await xata.db.Suppliers.update(id, {
+    //   pending_approval: false,
+    //   approved_by: userId,
+    //   approved_at: new Date(),
+    // } as any);
+    const updatedResults = await db
+      .update(suppliers)
+      .set({
+        pendingApproval: false,
+        approvedBy: userId,
+        approvedAt: new Date(),
+      })
+      .where(eq(suppliers.id, id))
+      .returning();
+    const updated = updatedResults[0] || null;
 
     logger.info('SUPPLIER_APPROVE', 'Approved supplier', {
       supplierId: id,
@@ -62,6 +83,7 @@ export async function POST(
       supplier: {
         id: updated?.id,
         name: updated?.name,
+        // ORIGINAL XATA: pending_approval: false,
         pending_approval: false,
       },
       message: "Supplier approved",

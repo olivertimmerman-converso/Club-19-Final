@@ -29,6 +29,8 @@ export function StepSupplierBuyer() {
   const [buyerDropdownResults, setBuyerDropdownResults] = useState<NormalizedContact[]>([]);
   const [buyerSelectedIndex, setBuyerSelectedIndex] = useState(-1);
   const [isBuyerSearchActive, setIsBuyerSearchActive] = useState(false);
+  const [buyerNotFound, setBuyerNotFound] = useState(false);
+  const [buyerNotFoundQuery, setBuyerNotFoundQuery] = useState("");
   const buyerDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const buyerAbortController = useRef<AbortController | null>(null);
 
@@ -108,6 +110,7 @@ export function StepSupplierBuyer() {
     setBuyerSelectedIndex(-1);
     setIsBuyerSearchActive(true);
     setXeroContactId(""); // Clear xeroContactId when typing
+    setBuyerNotFound(false); // Clear not found state while typing
 
     if (buyerDebounceTimer.current) clearTimeout(buyerDebounceTimer.current);
 
@@ -120,6 +123,7 @@ export function StepSupplierBuyer() {
 
         buyerAbortController.current = new AbortController();
         setLoadingBuyers(true);
+        setBuyerNotFound(false); // Clear while searching
 
         try {
           const results = await fetchXeroBuyers(value);
@@ -134,6 +138,15 @@ export function StepSupplierBuyer() {
           setIsBuyerSearchActive(true);
           setXeroError(null); // Clear error on successful search
 
+          // Track if no results found after a completed search
+          if (results.length === 0) {
+            setBuyerNotFound(true);
+            setBuyerNotFoundQuery(value);
+          } else {
+            setBuyerNotFound(false);
+            setBuyerNotFoundQuery("");
+          }
+
           console.log('[CLIENT_SEARCH] State updated. Results count:', results.length);
         } catch (error: any) {
           // Ignore AbortError - it just means we cancelled the request
@@ -145,6 +158,7 @@ export function StepSupplierBuyer() {
           logger.error('TRADE_UI', 'Xero buyer search failed', { error: error as any } as any);
           console.log('[CLIENT_SEARCH] Error occurred:', error);
           setBuyerDropdownResults([]);
+          setBuyerNotFound(false); // Don't show "not found" on errors
           // Show error for any Xero authentication issue (expired token, not connected, etc.)
           if (error.message && (
             error.message.includes("Xero") ||
@@ -162,6 +176,8 @@ export function StepSupplierBuyer() {
     } else {
       setBuyerDropdownResults([]);
       setIsBuyerSearchActive(false);
+      setBuyerNotFound(false);
+      setBuyerNotFoundQuery("");
     }
   };
 
@@ -171,6 +187,8 @@ export function StepSupplierBuyer() {
     setBuyerDropdownResults([]);
     setBuyerSelectedIndex(-1);
     setIsBuyerSearchActive(false);
+    setBuyerNotFound(false);
+    setBuyerNotFoundQuery("");
   };
 
   // Initiate Xero OAuth connection (opens in new tab to preserve wizard state)
@@ -316,6 +334,52 @@ export function StepSupplierBuyer() {
           )}
         </div>
 
+        {/* Client Not Found in Xero Warning */}
+        {buyerNotFound && !loadingBuyers && buyerNotFoundQuery && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-2">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-amber-800">
+                  Client not found in Xero
+                </h4>
+                <p className="mt-1 text-sm text-amber-700">
+                  &ldquo;{buyerNotFoundQuery}&rdquo; doesn&apos;t exist in your Xero contacts.
+                  Create them in Xero first, then search again here.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href="https://go.xero.com/app/contacts"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors"
+                  >
+                    Open Xero Contacts
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBuyerNotFound(false);
+                      setBuyerNotFoundQuery("");
+                      setBuyerName("");
+                    }}
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-md transition-colors"
+                  >
+                    Clear & Search Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Show selected contact confirmation */}
         {xeroContactId && (
           <div className="bg-green-50 border border-green-200 rounded-md p-3">
@@ -368,7 +432,7 @@ export function StepSupplierBuyer() {
       <div className="border-t-4 border-green-600 bg-green-50 p-4 rounded-lg space-y-4">
         <h3 className="font-semibold text-gray-900">Payment Method</h3>
         <p className="text-sm text-gray-600">
-          How will you pay the supplier?
+          How will the buyer pay Club 19?
         </p>
 
         <div className="space-y-2">

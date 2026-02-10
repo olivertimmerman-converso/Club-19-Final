@@ -1,22 +1,42 @@
+/**
+ * Club 19 Sales OS - Analyze Legacy Data API
+ *
+ * GET endpoint to analyze legacy tables and provide statistics
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
+ */
+
 import { NextResponse } from 'next/server';
-import { getXataClient } from '@/src/xata';
+
+// Drizzle imports
+import { db } from "@/db";
+import { sales, legacyTrades, legacyClients, legacySuppliers } from "@/db/schema";
+import { isNotNull, and, ne, gt } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from '@/src/xata';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const xata = getXataClient();
+    // ORIGINAL XATA:
+    // const xata = getXataClient();
+    // const trades = await xata.db.legacy_trades.getAll();
+    // const clients = await xata.db.legacy_clients.getAll();
+    // const suppliers = await xata.db.legacy_suppliers.getAll();
 
+    // DRIZZLE:
     // Count records in each legacy table
-    const trades = await xata.db.legacy_trades.getAll();
-    const clients = await xata.db.legacy_clients.getAll();
-    const suppliers = await xata.db.legacy_suppliers.getAll();
+    const trades = await db.select().from(legacyTrades);
+    const clients = await db.select().from(legacyClients);
+    const legacySuppliersList = await db.select().from(legacySuppliers);
 
     // Date range of trades
     let dateRange = { earliest: null as string | null, latest: null as string | null };
     if (trades.length > 0) {
       const dates = trades
-        .map(t => t.trade_date)
+        .map(t => t.tradeDate)
         .filter(d => d !== null && d !== undefined)
         .map(d => new Date(d as Date).getTime())
         .sort((a, b) => a - b);
@@ -32,32 +52,36 @@ export async function GET() {
     // Sample records
     const sampleTrades = trades.slice(0, 5).map(trade => ({
       id: trade.id,
-      trade_date: trade.trade_date,
+      trade_date: trade.tradeDate,
       brand: trade.brand || 'null',
-      item: trade.item || 'null',  // Correct field name: 'item' not 'item_title'
-      sell_price: trade.sell_price,  // Correct field name: 'sell_price' not 'sale_amount_inc_vat'
-      margin: trade.margin,  // Correct field name: 'margin' not 'gross_margin'
-      client_id: trade.client_id?.id || 'null',  // Link field
-      supplier_id: trade.supplier_id?.id || 'null',  // Link field
+      item: trade.item || 'null',
+      sell_price: trade.sellPrice,
+      margin: trade.margin,
+      client_id: trade.clientId || 'null',
+      supplier_id: trade.supplierId || 'null',
     }));
 
-    // Sales table comparison
-    const sales = await xata.db.Sales.getAll();
+    // ORIGINAL XATA:
+    // const sales = await xata.db.Sales.getAll();
 
-    const unknownBrand = sales.filter(s => !s.brand || s.brand === 'Unknown').length;
-    const withBrand = sales.filter(s => s.brand && s.brand !== 'Unknown').length;
-    const withMargin = sales.filter(s => s.gross_margin !== null && s.gross_margin !== undefined && s.gross_margin > 0).length;
+    // DRIZZLE:
+    // Sales table comparison
+    const salesData = await db.select().from(sales);
+
+    const unknownBrand = salesData.filter(s => !s.brand || s.brand === 'Unknown').length;
+    const withBrand = salesData.filter(s => s.brand && s.brand !== 'Unknown').length;
+    const withMargin = salesData.filter(s => s.grossMargin !== null && s.grossMargin !== undefined && s.grossMargin > 0).length;
 
     return NextResponse.json({
       recordCounts: {
         legacy_trades: trades.length,
         legacy_clients: clients.length,
-        legacy_suppliers: suppliers.length,
+        legacy_suppliers: legacySuppliersList.length,
       },
       dateRange,
       sampleTrades,
       salesComparison: {
-        totalSales: sales.length,
+        totalSales: salesData.length,
         unknownBrand,
         withBrand,
         withMargin,

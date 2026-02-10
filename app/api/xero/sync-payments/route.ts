@@ -13,27 +13,30 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, errors } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { updateSalePaymentStatusFromXero } from "@/lib/xata-sales";
 import { getValidTokens } from "@/lib/xero-auth";
 import { ERROR_TYPES, ERROR_TRIGGERED_BY } from "@/lib/error-types";
 import { withRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import * as logger from "@/lib/logger";
 
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // ============================================================================
-// XATA CLIENT
+// ORIGINAL XATA CLIENT (REMOVED)
 // ============================================================================
 
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
+// ORIGINAL XATA: let _xata: ReturnType<typeof getXataClient> | null = null;
+// ORIGINAL XATA: function xata() {
+// ORIGINAL XATA:   if (_xata) return _xata;
+// ORIGINAL XATA:   _xata = getXataClient();
+// ORIGINAL XATA:   return _xata;
+// ORIGINAL XATA: }
 
 // ============================================================================
 // CRON HANDLER
@@ -50,18 +53,27 @@ export async function GET(req: NextRequest) {
 
   try {
     // STEP 1: Fetch all invoiced sales (not paid yet)
-    const sales = await xata()
-      .db.Sales.filter({
-        status: "invoiced",
-        error_flag: false,
-      })
-      .getMany();
+    // ORIGINAL XATA: const sales = await xata()
+    // ORIGINAL XATA:   .db.Sales.filter({
+    // ORIGINAL XATA:     status: "invoiced",
+    // ORIGINAL XATA:     error_flag: false,
+    // ORIGINAL XATA:   })
+    // ORIGINAL XATA:   .getMany();
+    const salesRecords = await db
+      .select()
+      .from(sales)
+      .where(
+        and(
+          eq(sales.status, "invoiced"),
+          eq(sales.errorFlag, false)
+        )
+      );
 
     logger.info("XERO_SYNC", "Found invoiced sales to check", {
-      count: sales.length,
+      count: salesRecords.length,
     });
 
-    if (sales.length === 0) {
+    if (salesRecords.length === 0) {
       return NextResponse.json({
         checked: 0,
         updated: 0,
@@ -95,12 +107,12 @@ export async function GET(req: NextRequest) {
     let updatedCount = 0;
     let errorCount = 0;
 
-    for (const sale of sales) {
+    for (const sale of salesRecords) {
       try {
         checkedCount++;
 
         // Skip sales without Xero invoice ID
-        if (!sale.xero_invoice_id) {
+        if (!sale.xeroInvoiceId) {
           logger.warn("XERO_SYNC", "Sale missing xero_invoice_id - skipping", {
             saleId: sale.id,
           });
@@ -108,13 +120,13 @@ export async function GET(req: NextRequest) {
         }
 
         logger.info("XERO_SYNC", "Checking invoice", {
-          invoiceNumber: sale.xero_invoice_number,
-          invoiceId: sale.xero_invoice_id,
+          invoiceNumber: sale.xeroInvoiceNumber,
+          invoiceId: sale.xeroInvoiceId,
         });
 
         // Fetch invoice from Xero
         const invoiceResponse = await fetch(
-          `https://api.xero.com/api.xro/2.0/Invoices/${sale.xero_invoice_id}`,
+          `https://api.xero.com/api.xro/2.0/Invoices/${sale.xeroInvoiceId}`,
           {
             headers: {
               Authorization: `Bearer ${tokens.accessToken}`,
@@ -126,13 +138,23 @@ export async function GET(req: NextRequest) {
 
         if (!invoiceResponse.ok) {
           logger.error("XERO_SYNC", "Failed to fetch invoice", {
-            invoiceId: sale.xero_invoice_id,
+            invoiceId: sale.xeroInvoiceId,
             status: invoiceResponse.status,
           });
 
           // Log error
-          await xata().db.Errors.create({
-            sale: sale.id,
+          // ORIGINAL XATA: await xata().db.Errors.create({
+          // ORIGINAL XATA:   sale: sale.id,
+          // ORIGINAL XATA:   severity: "medium",
+          // ORIGINAL XATA:   source: "xero-sync",
+          // ORIGINAL XATA:   message: [
+          // ORIGINAL XATA:     `Failed to fetch invoice from Xero: ${invoiceResponse.status} ${invoiceResponse.statusText}`,
+          // ORIGINAL XATA:   ],
+          // ORIGINAL XATA:   timestamp: new Date(),
+          // ORIGINAL XATA:   resolved: false,
+          // ORIGINAL XATA: });
+          await db.insert(errors).values({
+            saleId: sale.id,
             severity: "medium",
             source: "xero-sync",
             message: [
@@ -151,7 +173,7 @@ export async function GET(req: NextRequest) {
 
         if (!invoice) {
           logger.error("XERO_SYNC", "Invoice not found in Xero response", {
-            invoiceId: sale.xero_invoice_id,
+            invoiceId: sale.xeroInvoiceId,
           });
           errorCount++;
           continue;
@@ -196,8 +218,16 @@ export async function GET(req: NextRequest) {
           errorCount++;
 
           // Log error
-          await xata().db.Errors.create({
-            sale: sale.id,
+          // ORIGINAL XATA: await xata().db.Errors.create({
+          // ORIGINAL XATA:   sale: sale.id,
+          // ORIGINAL XATA:   severity: "medium",
+          // ORIGINAL XATA:   source: "xero-sync",
+          // ORIGINAL XATA:   message: [`Failed to update payment status: ${result.error}`],
+          // ORIGINAL XATA:   timestamp: new Date(),
+          // ORIGINAL XATA:   resolved: false,
+          // ORIGINAL XATA: });
+          await db.insert(errors).values({
+            saleId: sale.id,
             severity: "medium",
             source: "xero-sync",
             message: [`Failed to update payment status: ${result.error}`],
@@ -214,8 +244,16 @@ export async function GET(req: NextRequest) {
 
         // Log error but continue processing other sales
         try {
-          await xata().db.Errors.create({
-            sale: sale.id,
+          // ORIGINAL XATA: await xata().db.Errors.create({
+          // ORIGINAL XATA:   sale: sale.id,
+          // ORIGINAL XATA:   severity: "medium",
+          // ORIGINAL XATA:   source: "xero-sync",
+          // ORIGINAL XATA:   message: [`Sale processing error: ${err.message || err}`],
+          // ORIGINAL XATA:   timestamp: new Date(),
+          // ORIGINAL XATA:   resolved: false,
+          // ORIGINAL XATA: });
+          await db.insert(errors).values({
+            saleId: sale.id,
             severity: "medium",
             source: "xero-sync",
             message: [`Sale processing error: ${err.message || err}`],
@@ -247,7 +285,14 @@ export async function GET(req: NextRequest) {
 
     // Log fatal error
     try {
-      await xata().db.Errors.create({
+      // ORIGINAL XATA: await xata().db.Errors.create({
+      // ORIGINAL XATA:   severity: "high",
+      // ORIGINAL XATA:   source: "xero-sync",
+      // ORIGINAL XATA:   message: [`Cron job fatal error: ${error.message || error}`],
+      // ORIGINAL XATA:   timestamp: new Date(),
+      // ORIGINAL XATA:   resolved: false,
+      // ORIGINAL XATA: });
+      await db.insert(errors).values({
         severity: "high",
         source: "xero-sync",
         message: [`Cron job fatal error: ${error.message || error}`],

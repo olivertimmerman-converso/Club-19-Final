@@ -12,15 +12,24 @@
  * 5. Returns the updated amounts
  *
  * Superadmin only endpoint
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
 import { getBrandingThemeMapping } from '@/lib/branding-theme-mappings';
 import { calculateVAT, validateSaleVAT } from '@/lib/calculations/vat';
 import * as logger from '@/lib/logger';
+
+// Drizzle imports
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from '@/src/xata';
 
 export async function POST(
   request: NextRequest,
@@ -46,10 +55,17 @@ export async function POST(
     }
 
     const { id } = await params;
-    const xata = getXataClient();
 
-    // Get the sale record
-    const sale = await xata.db.Sales.read(id);
+    // ORIGINAL XATA:
+    // const xata = getXataClient();
+    // const sale = await xata.db.Sales.read(id);
+
+    // DRIZZLE:
+    const [sale] = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.id, id))
+      .limit(1);
 
     if (!sale) {
       return NextResponse.json(
@@ -60,23 +76,23 @@ export async function POST(
 
     logger.info('FIX_VAT', 'Starting VAT recalculation', {
       saleId: id,
-      saleReference: sale.sale_reference,
-      brandingTheme: sale.branding_theme,
-      currentExVat: sale.sale_amount_ex_vat,
-      currentIncVat: sale.sale_amount_inc_vat
+      saleReference: sale.saleReference,
+      brandingTheme: sale.brandingTheme,
+      currentExVat: sale.saleAmountExVat,
+      currentIncVat: sale.saleAmountIncVat
     });
 
     // Get branding theme mapping
-    const brandingThemeMapping = getBrandingThemeMapping(sale.branding_theme || null);
+    const brandingThemeMapping = getBrandingThemeMapping(sale.brandingTheme || null);
 
     if (!brandingThemeMapping) {
       logger.warn('FIX_VAT', 'Branding theme not recognized', {
-        brandingTheme: sale.branding_theme
+        brandingTheme: sale.brandingTheme
       });
       return NextResponse.json(
         {
           error: 'Unknown branding theme',
-          brandingTheme: sale.branding_theme,
+          brandingTheme: sale.brandingTheme,
           message: 'Cannot determine correct VAT rate for this branding theme'
         },
         { status: 400 }
@@ -85,9 +101,9 @@ export async function POST(
 
     // First, validate current VAT to detect the bug
     const validation = validateSaleVAT(
-      sale.branding_theme || '',
-      sale.sale_amount_ex_vat,
-      sale.sale_amount_inc_vat
+      sale.brandingTheme || '',
+      sale.saleAmountExVat,
+      sale.saleAmountIncVat
     );
 
     logger.info('FIX_VAT', 'Current VAT validation', {
@@ -113,8 +129,8 @@ export async function POST(
       // - sale_amount_ex_vat = inc_vat / 1.2 (incorrectly calculated, e.g., £56,667)
       //
       // To detect this, check if inc_vat ≈ ex_vat * 1.2
-      const currentIncVat = sale.sale_amount_inc_vat || 0;
-      const currentExVat = sale.sale_amount_ex_vat || 0;
+      const currentIncVat = sale.saleAmountIncVat || 0;
+      const currentExVat = sale.saleAmountExVat || 0;
       const looksLikeBug = Math.abs(currentIncVat - currentExVat * 1.2) < 1;
 
       if (looksLikeBug) {
@@ -131,7 +147,7 @@ export async function POST(
       } else {
         // Use the VAT utility to recalculate properly
         const vatResult = calculateVAT({
-          brandTheme: sale.branding_theme || '',
+          brandTheme: sale.brandingTheme || '',
           saleAmountExVat: currentExVat,
         });
         saleAmountExVat = vatResult.saleAmountExVat;
@@ -140,9 +156,9 @@ export async function POST(
       }
     } else {
       // Standard rate: use the VAT utility
-      const currentExVat = sale.sale_amount_ex_vat || 0;
+      const currentExVat = sale.saleAmountExVat || 0;
       const vatResult = calculateVAT({
-        brandTheme: sale.branding_theme || '',
+        brandTheme: sale.brandingTheme || '',
         saleAmountExVat: currentExVat,
       });
       saleAmountExVat = vatResult.saleAmountExVat;
@@ -156,27 +172,38 @@ export async function POST(
       saleAmountExVat,
       saleAmountIncVat,
       vatAmount,
-      changed: Math.abs((sale.sale_amount_inc_vat || 0) - saleAmountIncVat) > 0.01
+      changed: Math.abs((sale.saleAmountIncVat || 0) - saleAmountIncVat) > 0.01
     });
 
     // Update the sale record (update both ex_vat and inc_vat for zero-rated sales)
-    const updatedSale = await xata.db.Sales.update(id, {
-      sale_amount_ex_vat: saleAmountExVat,
-      sale_amount_inc_vat: saleAmountIncVat,
-    });
+    // ORIGINAL XATA:
+    // const updatedSale = await xata.db.Sales.update(id, {
+    //   sale_amount_ex_vat: saleAmountExVat,
+    //   sale_amount_inc_vat: saleAmountIncVat,
+    // });
+
+    // DRIZZLE:
+    const [updatedSale] = await db
+      .update(sales)
+      .set({
+        saleAmountExVat: saleAmountExVat,
+        saleAmountIncVat: saleAmountIncVat,
+      })
+      .where(eq(sales.id, id))
+      .returning();
 
     logger.info('FIX_VAT', 'Sale updated successfully', {
       saleId: id,
-      oldIncVat: sale.sale_amount_inc_vat,
+      oldIncVat: sale.saleAmountIncVat,
       newIncVat: saleAmountIncVat
     });
 
     return NextResponse.json({
       success: true,
       saleId: id,
-      saleReference: sale.sale_reference,
+      saleReference: sale.saleReference,
       brandingTheme: {
-        id: sale.branding_theme,
+        id: sale.brandingTheme,
         name: brandingThemeMapping.name,
         accountCode: brandingThemeMapping.accountCode,
       },
@@ -187,9 +214,9 @@ export async function POST(
         vatAmount,
       },
       changes: {
-        oldIncVat: sale.sale_amount_inc_vat,
+        oldIncVat: sale.saleAmountIncVat,
         newIncVat: saleAmountIncVat,
-        difference: saleAmountIncVat - (sale.sale_amount_inc_vat || 0),
+        difference: saleAmountIncVat - (sale.saleAmountIncVat || 0),
       },
     });
   } catch (error) {

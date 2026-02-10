@@ -1,37 +1,48 @@
 /**
  * Check for duplicate shopper entries in the database
  * This script identifies if the same shopper name has multiple IDs
+ *
+ * Run with: npx tsx scripts/check-duplicate-shoppers.ts
  */
 
-import { getXataClient } from '../src/xata';
+// ORIGINAL XATA: import { getXataClient } from '../src/xata';
+import { db } from '../db';
+import { shoppers, sales } from '../db/schema';
 
-const xata = getXataClient();
+// ORIGINAL XATA: const xata = getXataClient();
 
 async function checkDuplicateShoppers() {
   console.log('Fetching all shoppers...\n');
 
-  const shoppers = await xata.db.Shoppers
-    .select(['id', 'name', 'email'])
-    .getAll();
+  // ORIGINAL XATA: const shoppers = await xata.db.Shoppers
+  //   .select(['id', 'name', 'email'])
+  //   .getAll();
+  const allShoppers = await db
+    .select({
+      id: shoppers.id,
+      name: shoppers.name,
+      email: shoppers.email,
+    })
+    .from(shoppers);
 
-  console.log(`Total shoppers in database: ${shoppers.length}\n`);
+  console.log(`Total shoppers in database: ${allShoppers.length}\n`);
 
   // Group by name to find duplicates
-  const shoppersByName = new Map();
+  const shoppersByName = new Map<string, Array<{ id: string; email: string | null }>>();
 
-  shoppers.forEach(shopper => {
+  allShoppers.forEach(shopper => {
     const name = shopper.name || 'Unknown';
     if (!shoppersByName.has(name)) {
       shoppersByName.set(name, []);
     }
-    shoppersByName.get(name).push({
+    shoppersByName.get(name)!.push({
       id: shopper.id,
       email: shopper.email
     });
   });
 
   // Find names with multiple IDs
-  const duplicates = [];
+  const duplicates: Array<{ name: string; records: Array<{ id: string; email: string | null }> }> = [];
   shoppersByName.forEach((records, name) => {
     if (records.length > 1) {
       duplicates.push({ name, records });
@@ -55,12 +66,27 @@ async function checkDuplicateShoppers() {
 
   // Also check for sales data
   console.log('\nChecking sales with shopper assignments...');
-  const sales = await xata.db.Sales
-    .select(['id', 'sale_date', 'shopper.id', 'shopper.name'])
-    .getAll();
 
-  const salesByShopperId = new Map();
-  sales.forEach(sale => {
+  // ORIGINAL XATA: const sales = await xata.db.Sales
+  //   .select(['id', 'sale_date', 'shopper.id', 'shopper.name'])
+  //   .getAll();
+  const allSales = await db.query.sales.findMany({
+    columns: {
+      id: true,
+      saleDate: true,
+    },
+    with: {
+      shopper: {
+        columns: {
+          id: true,
+          name: true,
+        }
+      }
+    }
+  });
+
+  const salesByShopperId = new Map<string, { name: string; salesCount: number }>();
+  allSales.forEach(sale => {
     if (sale.shopper?.id) {
       const shopperId = sale.shopper.id;
       const shopperName = sale.shopper.name || 'Unknown';
@@ -71,7 +97,7 @@ async function checkDuplicateShoppers() {
           salesCount: 0
         });
       }
-      salesByShopperId.get(shopperId).salesCount++;
+      salesByShopperId.get(shopperId)!.salesCount++;
     }
   });
 
@@ -83,6 +109,11 @@ async function checkDuplicateShoppers() {
   shoppersWithSales.forEach(shopper => {
     console.log(`  ${shopper.name}: ${shopper.salesCount} sales (ID: ${shopper.id})`);
   });
+
+  process.exit(0);
 }
 
-checkDuplicateShoppers().catch(console.error);
+checkDuplicateShoppers().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

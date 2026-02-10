@@ -12,14 +12,23 @@
  * 4. Returns the updated amounts
  *
  * Superadmin only endpoint
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
 import { calculateMargins, toNumber } from '@/lib/economics';
 import * as logger from '@/lib/logger';
+
+// Drizzle imports
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from '@/src/xata';
 
 export async function POST(
   request: NextRequest,
@@ -45,10 +54,17 @@ export async function POST(
     }
 
     const { id } = await params;
-    const xata = getXataClient();
 
-    // Get the sale record
-    const sale = await xata.db.Sales.read(id);
+    // ORIGINAL XATA:
+    // const xata = getXataClient();
+    // const sale = await xata.db.Sales.read(id);
+
+    // DRIZZLE:
+    const [sale] = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.id, id))
+      .limit(1);
 
     if (!sale) {
       return NextResponse.json(
@@ -59,21 +75,21 @@ export async function POST(
 
     logger.info('FIX_MARGIN', 'Starting margin recalculation', {
       saleId: id,
-      saleReference: sale.sale_reference,
-      currentGrossMargin: sale.gross_margin,
-      currentCommissionableMargin: sale.commissionable_margin,
-      saleAmountExVat: sale.sale_amount_ex_vat,
-      buyPrice: sale.buy_price,
+      saleReference: sale.saleReference,
+      currentGrossMargin: sale.grossMargin,
+      currentCommissionableMargin: sale.commissionableMargin,
+      saleAmountExVat: sale.saleAmountExVat,
+      buyPrice: sale.buyPrice,
     });
 
     // Calculate correct margins using SINGLE SOURCE OF TRUTH
     const marginResult = calculateMargins({
-      saleAmountExVat: sale.sale_amount_ex_vat,
-      buyPrice: sale.buy_price,
-      shippingCost: sale.shipping_cost,
-      cardFees: sale.card_fees,
-      directCosts: sale.direct_costs,
-      introducerCommission: sale.commission_split_introducer,
+      saleAmountExVat: sale.saleAmountExVat,
+      buyPrice: sale.buyPrice,
+      shippingCost: sale.shippingCost,
+      cardFees: sale.cardFees,
+      directCosts: sale.directCosts,
+      introducerCommission: sale.commissionSplitIntroducer,
     });
 
     logger.info('FIX_MARGIN', 'Margins calculated', {
@@ -84,8 +100,8 @@ export async function POST(
     });
 
     // Check if values actually differ
-    const oldGrossMargin = toNumber(sale.gross_margin);
-    const oldCommissionableMargin = toNumber(sale.commissionable_margin);
+    const oldGrossMargin = toNumber(sale.grossMargin);
+    const oldCommissionableMargin = toNumber(sale.commissionableMargin);
     const grossDiff = Math.abs(oldGrossMargin - marginResult.grossMargin);
     const commDiff = Math.abs(oldCommissionableMargin - marginResult.commissionableMargin);
 
@@ -99,7 +115,7 @@ export async function POST(
       return NextResponse.json({
         success: true,
         saleId: id,
-        saleReference: sale.sale_reference,
+        saleReference: sale.saleReference,
         message: 'Margins are already correct - no changes made',
         noChanges: true,
         current: {
@@ -111,10 +127,20 @@ export async function POST(
     }
 
     // Update the sale record
-    await xata.db.Sales.update(id, {
-      gross_margin: marginResult.grossMargin,
-      commissionable_margin: marginResult.commissionableMargin,
-    });
+    // ORIGINAL XATA:
+    // await xata.db.Sales.update(id, {
+    //   gross_margin: marginResult.grossMargin,
+    //   commissionable_margin: marginResult.commissionableMargin,
+    // });
+
+    // DRIZZLE:
+    await db
+      .update(sales)
+      .set({
+        grossMargin: marginResult.grossMargin,
+        commissionableMargin: marginResult.commissionableMargin,
+      })
+      .where(eq(sales.id, id));
 
     logger.info('FIX_MARGIN', 'Sale margins updated successfully', {
       saleId: id,
@@ -127,7 +153,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       saleId: id,
-      saleReference: sale.sale_reference,
+      saleReference: sale.saleReference,
       previous: {
         grossMargin: oldGrossMargin,
         commissionableMargin: oldCommissionableMargin,

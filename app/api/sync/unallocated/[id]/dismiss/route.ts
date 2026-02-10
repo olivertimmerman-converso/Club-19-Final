@@ -7,13 +7,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getUserRole } from "@/lib/getUserRole";
 import * as logger from "@/lib/logger";
 
-export const dynamic = "force-dynamic";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: const xata = getXataClient();
 
-const xata = getXataClient();
+export const dynamic = "force-dynamic";
 
 export async function POST(
   request: NextRequest,
@@ -37,12 +40,19 @@ export async function POST(
     logger.info("DISMISS", "Dismissing unallocated invoice", { saleId: id, userId });
 
     // Check if the sale exists and is unallocated
-    const sale = await xata.db.Sales.read(id);
+    // ORIGINAL XATA: const sale = await xata.db.Sales.read(id);
+    const saleResults = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.id, id))
+      .limit(1);
+    const sale = saleResults[0] || null;
+
     if (!sale) {
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
     }
 
-    if (!sale.needs_allocation) {
+    if (!sale.needsAllocation) {
       return NextResponse.json(
         { error: "This invoice is not in the unallocated list" },
         { status: 400 }
@@ -50,15 +60,23 @@ export async function POST(
     }
 
     // Mark as dismissed
-    await xata.db.Sales.update(id, {
-      dismissed: true,
-      dismissed_at: new Date(),
-      dismissed_by: userId,
-    });
+    // ORIGINAL XATA: await xata.db.Sales.update(id, {
+    // ORIGINAL XATA:   dismissed: true,
+    // ORIGINAL XATA:   dismissed_at: new Date(),
+    // ORIGINAL XATA:   dismissed_by: userId,
+    // ORIGINAL XATA: });
+    await db
+      .update(sales)
+      .set({
+        dismissed: true,
+        dismissedAt: new Date(),
+        dismissedBy: userId,
+      })
+      .where(eq(sales.id, id));
 
     logger.info("DISMISS", "Invoice dismissed successfully", {
       saleId: id,
-      invoiceNumber: sale.xero_invoice_number,
+      invoiceNumber: sale.xeroInvoiceNumber,
     });
 
     return NextResponse.json({

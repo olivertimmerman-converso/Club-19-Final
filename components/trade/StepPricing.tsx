@@ -43,6 +43,7 @@ export function StepPricing() {
   const [supplierSearchResults, setSupplierSearchResults] = useState<XataSupplier[]>([]);
   const [loadingSupplier, setLoadingSupplier] = useState(false);
   const [supplierNoResults, setSupplierNoResults] = useState(false);
+  const [supplierCreateError, setSupplierCreateError] = useState<string | null>(null);
   const supplierDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const supplierAbortController = useRef<AbortController | null>(null);
 
@@ -197,22 +198,28 @@ export function StepPricing() {
 
     try {
       setLoadingSupplier(true);
+      setSupplierCreateError(null);
       const response = await fetch('/api/suppliers/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: supplierName }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create supplier');
+        throw new Error(data.error || 'Failed to create supplier');
       }
 
-      const data = await response.json();
       if (data.success && data.supplier) {
         selectSupplier(itemId, data.supplier);
+        setSupplierCreateError(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('TRADE_UI', 'Failed to create supplier', { error: error as any } as any);
+      setSupplierCreateError(error.message || 'Failed to create supplier. Please try again.');
+      // Clear error after 5 seconds
+      setTimeout(() => setSupplierCreateError(null), 5000);
     } finally {
       setLoadingSupplier(false);
     }
@@ -271,7 +278,7 @@ export function StepPricing() {
       </div>
 
       {/* Pricing Table */}
-      <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
+      <div className="border border-gray-200 rounded-lg overflow-x-auto overflow-y-visible">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -339,7 +346,7 @@ export function StepPricing() {
 
                     {/* Supplier dropdown */}
                     {isSearchActive && supplierSearchResults.length > 0 && (
-                      <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-auto">
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-auto">
                         {supplierSearchResults.map((s, idx) => (
                           <div
                             key={s.id || idx}
@@ -355,7 +362,7 @@ export function StepPricing() {
 
                     {/* No results - offer to create */}
                     {isSearchActive && supplierNoResults && !loadingSupplier && supplier.name.trim() && (
-                      <div className="absolute z-20 w-full mt-1 bg-blue-50 border border-blue-200 rounded-md p-2">
+                      <div className="absolute z-50 w-full mt-1 bg-blue-50 border border-blue-200 rounded-md p-2">
                         <p className="text-xs text-blue-800 mb-1">No supplier found</p>
                         <button
                           type="button"
@@ -364,6 +371,9 @@ export function StepPricing() {
                         >
                           + Create &quot;{supplier.name}&quot;
                         </button>
+                        {supplierCreateError && (
+                          <p className="text-xs text-red-600 mt-1">{supplierCreateError}</p>
+                        )}
                       </div>
                     )}
 
@@ -444,6 +454,16 @@ export function StepPricing() {
           </tfoot>
         </table>
       </div>
+
+      {/* Error Banner for Supplier Creation */}
+      {supplierCreateError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+          <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <p className="text-sm text-red-800">{supplierCreateError}</p>
+        </div>
+      )}
 
       {/* Summary Card */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

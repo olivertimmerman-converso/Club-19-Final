@@ -6,23 +6,33 @@
  *
  * Validates transitions, updates sale fields, and logs errors
  * for invalid state changes.
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
-import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA:
+// import { getXataClient } from "@/src/xata";
+
+// DRIZZLE IMPORTS
+import { db } from "@/db";
+import { sales, errors } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
 import { ERROR_TYPES, ERROR_TRIGGERED_BY } from "./error-types";
 import * as logger from './logger';
 
 // ============================================================================
-// CLIENT SINGLETON
+// CLIENT SINGLETON (DEPRECATED - Kept for backwards compatibility)
 // ============================================================================
 
-let _xata: ReturnType<typeof getXataClient> | null = null;
-
-export function xata() {
-  if (_xata) return _xata;
-  _xata = getXataClient();
-  return _xata;
-}
+// ORIGINAL XATA:
+// let _xata: ReturnType<typeof getXataClient> | null = null;
+//
+// export function xata() {
+//   if (_xata) return _xata;
+//   _xata = getXataClient();
+//   return _xata;
+// }
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -108,8 +118,19 @@ export async function transitionSaleStatus(
 
     // Log to Errors table
     try {
-      await xata().db.Errors.create({
-        sale: saleId,
+      // ORIGINAL XATA:
+      // await xata().db.Errors.create({
+      //   sale: saleId,
+      //   severity: "medium",
+      //   source: "deal-lifecycle",
+      //   message: [errorMessage],
+      //   timestamp: new Date(),
+      //   resolved: false,
+      // });
+
+      // DRIZZLE:
+      await db.insert(errors).values({
+        saleId: saleId,
         severity: "medium",
         source: "deal-lifecycle",
         message: [errorMessage],
@@ -123,10 +144,17 @@ export async function transitionSaleStatus(
 
     // Set error flag on sale
     try {
-      await xata().db.Sales.update(saleId, {
-        error_flag: true,
-        error_message: [errorMessage],
-      });
+      // ORIGINAL XATA:
+      // await xata().db.Sales.update(saleId, {
+      //   error_flag: true,
+      //   error_message: [errorMessage],
+      // });
+
+      // DRIZZLE:
+      await db.update(sales).set({
+        errorFlag: true,
+        errorMessage: [errorMessage],
+      }).where(eq(sales.id, saleId));
     } catch (err) {
       logger.error('LIFECYCLE', 'Failed to set error flag', { error: err as any } as any);
     }
@@ -146,28 +174,32 @@ export async function transitionSaleStatus(
   switch (nextStatus) {
     case "paid":
       // Update payment date from Xero or use current timestamp
-      updateFields.xero_payment_date = xeroPaymentDate || new Date();
-      logger.info('LIFECYCLE', `Setting xero_payment_date: ${updateFields.xero_payment_date}`);
+      updateFields.xeroPaymentDate = xeroPaymentDate || new Date();
+      logger.info('LIFECYCLE', `Setting xeroPaymentDate: ${updateFields.xeroPaymentDate}`);
       break;
 
     case "locked":
       // Lock commission for month-end processing
-      updateFields.commission_locked = true;
-      updateFields.commission_lock_date = new Date();
-      logger.info('LIFECYCLE', `Locking commission at: ${updateFields.commission_lock_date}`);
+      updateFields.commissionLocked = true;
+      updateFields.commissionLockDate = new Date();
+      logger.info('LIFECYCLE', `Locking commission at: ${updateFields.commissionLockDate}`);
       break;
 
     case "commission_paid":
       // Mark commission as paid
-      updateFields.commission_paid = true;
-      updateFields.commission_paid_date = new Date();
-      logger.info('LIFECYCLE', `Marking commission paid at: ${updateFields.commission_paid_date}`);
+      updateFields.commissionPaid = true;
+      updateFields.commissionPaidDate = new Date();
+      logger.info('LIFECYCLE', `Marking commission paid at: ${updateFields.commissionPaidDate}`);
       break;
   }
 
   // STEP 4: Apply updates to sale
   try {
-    await xata().db.Sales.update(saleId, updateFields);
+    // ORIGINAL XATA:
+    // await xata().db.Sales.update(saleId, updateFields);
+
+    // DRIZZLE:
+    await db.update(sales).set(updateFields).where(eq(sales.id, saleId));
     logger.info('LIFECYCLE', `Sale ${saleId} transitioned to "${nextStatus}"`);
 
     return {

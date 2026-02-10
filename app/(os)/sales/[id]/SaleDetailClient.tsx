@@ -216,6 +216,8 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
 
   // Edit mode state (for superadmin/operations/admin)
   const canEdit = ['superadmin', 'admin', 'operations'].includes(userRole || '');
+  // Shopper reassignment - only superadmin, founder, operations can change shopper
+  const canReassignShopper = ['superadmin', 'founder', 'operations'].includes(userRole || '');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editBrand, setEditBrand] = useState(sale.brand || '');
   const [editCategory, setEditCategory] = useState(sale.category || '');
@@ -1337,34 +1339,40 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
               </div>
             )}
 
-            {/* Editable Shopper Dropdown */}
+            {/* Shopper - Editable for authorized roles, read-only for others */}
             <div>
-              <dt className="text-sm font-medium text-gray-500 mb-1">Shopper (Editable)</dt>
-              <dd className="mt-1">
-                <select
-                  value={selectedShopperId}
-                  onChange={(e) => {
-                    setSelectedShopperId(e.target.value);
-                    setSaveSuccess(false);
-                    setSaveError(null);
-                  }}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
-                  disabled={isSaving}
-                >
-                  <option value="">— Unassigned —</option>
-                  {shoppers.map((shopper) => (
-                    <option key={shopper.id} value={shopper.id}>
-                      {shopper.name}
-                    </option>
-                  ))}
-                </select>
-              </dd>
+              <dt className="text-sm font-medium text-gray-500 mb-1">Shopper</dt>
+              {canReassignShopper ? (
+                <dd className="mt-1">
+                  <select
+                    value={selectedShopperId}
+                    onChange={(e) => {
+                      setSelectedShopperId(e.target.value);
+                      setSaveSuccess(false);
+                      setSaveError(null);
+                    }}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                    disabled={isSaving}
+                  >
+                    <option value="">— Unassigned —</option>
+                    {shoppers.map((shopper) => (
+                      <option key={shopper.id} value={shopper.id}>
+                        {shopper.name}
+                      </option>
+                    ))}
+                  </select>
+                </dd>
+              ) : (
+                <dd className="mt-1 text-sm text-gray-900">
+                  {sale.shopper?.name || '— Unassigned —'}
+                </dd>
+              )}
             </div>
 
           </dl>
 
-          {/* Action Buttons */}
-          {hasChanges && (
+          {/* Action Buttons - Only show for authorized roles when changes exist */}
+          {canReassignShopper && hasChanges && (
             <div className="mt-6 flex gap-3">
               <button
                 onClick={handleSave}

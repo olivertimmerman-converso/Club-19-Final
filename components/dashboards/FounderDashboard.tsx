@@ -8,12 +8,15 @@
  */
 
 import Link from "next/link";
-import { XataClient } from "@/src/xata";
+// ORIGINAL XATA: import { XataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, shoppers, buyers } from "@/db/schema";
+import { eq, and, gte, lte, desc, ne, isNull, isNotNull } from "drizzle-orm";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMonthDateRange, formatMonthLabel } from "@/lib/dateUtils";
 import * as logger from '@/lib/logger';
 
-const xata = new XataClient();
+// ORIGINAL XATA: const xata = new XataClient();
 
 interface FounderDashboardProps {
   monthParam?: string;
@@ -44,70 +47,98 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
     const monthLabel = formatMonthLabel(monthParam);
     logger.info('DASHBOARD', 'Date range calculated', { dateRange: dateRange as any });
 
-    // Query all sales for the selected month (exclude xero_import records)
-    let salesQuery = xata.db.Sales
-    .select([
-      'id',
-      'sale_date',
-      'sale_reference',
-      'item_title',
-      'brand',
-      'sale_amount_inc_vat',
-      'buy_price',
-      'shipping_cost',
-      'card_fees',
-      'direct_costs',
-      'gross_margin',
-      'commissionable_margin',
-      'commission_locked',
-      'commission_paid',
-      'shopper.id',
-      'shopper.name',
-      'buyer.id',
-      'buyer.name',
-      'xero_invoice_number',
-      'invoice_status',
-      'source',
-      'deleted_at',
-    ]);
+    // ORIGINAL XATA:
+    // let salesQuery = xata.db.Sales
+    // .select([
+    //   'id',
+    //   'sale_date',
+    //   'sale_reference',
+    //   'item_title',
+    //   'brand',
+    //   'sale_amount_inc_vat',
+    //   'buy_price',
+    //   'shipping_cost',
+    //   'card_fees',
+    //   'direct_costs',
+    //   'gross_margin',
+    //   'commissionable_margin',
+    //   'commission_locked',
+    //   'commission_paid',
+    //   'shopper.id',
+    //   'shopper.name',
+    //   'buyer.id',
+    //   'buyer.name',
+    //   'xero_invoice_number',
+    //   'invoice_status',
+    //   'source',
+    //   'deleted_at',
+    // ]);
+    // if (dateRange) {
+    //   salesQuery = salesQuery.filter({
+    //     sale_date: {
+    //       $ge: dateRange.start,
+    //       $le: dateRange.end,
+    //     },
+    //   });
+    // }
+    // const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
 
-  // Apply date range filter
-  if (dateRange) {
-    salesQuery = salesQuery.filter({
-      sale_date: {
-        $ge: dateRange.start,
-        $le: dateRange.end,
+    // Query all sales for the selected month (exclude xero_import records) using Drizzle
+    logger.info('DASHBOARD', 'Fetching sales');
+
+    const whereConditions = dateRange
+      ? and(
+          gte(sales.saleDate, dateRange.start),
+          lte(sales.saleDate, dateRange.end)
+        )
+      : undefined;
+
+    const allSalesRaw = await db.query.sales.findMany({
+      where: whereConditions,
+      with: {
+        shopper: true,
+        buyer: true,
       },
+      orderBy: [desc(sales.saleDate)],
+      limit: 200,
     });
-  }
-
-  logger.info('DASHBOARD', 'Fetching sales');
-  // Fetch sales and filter in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
-  const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
 
   // Filter out xero_import and deleted sales in JavaScript
-  const sales = allSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deleted_at
+  const salesData = allSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deletedAt
   );
-  logger.info('DASHBOARD', 'Sales fetched and filtered', { count: sales.length });
+  logger.info('DASHBOARD', 'Sales fetched and filtered', { count: salesData.length });
+
+  // ORIGINAL XATA:
+  // const ytdSalesRaw = await xata.db.Sales
+  //   .select(['sale_amount_inc_vat', 'shopper.id', 'shopper.name', 'source', 'deleted_at'])
+  //   .filter({
+  //     sale_date: {
+  //       $ge: ytdStart,
+  //       $le: now,
+  //     }
+  //   })
+  //   .getMany({ pagination: { size: 500 } });
 
   // Get YTD sales for comparison (Jan 1 to now) - limit to 500
   logger.info('DASHBOARD', 'Fetching YTD sales');
   const now = new Date();
   const ytdStart = new Date(now.getFullYear(), 0, 1);
-  const ytdSalesRaw = await xata.db.Sales
-    .select(['sale_amount_inc_vat', 'shopper.id', 'shopper.name', 'source', 'deleted_at'])
-    .filter({
-      sale_date: {
-        $ge: ytdStart,
-        $le: now,
-      }
-    })
-    .getMany({ pagination: { size: 500 } });
+
+  const ytdSalesRaw = await db.query.sales.findMany({
+    where: and(
+      gte(sales.saleDate, ytdStart),
+      lte(sales.saleDate, now)
+    ),
+    with: {
+      shopper: true,
+    },
+    limit: 500,
+  });
 
   // Filter in JavaScript
   const ytdSales = ytdSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deleted_at
+    sale.source !== 'xero_import' && !sale.deletedAt
   );
   logger.info('DASHBOARD', 'YTD sales fetched and filtered', { count: ytdSales.length });
 
@@ -115,7 +146,7 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
   const shopperStats = new Map<string, ShopperPerformance>();
 
   // Process current month sales - use shopper ID as key for deduplication
-  sales.forEach(sale => {
+  salesData.forEach(sale => {
     const shopperId = sale.shopper?.id || 'unassigned';
     const shopperName = sale.shopper?.name || 'Unassigned';
 
@@ -130,16 +161,16 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
       });
     }
     const stats = shopperStats.get(shopperId)!;
-    stats.thisMonthSales += sale.sale_amount_inc_vat || 0;
-    stats.margin += sale.gross_margin || 0;
-    stats.commission += sale.commissionable_margin || 0;
+    stats.thisMonthSales += sale.saleAmountIncVat || 0;
+    stats.margin += sale.grossMargin || 0;
+    stats.commission += sale.commissionableMargin || 0;
   });
 
   // Add YTD data - use shopper ID for matching
   ytdSales.forEach(sale => {
     const shopperId = sale.shopper?.id || 'unassigned';
     if (shopperStats.has(shopperId)) {
-      shopperStats.get(shopperId)!.ytdSales += sale.sale_amount_inc_vat || 0;
+      shopperStats.get(shopperId)!.ytdSales += sale.saleAmountIncVat || 0;
     }
   });
 
@@ -154,13 +185,13 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
     .sort((a, b) => b.thisMonthSales - a.thisMonthSales);
 
   // Commission status breakdown
-  const pendingCount = sales.filter(s => !s.commission_locked).length;
-  const lockedCount = sales.filter(s => s.commission_locked && !s.commission_paid).length;
-  const paidCount = sales.filter(s => s.commission_paid).length;
+  const pendingCount = salesData.filter(s => !s.commissionLocked).length;
+  const lockedCount = salesData.filter(s => s.commissionLocked && !s.commissionPaid).length;
+  const paidCount = salesData.filter(s => s.commissionPaid).length;
 
   // Top clients this month
   const clientStats = new Map<string, TopClient>();
-  sales.forEach(sale => {
+  salesData.forEach(sale => {
     if (!sale.buyer?.id) return;
 
     if (!clientStats.has(sale.buyer.id)) {
@@ -172,7 +203,7 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
       });
     }
     const client = clientStats.get(sale.buyer.id)!;
-    client.totalSpend += sale.sale_amount_inc_vat || 0;
+    client.totalSpend += sale.saleAmountIncVat || 0;
     client.purchaseCount += 1;
   });
 
@@ -196,9 +227,9 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
   };
 
   // Get status badge styling (matches SuperadminDashboard logic)
-  const getStatusBadge = (sale: typeof sales[0]) => {
+  const getStatusBadge = (sale: typeof salesData[0]) => {
     // Priority 1: Commission paid
-    if (sale.commission_paid) {
+    if (sale.commissionPaid) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
           Paid
@@ -207,7 +238,7 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
     }
 
     // Priority 2: Commission locked
-    if (sale.commission_locked) {
+    if (sale.commissionLocked) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
           Locked
@@ -216,7 +247,7 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
     }
 
     // Priority 3: Invoice status from Xero
-    const normalizedStatus = (sale.invoice_status || 'draft').toUpperCase();
+    const normalizedStatus = (sale.invoiceStatus || 'draft').toUpperCase();
 
     if (normalizedStatus === 'PAID') {
       return (
@@ -248,7 +279,7 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
             Sales Manager Dashboard
           </h1>
           <p className="text-gray-600">
-            {monthLabel} overview · {sales.length} sales
+            {monthLabel} overview · {salesData.length} sales
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -386,7 +417,7 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
       {/* All Sales This Month Table */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">All Sales This Month</h2>
-        {sales.length === 0 ? (
+        {salesData.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
             <p className="text-gray-500">No sales for this month</p>
           </div>
@@ -426,32 +457,32 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {sales.map((sale) => (
+                  {salesData.map((sale) => (
                     <tr key={sale.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(sale.sale_date)}
+                        {formatDate(sale.saleDate)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-purple-600">
                         <Link href={`/sales/${sale.id}`} className="hover:text-purple-900">
-                          {sale.sale_reference || '—'}
+                          {sale.saleReference || '—'}
                         </Link>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {sale.buyer?.name || '—'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                        {sale.brand && sale.item_title
-                          ? `${sale.brand} - ${sale.item_title}`
-                          : sale.brand || sale.item_title || '—'}
+                        {sale.brand && sale.itemTitle
+                          ? `${sale.brand} - ${sale.itemTitle}`
+                          : sale.brand || sale.itemTitle || '—'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {sale.shopper?.name || '—'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                        {formatCurrency(sale.sale_amount_inc_vat || 0)}
+                        {formatCurrency(sale.saleAmountIncVat || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-right font-medium">
-                        {formatCurrency(sale.gross_margin || 0)}
+                        {formatCurrency(sale.grossMargin || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         {getStatusBadge(sale)}

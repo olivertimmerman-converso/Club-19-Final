@@ -3,15 +3,23 @@
  *
  * POST endpoint to migrate legacy_suppliers to main Suppliers table
  * Superadmin only - one-time migration
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getXataClient } from "@/src/xata";
 import { getUserRole } from "@/lib/getUserRole";
 import * as logger from "@/lib/logger";
 
-const xata = getXataClient();
+// Drizzle imports
+import { db } from "@/db";
+import { suppliers, legacySuppliers } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from "@/src/xata";
+// const xata = getXataClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,13 +41,22 @@ export async function POST(request: NextRequest) {
 
     logger.info('SUPPLIER_MIGRATION', 'Starting legacy suppliers migration');
 
-    // Get all legacy suppliers
-    const legacySuppliers = await xata.db.legacy_suppliers
-      .select(["id", "supplier_clean", "trade_count"])
-      .getAll();
+    // ORIGINAL XATA:
+    // const legacySuppliers = await xata.db.legacy_suppliers
+    //   .select(["id", "supplier_clean", "trade_count"])
+    //   .getAll();
+
+    // DRIZZLE:
+    const legacySuppliersList = await db
+      .select({
+        id: legacySuppliers.id,
+        supplierClean: legacySuppliers.supplierClean,
+        tradeCount: legacySuppliers.tradeCount,
+      })
+      .from(legacySuppliers);
 
     logger.info('SUPPLIER_MIGRATION', 'Found legacy suppliers', {
-      count: legacySuppliers.length
+      count: legacySuppliersList.length
     });
 
     let migrated = 0;
@@ -47,8 +64,8 @@ export async function POST(request: NextRequest) {
     const errors: string[] = [];
 
     // Migrate each legacy supplier
-    for (const legacy of legacySuppliers) {
-      if (!legacy.supplier_clean || !legacy.supplier_clean.trim()) {
+    for (const legacy of legacySuppliersList) {
+      if (!legacy.supplierClean || !legacy.supplierClean.trim()) {
         logger.info('SUPPLIER_MIGRATION', 'Skipping legacy supplier - no supplier_clean value', {
           legacyId: legacy.id
         });
@@ -56,13 +73,21 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      const supplierName = legacy.supplier_clean.trim();
+      const supplierName = legacy.supplierClean.trim();
 
       try {
+        // ORIGINAL XATA:
+        // const existing = await xata.db.Suppliers.filter({
+        //   name: { $is: supplierName },
+        // }).getFirst();
+
+        // DRIZZLE:
         // Check if supplier already exists in main Suppliers table
-        const existing = await xata.db.Suppliers.filter({
-          name: { $is: supplierName },
-        }).getFirst();
+        const [existing] = await db
+          .select()
+          .from(suppliers)
+          .where(eq(suppliers.name, supplierName))
+          .limit(1);
 
         if (existing) {
           logger.info('SUPPLIER_MIGRATION', 'Skipping - already exists in Suppliers table', {
@@ -72,10 +97,18 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // ORIGINAL XATA:
+        // await xata.db.Suppliers.create({
+        //   name: supplierName,
+        // });
+
+        // DRIZZLE:
         // Create new supplier in main Suppliers table
-        await xata.db.Suppliers.create({
-          name: supplierName,
-        });
+        await db
+          .insert(suppliers)
+          .values({
+            name: supplierName,
+          });
 
         logger.info('SUPPLIER_MIGRATION', 'Migrated supplier', { supplierName });
         migrated++;
@@ -96,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      total: legacySuppliers.length,
+      total: legacySuppliersList.length,
       migrated,
       skipped,
       errors: errors.length > 0 ? errors : undefined,

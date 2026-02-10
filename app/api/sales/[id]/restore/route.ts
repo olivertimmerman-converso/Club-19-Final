@@ -5,13 +5,22 @@
  * Restores a soft-deleted sale record by setting deleted_at to null
  *
  * Superadmin only endpoint
+ *
+ * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
 import * as logger from '@/lib/logger';
+
+// Drizzle imports
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+// ORIGINAL XATA:
+// import { getXataClient } from '@/src/xata';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,8 +52,16 @@ export async function POST(
     }
 
     // 2. Check if sale exists (include deleted records)
-    const xata = getXataClient();
-    const sale = await xata.db.Sales.filter({ id: saleId }).getFirst();
+    // ORIGINAL XATA:
+    // const xata = getXataClient();
+    // const sale = await xata.db.Sales.filter({ id: saleId }).getFirst();
+
+    // DRIZZLE:
+    const [sale] = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.id, saleId))
+      .limit(1);
 
     if (!sale) {
       logger.error('SALES_RESTORE', 'Sale not found', { saleId });
@@ -52,7 +69,7 @@ export async function POST(
     }
 
     // 3. Check if actually deleted
-    if (!sale.deleted_at) {
+    if (!sale.deletedAt) {
       logger.warn('SALES_RESTORE', 'Sale is not deleted', { saleId });
       return NextResponse.json(
         { error: 'Sale is not deleted' },
@@ -61,9 +78,16 @@ export async function POST(
     }
 
     // 4. Restore - set deleted_at to null
-    await xata.db.Sales.update(saleId, {
-      deleted_at: null,
-    });
+    // ORIGINAL XATA:
+    // await xata.db.Sales.update(saleId, {
+    //   deleted_at: null,
+    // });
+
+    // DRIZZLE:
+    await db
+      .update(sales)
+      .set({ deletedAt: null })
+      .where(eq(sales.id, saleId));
 
     logger.info('SALES_RESTORE', 'Sale restored successfully', { saleId });
 

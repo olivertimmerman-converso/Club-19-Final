@@ -7,13 +7,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getXataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getUserRole } from "@/lib/getUserRole";
 import * as logger from "@/lib/logger";
 
-export const dynamic = "force-dynamic";
+// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
+// ORIGINAL XATA: const xata = getXataClient();
 
-const xata = getXataClient();
+export const dynamic = "force-dynamic";
 
 export async function POST(
   request: NextRequest,
@@ -37,7 +40,14 @@ export async function POST(
     logger.info("RESTORE", "Restoring dismissed invoice", { saleId: id, userId });
 
     // Check if the sale exists
-    const sale = await xata.db.Sales.read(id);
+    // ORIGINAL XATA: const sale = await xata.db.Sales.read(id);
+    const saleResults = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.id, id))
+      .limit(1);
+    const sale = saleResults[0] || null;
+
     if (!sale) {
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
     }
@@ -50,15 +60,23 @@ export async function POST(
     }
 
     // Restore by clearing dismissed fields
-    await xata.db.Sales.update(id, {
-      dismissed: false,
-      dismissed_at: null,
-      dismissed_by: null,
-    });
+    // ORIGINAL XATA: await xata.db.Sales.update(id, {
+    // ORIGINAL XATA:   dismissed: false,
+    // ORIGINAL XATA:   dismissed_at: null,
+    // ORIGINAL XATA:   dismissed_by: null,
+    // ORIGINAL XATA: });
+    await db
+      .update(sales)
+      .set({
+        dismissed: false,
+        dismissedAt: null,
+        dismissedBy: null,
+      })
+      .where(eq(sales.id, id));
 
     logger.info("RESTORE", "Invoice restored successfully", {
       saleId: id,
-      invoiceNumber: sale.xero_invoice_number,
+      invoiceNumber: sale.xeroInvoiceNumber,
     });
 
     return NextResponse.json({

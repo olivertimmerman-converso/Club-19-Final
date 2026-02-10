@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { XataClient } from "@/src/xata";
+// ORIGINAL XATA: import { XataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +13,7 @@ export const dynamic = "force-dynamic";
  * Restricted: Admin + Finance + Superadmin
  */
 
-const xata = new XataClient();
+// ORIGINAL XATA: const xata = new XataClient();
 
 export default async function InvoicesPage({
   searchParams,
@@ -21,46 +24,55 @@ export default async function InvoicesPage({
   // Get filter from URL params
   const statusFilter = status || 'all';
 
+  // ORIGINAL XATA:
+  // // Fetch all sales (each sale = one invoice)
+  // const allSales = await xata.db.Sales
+  //   .select([
+  //     'id',
+  //     'xero_invoice_number',
+  //     'xero_invoice_id',
+  //     'xero_invoice_url',
+  //     'invoice_status',
+  //     'sale_date',
+  //     'sale_amount_inc_vat',
+  //     'brand',
+  //     'item_title',
+  //     'buyer.name',
+  //   ])
+  //   .sort('sale_date', 'desc')
+  //   .getAll();
+
   // Fetch all sales (each sale = one invoice)
-  const allSales = await xata.db.Sales
-    .select([
-      'id',
-      'xero_invoice_number',
-      'xero_invoice_id',
-      'xero_invoice_url',
-      'invoice_status',
-      'sale_date',
-      'sale_amount_inc_vat',
-      'brand',
-      'item_title',
-      'buyer.name',
-    ])
-    .sort('sale_date', 'desc')
-    .getAll();
+  const allSales = await db.query.sales.findMany({
+    with: {
+      buyer: true,
+    },
+    orderBy: [desc(sales.saleDate)],
+  });
 
   // Filter sales based on status
   const filteredSales = statusFilter === 'all'
     ? allSales
     : statusFilter === 'draft'
-    ? allSales.filter(sale => sale.invoice_status === 'DRAFT')
+    ? allSales.filter(sale => sale.invoiceStatus === 'DRAFT')
     : statusFilter === 'awaiting'
     ? allSales.filter(sale =>
-        sale.invoice_status === 'AUTHORISED' || sale.invoice_status === 'SUBMITTED'
+        sale.invoiceStatus === 'AUTHORISED' || sale.invoiceStatus === 'SUBMITTED'
       )
     : statusFilter === 'paid'
-    ? allSales.filter(sale => sale.invoice_status === 'PAID')
+    ? allSales.filter(sale => sale.invoiceStatus === 'PAID')
     : allSales;
 
   // Calculate summary stats
   const totalInvoices = allSales.length;
   const totalValue = allSales.reduce((sum, sale) =>
-    sum + (sale.sale_amount_inc_vat || 0), 0
+    sum + (sale.saleAmountIncVat || 0), 0
   );
-  const draftCount = allSales.filter(sale => sale.invoice_status === 'DRAFT').length;
+  const draftCount = allSales.filter(sale => sale.invoiceStatus === 'DRAFT').length;
   const awaitingCount = allSales.filter(sale =>
-    sale.invoice_status === 'AUTHORISED' || sale.invoice_status === 'SUBMITTED'
+    sale.invoiceStatus === 'AUTHORISED' || sale.invoiceStatus === 'SUBMITTED'
   ).length;
-  const paidCount = allSales.filter(sale => sale.invoice_status === 'PAID').length;
+  const paidCount = allSales.filter(sale => sale.invoiceStatus === 'PAID').length;
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -262,42 +274,42 @@ export default async function InvoicesPage({
                     className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {sale.xero_invoice_url ? (
+                      {sale.xeroInvoiceUrl ? (
                         <a
-                          href={sale.xero_invoice_url}
+                          href={sale.xeroInvoiceUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm font-medium text-purple-600 hover:text-purple-900"
                         >
-                          {sale.xero_invoice_number || '—'}
+                          {sale.xeroInvoiceNumber || '—'}
                         </a>
                       ) : (
                         <span className="text-sm font-medium text-gray-900">
-                          {sale.xero_invoice_number || '—'}
+                          {sale.xeroInvoiceNumber || '—'}
                         </span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(sale.sale_date)}
+                      {formatDate(sale.saleDate)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {sale.buyer?.name || '—'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {sale.brand && sale.item_title
-                        ? `${sale.brand} - ${sale.item_title}`
-                        : sale.brand || sale.item_title || '—'}
+                      {sale.brand && sale.itemTitle
+                        ? `${sale.brand} - ${sale.itemTitle}`
+                        : sale.brand || sale.itemTitle || '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                      {formatCurrency(sale.sale_amount_inc_vat || 0)}
+                      {formatCurrency(sale.saleAmountIncVat || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(sale.invoice_status)}
+                      {getStatusBadge(sale.invoiceStatus)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {sale.xero_invoice_url ? (
+                      {sale.xeroInvoiceUrl ? (
                         <a
-                          href={sale.xero_invoice_url}
+                          href={sale.xeroInvoiceUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center text-purple-600 hover:text-purple-900"

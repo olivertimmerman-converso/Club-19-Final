@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { XataClient } from "@/src/xata";
+// ORIGINAL XATA: import { XataClient } from "@/src/xata";
+import { db } from "@/db";
+import { sales, suppliers } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -10,54 +13,68 @@ export const dynamic = "force-dynamic";
  * Displays a single supplier's profile and complete trade history
  */
 
-const xata = new XataClient();
+// ORIGINAL XATA: const xata = new XataClient();
 
 export default async function SupplierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // Fetch supplier record from Xata
-  const supplier = await xata.db.Suppliers
-    .select(['*'])
-    .filter({ id })
-    .getFirst();
+  // ORIGINAL XATA:
+  // const supplier = await xata.db.Suppliers
+  //   .select(['*'])
+  //   .filter({ id })
+  //   .getFirst();
+
+  // Fetch supplier record
+  const supplier = await db.query.suppliers.findFirst({
+    where: eq(suppliers.id, id),
+  });
 
   // Handle not found
   if (!supplier) {
     notFound();
   }
 
-  // Fetch all sales for this supplier (show all in table, but filter for metrics)
-  const allSalesRaw = await xata.db.Sales
-    .select([
-      'id',
-      'sale_date',
-      'item_title',
-      'brand',
-      'buy_price',
-      'sale_amount_inc_vat',
-      'gross_margin',
-      'buyer.name',
-      'invoice_status',
-      'deleted_at',
-      'source',
-    ])
-    .filter({
-      'supplier.id': id
-    })
-    .sort('sale_date', 'desc')
-    .getAll();
+  // ORIGINAL XATA:
+  // const allSalesRaw = await xata.db.Sales
+  //   .select([
+  //     'id',
+  //     'sale_date',
+  //     'item_title',
+  //     'brand',
+  //     'buy_price',
+  //     'sale_amount_inc_vat',
+  //     'gross_margin',
+  //     'buyer.name',
+  //     'invoice_status',
+  //     'deleted_at',
+  //     'source',
+  //   ])
+  //   .filter({
+  //     'supplier.id': id
+  //   })
+  //   .sort('sale_date', 'desc')
+  //   .getAll();
 
-  // Filter out deleted sales in JavaScript (Xata's $is: null doesn't work reliably for datetime fields)
-  const sales = allSalesRaw.filter(sale => !sale.deleted_at);
+  // Fetch all sales for this supplier (show all in table, but filter for metrics)
+  const allSalesRaw = await db.query.sales.findMany({
+    where: eq(sales.supplierId, id),
+    with: {
+      buyer: true,
+    },
+    orderBy: [desc(sales.saleDate)],
+  });
+
+  // Filter out deleted sales in JavaScript (keeping consistent with original behavior)
+  const salesData = allSalesRaw.filter(sale => !sale.deletedAt);
 
   // Filter to PAID invoices only for metrics
-  const paidSales = sales.filter(sale =>
-    sale.invoice_status?.toUpperCase() === 'PAID'
+  const paidSales = salesData.filter(sale =>
+    sale.invoiceStatus?.toUpperCase() === 'PAID'
   );
 
   // Calculate totals from PAID invoices only
-  const totalSourced = paidSales.reduce((sum, sale) => sum + (sale.buy_price || 0), 0);
-  const totalMargin = paidSales.reduce((sum, sale) => sum + (sale.gross_margin || 0), 0);
+  const totalSourced = paidSales.reduce((sum, sale) => sum + (sale.buyPrice || 0), 0);
+  const totalMargin = paidSales.reduce((sum, sale) => sum + (sale.grossMargin || 0), 0);
   const tradesCount = paidSales.length;
 
   // Format currency
@@ -151,7 +168,7 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Paid Trades</h3>
           <p className="text-2xl font-bold text-gray-900">{tradesCount}</p>
-          <p className="text-xs text-gray-500 mt-1">{sales.length} total ({sales.length - tradesCount} unpaid)</p>
+          <p className="text-xs text-gray-500 mt-1">{salesData.length} total ({salesData.length - tradesCount} unpaid)</p>
         </div>
       </div>
 
@@ -159,7 +176,7 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Trade History</h2>
 
-        {sales.length === 0 ? (
+        {salesData.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
             <svg
               className="mx-auto h-12 w-12 text-gray-400"
@@ -230,8 +247,8 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {sales.map((sale) => {
-                    const paid = isPaid(sale.invoice_status);
+                  {salesData.map((sale) => {
+                    const paid = isPaid(sale.invoiceStatus);
                     return (
                       <tr
                         key={sale.id}
@@ -239,27 +256,27 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
                         title={!paid ? 'Not counted in totals (unpaid)' : ''}
                       >
                         <td className={`px-6 py-4 whitespace-nowrap text-sm ${paid ? 'text-gray-500' : 'text-gray-400'}`}>
-                          {formatDate(sale.sale_date)}
+                          {formatDate(sale.saleDate)}
                         </td>
                         <td className={`px-6 py-4 text-sm max-w-xs truncate ${paid ? 'text-gray-900' : 'text-gray-400'}`}>
                           <Link
                             href={`/sales/${sale.id}`}
                             className={paid ? 'text-purple-600 hover:text-purple-900' : 'text-gray-400 hover:text-gray-600'}
                           >
-                            {sale.item_title || '—'}
+                            {sale.itemTitle || '—'}
                           </Link>
                         </td>
                         <td className={`px-6 py-4 whitespace-nowrap text-sm ${paid ? 'text-gray-900' : 'text-gray-400'}`}>
                           {sale.brand || '—'}
                         </td>
                         <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${paid ? 'text-gray-900' : 'text-gray-400'}`}>
-                          {formatCurrency(sale.buy_price || 0)}
+                          {formatCurrency(sale.buyPrice || 0)}
                         </td>
                         <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${paid ? 'text-gray-900' : 'text-gray-400'}`}>
-                          {formatCurrency(sale.sale_amount_inc_vat || 0)}
+                          {formatCurrency(sale.saleAmountIncVat || 0)}
                         </td>
                         <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${paid ? 'text-green-600' : 'text-gray-400'}`}>
-                          {formatCurrency(sale.gross_margin || 0)}
+                          {formatCurrency(sale.grossMargin || 0)}
                         </td>
                         <td className={`px-6 py-4 whitespace-nowrap text-sm ${paid ? 'text-gray-500' : 'text-gray-400'}`}>
                           {sale.buyer?.name || '—'}

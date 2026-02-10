@@ -11,9 +11,13 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
-import { getXataClient } from '@/src/xata';
+import { db } from "@/db";
+import { sales } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getValidTokens } from '@/lib/xero-auth';
 import * as logger from '@/lib/logger';
+
+// ORIGINAL XATA: import { getXataClient } from '@/src/xata';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes for long-running operation
@@ -162,11 +166,11 @@ export async function POST(request: Request) {
     });
 
     // 4. Force update dates on ALL matching Sales records
-    const xata = getXataClient();
+    // ORIGINAL XATA: const xata = getXataClient();
     let updatedCount = 0;
     let skippedCount = 0;
     let notFoundCount = 0;
-    const errors: Array<{ invoiceNumber: string; error: string }> = [];
+    const errorsArray: Array<{ invoiceNumber: string; error: string }> = [];
 
     for (const invoice of allInvoices) {
       try {
@@ -183,7 +187,7 @@ export async function POST(request: Request) {
             invoiceNumber: invoice.InvoiceNumber,
             dateValue: invoice.Date
           });
-          errors.push({
+          errorsArray.push({
             invoiceNumber: invoice.InvoiceNumber,
             error: `Could not parse date: ${invoice.Date}`
           });
@@ -192,9 +196,15 @@ export async function POST(request: Request) {
         }
 
         // Find matching Sale record
-        const existing = await xata.db.Sales.filter({
-          xero_invoice_id: invoice.InvoiceID
-        }).getFirst();
+        // ORIGINAL XATA: const existing = await xata.db.Sales.filter({
+        // ORIGINAL XATA:   xero_invoice_id: invoice.InvoiceID
+        // ORIGINAL XATA: }).getFirst();
+        const existingResults = await db
+          .select()
+          .from(sales)
+          .where(eq(sales.xeroInvoiceId, invoice.InvoiceID))
+          .limit(1);
+        const existing = existingResults[0] || null;
 
         if (!existing) {
           notFoundCount++;
@@ -202,7 +212,7 @@ export async function POST(request: Request) {
         }
 
         // FORCE UPDATE - no conditions, just update
-        const oldDate = existing.sale_date?.toISOString().split('T')[0] || 'null';
+        const oldDate = existing.saleDate?.toISOString().split('T')[0] || 'null';
         const newDate = invoiceDate.toISOString().split('T')[0];
 
         logger.info('FORCE_FIX_DATES', 'Force updating date', {
@@ -213,11 +223,19 @@ export async function POST(request: Request) {
           xeroDateRaw: invoice.Date
         });
 
-        await xata.db.Sales.update(existing.id, {
-          sale_date: invoiceDate,
-          invoice_status: invoice.Status,
-          invoice_paid_date: invoice.FullyPaidOnDate ? parseXeroDate(invoice.FullyPaidOnDate) : null,
-        });
+        // ORIGINAL XATA: await xata.db.Sales.update(existing.id, {
+        // ORIGINAL XATA:   sale_date: invoiceDate,
+        // ORIGINAL XATA:   invoice_status: invoice.Status,
+        // ORIGINAL XATA:   invoice_paid_date: invoice.FullyPaidOnDate ? parseXeroDate(invoice.FullyPaidOnDate) : null,
+        // ORIGINAL XATA: });
+        await db
+          .update(sales)
+          .set({
+            saleDate: invoiceDate,
+            invoiceStatus: invoice.Status,
+            invoicePaidDate: invoice.FullyPaidOnDate ? parseXeroDate(invoice.FullyPaidOnDate) : null,
+          })
+          .where(eq(sales.id, existing.id));
 
         updatedCount++;
 
@@ -231,7 +249,7 @@ export async function POST(request: Request) {
           invoiceNumber: invoice.InvoiceNumber || invoice.InvoiceID,
           error: err as any
         });
-        errors.push({
+        errorsArray.push({
           invoiceNumber: invoice.InvoiceNumber || invoice.InvoiceID,
           error: errorMessage
         });
@@ -244,7 +262,7 @@ export async function POST(request: Request) {
       updated: updatedCount,
       skipped: skippedCount,
       notFound: notFoundCount,
-      errors: errors.length
+      errors: errorsArray.length
     });
 
     return NextResponse.json({
@@ -254,9 +272,9 @@ export async function POST(request: Request) {
         updated: updatedCount,
         skipped: skippedCount,
         not_found: notFoundCount,
-        errors: errors.length,
+        errors: errorsArray.length,
       },
-      errors,
+      errors: errorsArray,
       duration: `${duration}ms`,
     });
   } catch (error) {

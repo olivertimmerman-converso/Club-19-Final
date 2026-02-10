@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { XataClient } from "@/src/xata";
+// ORIGINAL XATA: import { XataClient } from "@/src/xata";
+import { db } from "@/db";
+import { commissionBands, suppliers } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getUserRole } from "@/lib/getUserRole";
 import { clerkClient } from "@clerk/nextjs/server";
 import { getTokens } from "@/lib/xero-auth";
@@ -15,7 +18,7 @@ export const dynamic = "force-dynamic";
  * Restricted: Superadmin only
  */
 
-const xata = new XataClient();
+// ORIGINAL XATA: const xata = new XataClient();
 
 export default async function AdminPage() {
   // Verify superadmin role
@@ -63,23 +66,31 @@ export default async function AdminPage() {
     };
   });
 
-  // Fetch commission bands from Xata
-  const commissionBands = await xata.db.CommissionBands
-    .select(['*'])
-    .getAll();
+  // ORIGINAL XATA:
+  // const commissionBands = await xata.db.CommissionBands
+  //   .select(['*'])
+  //   .getAll();
+
+  // Fetch commission bands from database
+  const commissionBandsData = await db.query.commissionBands.findMany();
+
+  // ORIGINAL XATA:
+  // const pendingSuppliersRaw = await xata.db.Suppliers
+  //   .filter({ pending_approval: true } as any)
+  //   .select(['id', 'name', 'email', 'created_by', 'xata.createdAt'] as any)
+  //   .getAll();
 
   // Fetch pending suppliers
-  const pendingSuppliersRaw = await xata.db.Suppliers
-    .filter({ pending_approval: true } as any)
-    .select(['id', 'name', 'email', 'created_by', 'xata.createdAt'] as any)
-    .getAll();
+  const pendingSuppliersRaw = await db.query.suppliers.findMany({
+    where: eq(suppliers.pendingApproval, true),
+  });
 
   const pendingSuppliers = pendingSuppliersRaw.map(s => ({
     id: s.id,
     name: s.name || 'Unknown',
     email: s.email || null,
-    created_by: (s as any).created_by || null,
-    created_at: s.xata?.createdAt?.toISOString() || null,
+    created_by: s.createdBy || null,
+    created_at: s.createdAt?.toISOString() || null,
   }));
 
   // System environment info
@@ -260,7 +271,7 @@ export default async function AdminPage() {
           </button>
         </div>
 
-        {commissionBands.length === 0 ? (
+        {commissionBandsData.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
             <svg
               className="mx-auto h-12 w-12 text-gray-400"
@@ -319,22 +330,22 @@ export default async function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {commissionBands.map((band) => (
+                  {commissionBandsData.map((band) => (
                     <tr key={band.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {band.band_type || '—'}
+                        {band.bandType || '—'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                        £{(band.min_threshold || 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        £{(band.minThreshold || 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                        {band.max_threshold
-                          ? `£${band.max_threshold.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                        {band.maxThreshold
+                          ? `£${band.maxThreshold.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                           : '∞'
                         }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600 text-right">
-                        {(band.commission_percent || 0).toFixed(1)}%
+                        {(band.commissionPercent || 0).toFixed(1)}%
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
@@ -371,7 +382,7 @@ export default async function AdminPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Database (Xata)</span>
+                <span className="text-sm text-gray-700">Database (Drizzle)</span>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                   Online
                 </span>
