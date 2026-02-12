@@ -21,43 +21,29 @@ interface DashboardPageProps {
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   try {
-    console.log('[DashboardPage] Starting dashboard page...');
-
     const role = await getUserRole();
-    console.log('[DashboardPage] Got user role:', role);
-
     const params = await searchParams;
-    console.log('[DashboardPage] Got search params:', params);
-
     const monthParam = params.month || "current";
     const viewAs = params.viewAs;
-    console.log('[DashboardPage] MonthParam:', monthParam, 'ViewAs:', viewAs);
 
     // Superadmin view switching: Allow superadmin to preview other role experiences
     if (role === "superadmin" && viewAs) {
-      console.log('[DashboardPage] Superadmin viewing as:', viewAs);
       switch (viewAs) {
         case "founder":
-          console.log('[DashboardPage] Rendering FounderDashboard...');
           return <FounderDashboard monthParam={monthParam} />;
         case "operations":
-          console.log('[DashboardPage] Rendering OperationsDashboard...');
           return <OperationsDashboard monthParam={monthParam} />;
         case "shopper-hope":
-          console.log('[DashboardPage] Rendering ShopperDashboard for Hope...');
           return <ShopperDashboard monthParam={monthParam} shopperNameOverride="Hope" />;
         case "shopper-mc":
-          console.log('[DashboardPage] Rendering ShopperDashboard for MC...');
           return <ShopperDashboard monthParam={monthParam} shopperNameOverride="MC" />;
         case "superadmin":
-          console.log('[DashboardPage] Falling through to default superadmin view...');
           // Fall through to default superadmin view
           break;
       }
     }
 
     // Render role-specific dashboard based on actual user role
-    console.log('[DashboardPage] Rendering dashboard for role:', role);
     switch (role) {
       case "shopper":
         return <ShopperDashboard monthParam={monthParam} />;
@@ -75,9 +61,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         return <ShopperDashboard monthParam={monthParam} />;
     }
   } catch (error) {
-    console.error('[DashboardPage] Error:', error);
-    console.error('[DashboardPage] Error stack:', error instanceof Error ? error.stack : 'No stack');
-    console.error('[DashboardPage] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[DashboardPage] Error:', error instanceof Error ? error.message : String(error));
 
     return (
       <div className="p-8">

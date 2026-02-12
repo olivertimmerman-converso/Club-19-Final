@@ -15,15 +15,9 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  // Log middleware execution for debugging
-  console.log('[MIDDLEWARE] Running for:', request.nextUrl.pathname);
-
   // Ensure session is loaded for protected routes
   if (!isPublicRoute(request)) {
-    console.log('[MIDDLEWARE] Loading auth for protected route:', request.nextUrl.pathname);
-    await auth();  // Load the session
-  } else {
-    console.log('[MIDDLEWARE] Public route, skipping auth:', request.nextUrl.pathname);
+    await auth();
   }
 });
 

@@ -127,9 +127,6 @@ export function StepSupplierBuyer() {
 
         try {
           const results = await fetchXeroBuyers(value);
-          console.log('[CLIENT_SEARCH] Results received:', results);
-          console.log('[CLIENT_SEARCH] Results length:', results.length);
-          console.log('[CLIENT_SEARCH] Setting results in state...');
 
           // Update both results and active state together
           setBuyerDropdownResults(results);
@@ -146,8 +143,6 @@ export function StepSupplierBuyer() {
             setBuyerNotFound(false);
             setBuyerNotFoundQuery("");
           }
-
-          console.log('[CLIENT_SEARCH] State updated. Results count:', results.length);
         } catch (error: any) {
           // Ignore AbortError - it just means we cancelled the request
           if (error.name === 'AbortError') {
@@ -156,7 +151,6 @@ export function StepSupplierBuyer() {
           }
 
           logger.error('TRADE_UI', 'Xero buyer search failed', { error: error as any } as any);
-          console.log('[CLIENT_SEARCH] Error occurred:', error);
           setBuyerDropdownResults([]);
           setBuyerNotFound(false); // Don't show "not found" on errors
           // Show error for any Xero authentication issue (expired token, not connected, etc.)
@@ -170,7 +164,6 @@ export function StepSupplierBuyer() {
           }
         } finally {
           setLoadingBuyers(false);
-          console.log('[CLIENT_SEARCH] Loading finished');
         }
       }, 300);
     } else {
