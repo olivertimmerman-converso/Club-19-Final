@@ -24,6 +24,7 @@ These patterns were established to fix recurring bugs. Do not deviate from them.
 4. **Source field**: The `source` field distinguishes `atelier` (Sales OS created) from `xero_import`. Respect this distinction — Xero imports have incomplete data by design.
 5. **Export sales**: Export sales use zero VAT. This is a core business rule that affects invoice creation.
 6. **Xero token refresh**: Runs aggressively (every 4 hours + on deploy). The system must be always-connected without requiring manual monitoring.
+7. **Schema changes require database migration.** Adding columns to `db/schema.ts` does NOT create them in production. Always run `npx drizzle-kit push` or create a migration after modifying the schema. The app will break silently on deploy if code references columns that don't exist.
 
 ## Key Directories
 
