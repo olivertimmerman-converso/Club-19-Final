@@ -127,10 +127,10 @@ export async function GET(req: NextRequest) {
     }
 
     const role = await getUserRole();
-    if (!role || (role !== "admin" && role !== "superadmin" && role !== "finance")) {
+    if (!role || !["admin", "superadmin", "finance", "shopper", "founder", "operations"].includes(role)) {
       logger.error("SALES_SUMMARY", "Forbidden - insufficient permissions", { role });
       return NextResponse.json(
-        { error: "Forbidden", message: "Admin/Finance access required" },
+        { error: "Forbidden", message: "Access denied" },
         { status: 403 }
       );
     }
