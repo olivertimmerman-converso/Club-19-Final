@@ -46,7 +46,7 @@ export default function ShopperDashboardPage() {
   const [selectedSale, setSelectedSale] = useState<SaleSummary | null>(null);
 
   const fetchData = async () => {
-    if (!user?.fullName) {
+    if (!user) {
       setError("Unable to identify user");
       setLoading(false);
       return;
@@ -56,17 +56,21 @@ export default function ShopperDashboardPage() {
       setLoading(true);
       setError(null);
 
-      // Fetch sales summary and incomplete sales in parallel
-      const [shopperSales, incompleteResponse] = await Promise.all([
-        getShopperSalesSummary(user.fullName),
-        fetch("/api/sales/incomplete").then((res) => res.json()),
-      ]);
-
-      const shopperMetrics = computeShopperMetrics(shopperSales);
-
-      setSales(shopperSales);
-      setMetrics(shopperMetrics);
+      // Fetch incomplete sales (uses clerk_user_id server-side, always works)
+      const incompleteResponse = await fetch("/api/sales/incomplete").then((res) => res.json());
       setIncompleteCount(incompleteResponse.sales?.length || 0);
+
+      // Fetch sales summary (requires fullName for client-side filtering)
+      if (user.fullName) {
+        const shopperSales = await getShopperSalesSummary(user.fullName);
+        const shopperMetrics = computeShopperMetrics(shopperSales);
+        setSales(shopperSales);
+        setMetrics(shopperMetrics);
+      } else {
+        // fullName empty — show empty metrics rather than error
+        setSales([]);
+        setMetrics(computeShopperMetrics([]));
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load dashboard data");
     } finally {

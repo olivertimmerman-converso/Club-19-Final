@@ -49,17 +49,24 @@ export default async function CompleteDataPage({
 
   if (!canEditAny) {
     // Get the shopper record for the current user
+    // Prefer clerk_user_id (more reliable), fall back to name
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
     const userFullName = user?.fullName;
 
-    if (!userFullName) {
-      redirect("/sales");
-    }
+    let shopperRecord = null;
 
-    const shopperRecord = await db.query.shoppers.findFirst({
-      where: eq(shoppers.name, userFullName),
+    // Try clerk_user_id first
+    shopperRecord = await db.query.shoppers.findFirst({
+      where: eq(shoppers.clerkUserId, userId),
     });
+
+    // Fall back to name matching if no clerk_user_id match
+    if (!shopperRecord && userFullName) {
+      shopperRecord = await db.query.shoppers.findFirst({
+        where: eq(shoppers.name, userFullName),
+      });
+    }
 
     // Check if this sale belongs to the current shopper
     if (!shopperRecord || sale.shopperId !== shopperRecord.id) {

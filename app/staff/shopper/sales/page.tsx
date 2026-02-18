@@ -135,7 +135,7 @@ export default function ShopperSalesPage() {
 
   // Fetch shopper's own sales
   const fetchData = useCallback(async () => {
-    if (!user?.fullName) {
+    if (!user) {
       setError("Unable to identify user");
       setLoading(false);
       return;
@@ -145,14 +145,19 @@ export default function ShopperSalesPage() {
       setLoading(true);
       setError(null);
 
-      const shopperSales = await getShopperSalesList(user.fullName);
-      setSales(shopperSales);
+      if (user.fullName) {
+        const shopperSales = await getShopperSalesList(user.fullName);
+        setSales(shopperSales);
+      } else {
+        // fullName empty — show empty state rather than error
+        setSales([]);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load sales data");
     } finally {
       setLoading(false);
     }
-  }, [user?.fullName]);
+  }, [user]);
 
   // Claim a sale
   const handleClaim = async (saleId: string) => {
