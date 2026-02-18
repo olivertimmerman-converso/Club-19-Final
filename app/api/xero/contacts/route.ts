@@ -47,24 +47,33 @@ export async function GET(request: NextRequest) {
 
     logger.info("XERO_CONTACTS", "Searching for contacts", { query, userId });
 
-    // 3. Get valid Xero OAuth tokens (auto-refreshes if needed)
+    // 3. Get valid Xero OAuth tokens via integration user (shoppers don't have individual connections)
+    const integrationUserId = process.env.XERO_INTEGRATION_CLERK_USER_ID;
+    if (!integrationUserId) {
+      logger.error("XERO_CONTACTS", "XERO_INTEGRATION_CLERK_USER_ID not configured");
+      return NextResponse.json(
+        { error: "Xero integration not configured" },
+        { status: 500 }
+      );
+    }
+
     let accessToken: string;
     let tenantId: string;
 
     try {
-      const tokens = await getValidTokens(userId);
+      const tokens = await getValidTokens(integrationUserId);
       accessToken = tokens.accessToken;
       tenantId = tokens.tenantId;
-      logger.info("XERO_CONTACTS", "Valid tokens obtained", { tenantId });
+      logger.info("XERO_CONTACTS", "Valid tokens obtained via integration user", { tenantId });
     } catch (error: any) {
       logger.error("XERO_CONTACTS", "Failed to get Xero tokens", { error });
       return NextResponse.json(
         {
-          error: "Xero not connected",
-          message: error.message,
+          error: "Xero connection unavailable",
+          message: "Please contact admin",
           action: "connect_xero",
         },
-        { status: 401 }
+        { status: 502 }
       );
     }
 

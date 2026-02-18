@@ -288,24 +288,33 @@ export async function POST(request: NextRequest) {
       throw err;
     }
 
-    // Get Xero tokens for direct API integration
-    logger.info('TRADE_CREATE', 'Getting Xero tokens for direct API integration');
+    // Get Xero tokens using integration user (shoppers don't have individual Xero connections)
+    const integrationUserId = process.env.XERO_INTEGRATION_CLERK_USER_ID;
+    if (!integrationUserId) {
+      logger.error('TRADE_CREATE', 'XERO_INTEGRATION_CLERK_USER_ID not configured');
+      return NextResponse.json(
+        { error: "CONFIG_ERROR", message: "Xero integration not configured" },
+        { status: 500 },
+      );
+    }
+
+    logger.info('TRADE_CREATE', 'Getting Xero tokens via integration user');
     let xeroTokens;
     try {
-      xeroTokens = await getValidTokens(authUserId);
+      xeroTokens = await getValidTokens(integrationUserId);
       logger.info('TRADE_CREATE', 'Xero tokens obtained successfully');
     } catch (error: any) {
       logger.error("TRADE_CREATE", "Failed to get Xero tokens", {
         error: error.message,
-        userId: authUserId
+        integrationUserId,
       });
       return NextResponse.json(
         {
           error: "XERO_AUTH_ERROR",
-          message: "Failed to authenticate with Xero. Please reconnect your Xero account.",
+          message: "Xero connection unavailable. Please contact admin.",
           action: "reconnect_xero",
         },
-        { status: 401 },
+        { status: 502 },
       );
     }
 

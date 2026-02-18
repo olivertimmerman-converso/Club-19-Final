@@ -199,13 +199,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Get valid Xero OAuth tokens (auto-refreshes if needed)
+    // 4. Get valid Xero OAuth tokens via integration user (shoppers don't have individual connections)
+    const integrationUserId = process.env.XERO_INTEGRATION_CLERK_USER_ID;
+    if (!integrationUserId) {
+      logger.error("XERO_INVOICES", "XERO_INTEGRATION_CLERK_USER_ID not configured");
+      return NextResponse.json(
+        { error: "Xero integration not configured" },
+        { status: 500 }
+      );
+    }
+
     let accessToken: string;
     let tenantId: string;
 
     try {
-      logger.info("XERO_INVOICES", "Fetching valid tokens...");
-      const tokens = await getValidTokens(userId);
+      logger.info("XERO_INVOICES", "Fetching valid tokens via integration user...");
+      const tokens = await getValidTokens(integrationUserId);
       accessToken = tokens.accessToken;
       tenantId = tokens.tenantId;
       logger.info("XERO_INVOICES", "Valid tokens obtained", { tenantId });
@@ -213,11 +222,11 @@ export async function POST(request: NextRequest) {
       logger.error("XERO_INVOICES", "Failed to get Xero tokens", { error: error as any });
       return NextResponse.json(
         {
-          error: "Xero not connected",
-          message: error.message || "Please reconnect your Xero account",
+          error: "Xero connection unavailable",
+          message: "Please contact admin",
           action: "connect_xero",
         },
-        { status: 401 }
+        { status: 502 }
       );
     }
 
@@ -234,7 +243,7 @@ export async function POST(request: NextRequest) {
         if (!isGuid) {
           // It's a name, need to resolve to GUID
           logger.info("XERO_INVOICES", "Branding theme appears to be a name, fetching GUID...");
-          resolvedBrandingThemeId = await getBrandingThemeId(userId, payload.brandingThemeId);
+          resolvedBrandingThemeId = await getBrandingThemeId(integrationUserId, payload.brandingThemeId);
 
           if (resolvedBrandingThemeId) {
             logger.info("XERO_INVOICES", "Resolved branding theme", {

@@ -80,10 +80,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ contacts: [] });
     }
 
+    // Use integration user for Xero API calls (shoppers don't have individual Xero connections)
+    const integrationUserId = process.env.XERO_INTEGRATION_CLERK_USER_ID;
+    if (!integrationUserId) {
+      logger.error("XERO_CONTACTS", "XERO_INTEGRATION_CLERK_USER_ID not configured");
+      return NextResponse.json(
+        { error: "Xero integration not configured" },
+        { status: 500 }
+      );
+    }
+
     logger.info("XERO_CONTACTS", "Searching for suppliers", { query, userId });
 
     // 2.5. Check search cache first
-    const cacheKey = `${userId}:${query.toLowerCase()}`;
+    const cacheKey = `${integrationUserId}:${query.toLowerCase()}`;
     const cached = searchCache.get(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL) {
@@ -98,7 +108,7 @@ export async function GET(request: NextRequest) {
     // 3. Get supplier contacts from cache (or fetch if needed)
     let supplierContacts;
     try {
-      supplierContacts = await getSupplierContacts(userId);
+      supplierContacts = await getSupplierContacts(integrationUserId);
       logger.info("XERO_CONTACTS", "Loaded supplier contacts", {
         count: supplierContacts.length,
       });

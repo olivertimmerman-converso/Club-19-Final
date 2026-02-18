@@ -80,13 +80,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ contacts: [] });
     }
 
+    // Use integration user for Xero API calls (shoppers don't have individual Xero connections)
+    const integrationUserId = process.env.XERO_INTEGRATION_CLERK_USER_ID;
+    if (!integrationUserId) {
+      logger.error("XERO_CONTACTS", "XERO_INTEGRATION_CLERK_USER_ID not configured");
+      return NextResponse.json(
+        { error: "Xero integration not configured" },
+        { status: 500 }
+      );
+    }
+
     logger.info("XERO_CONTACTS", "Searching for buyers with cached fuzzy matching", { query, userId });
 
     // 3. Get all contacts from cache (or fetch if needed) - HYBRID APPROACH
     let allContacts;
     try {
       const fetchStartTime = Date.now();
-      allContacts = await getAllXeroContacts(userId);
+      allContacts = await getAllXeroContacts(integrationUserId);
       fetchDuration = Date.now() - fetchStartTime;
 
       logger.info("XERO_CONTACTS", "Loaded contacts from cache", {

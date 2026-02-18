@@ -8,10 +8,10 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/xero/status
- * Check if current user has Xero connected
+ * Check if Xero integration is connected (uses integration user)
  * Lightweight check without calling Xero API
  *
- * Accessible by: admin, finance, superadmin
+ * Accessible by: all authenticated users (shoppers need this for the New Sale wizard)
  */
 export async function GET() {
   try {
@@ -24,18 +24,19 @@ export async function GET() {
       );
     }
 
-    // Check role authorization
-    const role = await getUserRole();
-    if (!role || (role !== "admin" && role !== "superadmin" && role !== "finance")) {
-      logger.error("XERO_STATUS", "Forbidden - insufficient permissions", { role });
+    // Use integration user to check Xero connection status
+    const integrationUserId = process.env.XERO_INTEGRATION_CLERK_USER_ID;
+    if (!integrationUserId) {
+      logger.error("XERO_STATUS", "XERO_INTEGRATION_CLERK_USER_ID not configured");
       return NextResponse.json(
-        { connected: false, error: "Admin/Finance access required" },
-        { status: 403 }
+        { connected: false, error: "Xero integration not configured" },
+        { status: 500 }
       );
     }
 
-    logger.info("XERO_STATUS", "Checking connection", { userId, role });
-    const connected = await hasXeroConnection(userId);
+    const role = await getUserRole();
+    logger.info("XERO_STATUS", "Checking connection via integration user", { userId, role });
+    const connected = await hasXeroConnection(integrationUserId);
     logger.info("XERO_STATUS", "Connection status checked", { userId, connected });
 
     return NextResponse.json({ connected });

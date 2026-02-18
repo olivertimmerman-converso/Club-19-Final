@@ -33,7 +33,7 @@ export async function ShopperDashboard({
     shopperName = shopperNameOverride;
   } else {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !currentUser.fullName) {
+    if (!currentUser) {
       return (
         <div className="p-6">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
@@ -45,8 +45,8 @@ export async function ShopperDashboard({
         </div>
       );
     }
-    shopperName = currentUser.fullName;
     clerkUserId = currentUser.userId;
+    shopperName = currentUser.fullName || "";
   }
 
   // Get date range for filtering
@@ -62,8 +62,13 @@ export async function ShopperDashboard({
     });
   }
 
-  // Fall back to exact name matching
-  if (!shopperResult) {
+  // If found by clerk_user_id but fullName was empty, use the DB name
+  if (shopperResult && !shopperName && shopperResult.name) {
+    shopperName = shopperResult.name;
+  }
+
+  // Fall back to exact name matching (only if we have a name to match)
+  if (!shopperResult && shopperName) {
     shopperResult = await db.query.shoppers.findFirst({
       where: eq(shoppers.name, shopperName),
     });
