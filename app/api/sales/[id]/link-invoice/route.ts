@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/getUserRole';
 import { db } from "@/db";
-import { sales } from "@/db/schema";
+import { sales, shoppers } from "@/db/schema";
 import { eq } from "drizzle-orm";
 // ORIGINAL XATA: import { getXataClient } from '@/src/xata';
 import {
@@ -50,11 +50,15 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only superadmin can link invoices
+    // Role check: superadmin/founder/operations can link any sale,
+    // shoppers can link invoices to their own sales only
     const role = await getUserRole();
-    if (role !== 'superadmin') {
+    const managementRoles = ['superadmin', 'founder', 'operations'];
+    const canLinkAnySale = managementRoles.includes(role || '');
+
+    if (!canLinkAnySale && role !== 'shopper') {
       return NextResponse.json(
-        { error: 'Forbidden - requires superadmin role' },
+        { error: 'Forbidden' },
         { status: 403 }
       );
     }
@@ -70,7 +74,7 @@ export async function POST(
       );
     }
 
-    logger.info('LINK_INVOICE', 'Link invoice request', { saleId, xero_import_id });
+    logger.info('LINK_INVOICE', 'Link invoice request', { saleId, xero_import_id, role });
 
     // ORIGINAL XATA: const xata = getXataClient();
 
@@ -87,15 +91,28 @@ export async function POST(
       return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
     }
 
-    // Only allow linking to atelier sales
-    if (sale.source !== 'atelier') {
+    // Shoppers can only link invoices to their own sales
+    if (!canLinkAnySale) {
+      const shopperRecord = await db.query.shoppers.findFirst({
+        where: eq(shoppers.clerkUserId, userId),
+      });
+      if (!shopperRecord || sale.shopperId !== shopperRecord.id) {
+        return NextResponse.json(
+          { error: 'You can only link invoices to your own sales' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Prevent linking a sale to itself
+    if (sale.id === xero_import_id) {
       return NextResponse.json(
-        { error: 'Can only link invoices to atelier sales' },
+        { error: 'Cannot link a sale to itself' },
         { status: 400 }
       );
     }
 
-    // Fetch the unallocated Xero import to link
+    // Fetch the Xero import to link
     // ORIGINAL XATA: const xeroImport = await xata.db.Sales.read(xero_import_id);
     const xeroImportResults = await db
       .select()
@@ -111,11 +128,10 @@ export async function POST(
       );
     }
 
-    // Validate it's an unallocated import
-    // ORIGINAL XATA: if (xeroImport.source !== 'xero_import' || !xeroImport.needs_allocation) {
-    if (xeroImport.source !== 'xero_import' || !xeroImport.needsAllocation) {
+    // Validate it's a Xero import (not an atelier sale)
+    if (xeroImport.source !== 'xero_import') {
       return NextResponse.json(
-        { error: 'Invoice is not an unallocated Xero import' },
+        { error: 'Can only link Xero-imported invoices' },
         { status: 400 }
       );
     }

@@ -8,12 +8,35 @@ import { XERO_BRANDING_THEMES } from "@/lib/branding-theme-mappings";
 import { getCompletionColor, assessCompleteness } from "@/lib/completeness";
 import { calculateSaleEconomics } from "@/lib/economics";
 import type { CompletenessResult, SaleForCompleteness } from "@/lib/completeness";
-import { ArrowLeft, CheckCircle, AlertCircle, Info, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, Info, ChevronDown, ChevronUp, Link2, PlusCircle, X, Loader2 } from "lucide-react";
+import { NewSupplierModal } from "@/components/modals/NewSupplierModal";
+
+interface LinkedInvoice {
+  xero_invoice_id: string;
+  xero_invoice_number: string;
+  amount_inc_vat: number;
+  currency: string;
+  invoice_date: string;
+  linked_at: string;
+  linked_by: string;
+}
+
+interface XeroImport {
+  id: string;
+  xeroInvoiceNumber: string;
+  saleDate: string | null;
+  saleAmountIncVat: number;
+  currency: string;
+  buyerName: string;
+}
 
 interface SaleData {
   id: string;
   saleReference: string | null;
   xeroInvoiceNumber: string | null;
+  xeroInvoiceId: string | null;
+  source: string | null;
+  linkedInvoices: LinkedInvoice[];
   saleDate: string | null;
   saleAmountIncVat: number;
   saleAmountExVat: number;
@@ -39,6 +62,7 @@ interface SaleData {
 interface Supplier {
   id: string;
   name: string;
+  pendingApproval?: boolean;
 }
 
 interface CompleteDataClientProps {
@@ -46,6 +70,7 @@ interface CompleteDataClientProps {
   suppliers: Supplier[];
   completeness: CompletenessResult;
   userRole: string | null;
+  unallocatedXeroImports: XeroImport[];
 }
 
 // Branding theme options for dropdown
@@ -57,11 +82,25 @@ const BRANDING_THEME_OPTIONS = Object.entries(XERO_BRANDING_THEMES).map(([id, th
 
 export function CompleteDataClient({
   sale,
-  suppliers,
+  suppliers: initialSuppliers,
   completeness,
   userRole,
+  unallocatedXeroImports,
 }: CompleteDataClientProps) {
   const router = useRouter();
+
+  // Supplier list state (local so we can add new ones inline)
+  const [supplierList, setSupplierList] = useState<Supplier[]>(initialSuppliers);
+
+  // Link invoice state
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [selectedLinkInvoiceId, setSelectedLinkInvoiceId] = useState("");
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkSuccess, setLinkSuccess] = useState(false);
+
+  // New supplier modal state
+  const [showNewSupplierModal, setShowNewSupplierModal] = useState(false);
 
   // Form state
   const [supplierId, setSupplierId] = useState(sale.supplierId || "");
@@ -93,10 +132,10 @@ export function CompleteDataClient({
   // Supplier search state
   const [supplierSearch, setSupplierSearch] = useState("");
   const filteredSuppliers = useMemo(() => {
-    if (!supplierSearch) return suppliers;
+    if (!supplierSearch) return supplierList;
     const search = supplierSearch.toLowerCase();
-    return suppliers.filter((s) => s.name.toLowerCase().includes(search));
-  }, [suppliers, supplierSearch]);
+    return supplierList.filter((s) => s.name.toLowerCase().includes(search));
+  }, [supplierList, supplierSearch]);
 
   // Check which fields are missing (to show/hide form sections)
   const missingFields = new Set(completeness.missingFields.map((f) => f.field));
@@ -259,6 +298,51 @@ export function CompleteDataClient({
     }
   };
 
+  // Link invoice handler
+  const handleLinkInvoice = async () => {
+    if (!selectedLinkInvoiceId) return;
+
+    setIsLinking(true);
+    setLinkError(null);
+    setLinkSuccess(false);
+
+    try {
+      const response = await fetch(`/api/sales/${sale.id}/link-invoice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ xero_import_id: selectedLinkInvoiceId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to link invoice");
+      }
+
+      setLinkSuccess(true);
+      setShowLinkModal(false);
+      setSelectedLinkInvoiceId("");
+
+      // Refresh page to pick up updated sale totals and linked invoices
+      router.refresh();
+    } catch (err: any) {
+      setLinkError(err.message || "Failed to link invoice");
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  // New supplier created callback
+  const handleSupplierCreated = (supplier: { id: string; name: string; pending_approval: boolean }) => {
+    setSupplierList((prev) => [...prev, { id: supplier.id, name: supplier.name, pendingApproval: supplier.pending_approval }]);
+    setSupplierId(supplier.id);
+    setSupplierSearch("");
+  };
+
+  // Filter unallocated imports to same currency
+  const availableImports = unallocatedXeroImports.filter(
+    (imp) => imp.currency === sale.currency
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
@@ -329,6 +413,167 @@ export function CompleteDataClient({
           </div>
         </div>
 
+        {/* Linked Invoices Section */}
+        {(sale.linkedInvoices.length > 0 || (sale.xeroInvoiceId && availableImports.length > 0)) && (
+          <div className="bg-indigo-50 rounded-xl border border-indigo-200 shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Link2 className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-sm sm:text-base font-semibold text-indigo-900">Linked Invoices</h2>
+            </div>
+
+            {sale.linkedInvoices.length > 0 ? (
+              <>
+                <p className="text-xs sm:text-sm text-indigo-700 mb-3">
+                  This sale has {sale.linkedInvoices.length + 1} linked invoices (e.g. deposit + balance).
+                </p>
+                <div className="bg-white rounded-lg border border-indigo-200 overflow-hidden mb-3">
+                  <table className="min-w-full divide-y divide-indigo-200">
+                    <thead className="bg-indigo-100">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-indigo-700 uppercase">Invoice</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-indigo-700 uppercase">Amount</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-indigo-700 uppercase">Type</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-indigo-100">
+                      <tr>
+                        <td className="px-3 py-2 text-sm font-medium text-gray-900">{sale.xeroInvoiceNumber}</td>
+                        <td className="px-3 py-2 text-sm text-gray-900 text-right font-medium">
+                          {formatCurrency(sale.saleAmountIncVat - sale.linkedInvoices.reduce((sum, inv) => sum + inv.amount_inc_vat, 0))}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">Primary</span>
+                        </td>
+                      </tr>
+                      {sale.linkedInvoices.map((inv) => (
+                        <tr key={inv.xero_invoice_id}>
+                          <td className="px-3 py-2 text-sm font-medium text-gray-900">{inv.xero_invoice_number}</td>
+                          <td className="px-3 py-2 text-sm text-gray-900 text-right font-medium">{formatCurrency(inv.amount_inc_vat)}</td>
+                          <td className="px-3 py-2 text-center">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Linked</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-indigo-50">
+                      <tr>
+                        <td className="px-3 py-2 text-sm font-semibold text-indigo-900">Total</td>
+                        <td className="px-3 py-2 text-sm font-bold text-indigo-900 text-right">{formatCurrency(sale.saleAmountIncVat)}</td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs sm:text-sm text-indigo-700 mb-3">
+                Has a deposit or additional invoice? Link it here so your margin calculates correctly.
+              </p>
+            )}
+
+            {linkSuccess && (
+              <div className="mb-3 flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-700">Invoice linked successfully! Sale total updated.</span>
+              </div>
+            )}
+
+            {availableImports.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLinkModal(true);
+                  setSelectedLinkInvoiceId("");
+                  setLinkError(null);
+                }}
+                className="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-lg text-indigo-700 bg-white hover:bg-indigo-50 transition-colors"
+              >
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Link a Deposit / Additional Invoice
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Link Invoice Modal */}
+        {showLinkModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Link Additional Invoice</h3>
+                <button
+                  onClick={() => {
+                    setShowLinkModal(false);
+                    setSelectedLinkInvoiceId("");
+                    setLinkError(null);
+                  }}
+                  className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Select an unallocated Xero invoice to link to this sale. This is useful when a client pays in multiple parts (e.g. deposit + balance).
+              </p>
+
+              {linkError && (
+                <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-red-800">{linkError}</p>
+                </div>
+              )}
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Invoice</label>
+                <select
+                  value={selectedLinkInvoiceId}
+                  onChange={(e) => setSelectedLinkInvoiceId(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  disabled={isLinking}
+                >
+                  <option value="">Choose an invoice...</option>
+                  {availableImports.map((imp) => (
+                    <option key={imp.id} value={imp.id}>
+                      {imp.xeroInvoiceNumber} — {imp.buyerName} — {formatCurrency(imp.saleAmountIncVat)} ({formatDate(imp.saleDate)})
+                      {imp.buyerName === sale.buyerName ? " (Same Client)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLinkModal(false);
+                    setSelectedLinkInvoiceId("");
+                    setLinkError(null);
+                  }}
+                  disabled={isLinking}
+                  className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLinkInvoice}
+                  disabled={!selectedLinkInvoiceId || isLinking}
+                  className="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  {isLinking ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Linking...
+                    </>
+                  ) : (
+                    "Link Invoice"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Success Message */}
         {saveSuccess && (
           <div className="mb-6 flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -375,9 +620,22 @@ export function CompleteDataClient({
                     </option>
                   ))}
                 </select>
-                <p className="mt-2 text-xs text-gray-500">
-                  Can&apos;t find your supplier? Contact Alys to add a new supplier.
-                </p>
+                {/* Pending approval badge for selected supplier */}
+                {supplierId && supplierList.find((s) => s.id === supplierId)?.pendingApproval && (
+                  <div className="mt-2 inline-flex items-center px-2 py-1 rounded-md bg-amber-50 border border-amber-200">
+                    <span className="text-xs font-medium text-amber-700">Pending Approval</span>
+                  </div>
+                )}
+                <div className="mt-2 flex items-center gap-1">
+                  <span className="text-xs text-gray-500">Can&apos;t find your supplier?</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewSupplierModal(true)}
+                    className="text-xs font-medium text-purple-600 hover:text-purple-700 transition-colors"
+                  >
+                    + Add New Supplier
+                  </button>
+                </div>
               </div>
             )}
 
@@ -709,6 +967,13 @@ export function CompleteDataClient({
           </div>
         </div>
       </div>
+
+      {/* New Supplier Modal */}
+      <NewSupplierModal
+        open={showNewSupplierModal}
+        onClose={() => setShowNewSupplierModal(false)}
+        onCreated={handleSupplierCreated}
+      />
     </div>
   );
 }

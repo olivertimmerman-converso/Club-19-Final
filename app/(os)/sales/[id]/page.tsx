@@ -3,7 +3,7 @@ import { redirect, notFound } from 'next/navigation';
 // ORIGINAL XATA: import { getXataClient } from '@/src/xata';
 import { db } from "@/db";
 import { sales, shoppers, suppliers } from "@/db/schema";
-import { eq, and, isNull, isNotNull, desc, asc } from "drizzle-orm";
+import { eq, and, isNull, desc, asc } from "drizzle-orm";
 import { getUserRole } from '@/lib/getUserRole';
 import { SaleDetailClient } from './SaleDetailClient';
 
@@ -99,12 +99,11 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   //       .getAll()
   //   : [];
 
-  // Fetch unallocated Xero imports for superadmin linking (for all Atelier sales, even if already linked)
-  const unallocatedXeroImports = (role === 'superadmin' && sale.source === 'atelier')
+  // Fetch linkable Xero imports for superadmin linking (any non-deleted Xero import)
+  const unallocatedXeroImports = (role === 'superadmin')
     ? await db.query.sales.findMany({
         where: and(
           eq(sales.source, 'xero_import'),
-          eq(sales.needsAllocation, true),
           isNull(sales.deletedAt)
         ),
         with: {

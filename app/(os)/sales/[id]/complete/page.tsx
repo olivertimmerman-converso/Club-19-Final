@@ -10,7 +10,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { db } from "@/db";
 import { sales, buyers, shoppers, suppliers as suppliersTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull, desc } from "drizzle-orm";
 import { assessCompleteness } from "@/lib/completeness";
 import { CompleteDataClient } from "./CompleteDataClient";
 
@@ -88,6 +88,29 @@ export default async function CompleteDataPage({
   const allSuppliers = supplierRows
     .filter((s): s is { id: string; name: string } => s.name !== null);
 
+  // Fetch linkable Xero imports (any non-deleted Xero import, including allocated ones)
+  // This allows linking deposit invoices that may have already been allocated to a shopper
+  const linkableXeroImportsRaw = await db.query.sales.findMany({
+    where: and(
+      eq(sales.source, 'xero_import'),
+      isNull(sales.deletedAt)
+    ),
+    with: { buyer: true },
+    orderBy: [desc(sales.saleDate)],
+  });
+
+  // Exclude the current sale itself from the linkable list
+  const unallocatedXeroImports = linkableXeroImportsRaw
+    .filter(imp => imp.id !== sale.id)
+    .map(imp => ({
+      id: imp.id,
+      xeroInvoiceNumber: imp.xeroInvoiceNumber || 'Unknown',
+      saleDate: imp.saleDate ? imp.saleDate.toISOString() : null,
+      saleAmountIncVat: imp.saleAmountIncVat || 0,
+      currency: imp.currency || 'GBP',
+      buyerName: imp.buyer?.name || 'Unknown',
+    }));
+
   // Assess completeness
   const completeness = assessCompleteness({
     supplierId: sale.supplierId,
@@ -106,6 +129,17 @@ export default async function CompleteDataPage({
     id: sale.id,
     saleReference: sale.saleReference || null,
     xeroInvoiceNumber: sale.xeroInvoiceNumber || null,
+    xeroInvoiceId: sale.xeroInvoiceId || null,
+    source: sale.source || null,
+    linkedInvoices: (sale.linkedInvoices as Array<{
+      xero_invoice_id: string;
+      xero_invoice_number: string;
+      amount_inc_vat: number;
+      currency: string;
+      invoice_date: string;
+      linked_at: string;
+      linked_by: string;
+    }>) || [],
     saleDate: sale.saleDate ? sale.saleDate.toISOString() : null,
     saleAmountIncVat: sale.saleAmountIncVat || 0,
     saleAmountExVat: sale.saleAmountExVat || 0,
@@ -134,6 +168,7 @@ export default async function CompleteDataPage({
       suppliers={allSuppliers}
       completeness={completeness}
       userRole={role}
+      unallocatedXeroImports={unallocatedXeroImports}
     />
   );
 }

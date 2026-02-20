@@ -2536,8 +2536,8 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
           </div>
         )}
 
-        {/* Linked Invoices Section (when there are linked invoices OR superadmin viewing atelier sale) */}
-        {(sale.linked_invoices?.length > 0 || (userRole === 'superadmin' && sale.source === 'atelier' && sale.xero_invoice_id)) && (
+        {/* Linked Invoices Section (when there are linked invoices OR superadmin can link) */}
+        {(sale.linked_invoices?.length > 0 || (userRole === 'superadmin' && sale.xero_invoice_id)) && (
           <div className="bg-indigo-50 rounded-lg border border-indigo-200 shadow-sm p-6 lg:col-span-2">
             <div className="flex items-start gap-3">
               <svg className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2750,8 +2750,8 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
           </div>
         )}
 
-        {/* Link to Xero Invoice (Superadmin only, Atelier sales) */}
-        {userRole === 'superadmin' && sale.source === 'atelier' && unallocatedXeroImports.length > 0 && (
+        {/* Link to Xero Invoice (Superadmin only) */}
+        {userRole === 'superadmin' && unallocatedXeroImports.length > 0 && (
           <div className="bg-blue-50 rounded-lg border border-blue-200 shadow-sm p-6 lg:col-span-2">
             <div className="flex items-start gap-3 mb-4">
               <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
