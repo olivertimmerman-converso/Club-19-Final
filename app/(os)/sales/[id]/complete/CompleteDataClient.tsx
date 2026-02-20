@@ -95,6 +95,7 @@ export function CompleteDataClient({
   // Link invoice state
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [selectedLinkInvoiceId, setSelectedLinkInvoiceId] = useState("");
+  const [linkSearch, setLinkSearch] = useState("");
   const [isLinking, setIsLinking] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [linkSuccess, setLinkSuccess] = useState(false);
@@ -343,6 +344,17 @@ export function CompleteDataClient({
     (imp) => imp.currency === sale.currency
   );
 
+  // Further filter by search term for the modal dropdown
+  const filteredImports = useMemo(() => {
+    if (!linkSearch) return availableImports;
+    const search = linkSearch.toLowerCase();
+    return availableImports.filter(
+      (imp) =>
+        imp.xeroInvoiceNumber.toLowerCase().includes(search) ||
+        imp.buyerName.toLowerCase().includes(search)
+    );
+  }, [availableImports, linkSearch]);
+
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
@@ -485,6 +497,7 @@ export function CompleteDataClient({
                   setShowLinkModal(true);
                   setSelectedLinkInvoiceId("");
                   setLinkError(null);
+                  setLinkSearch("");
                 }}
                 className="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-lg text-indigo-700 bg-white hover:bg-indigo-50 transition-colors"
               >
@@ -506,6 +519,7 @@ export function CompleteDataClient({
                     setShowLinkModal(false);
                     setSelectedLinkInvoiceId("");
                     setLinkError(null);
+                    setLinkSearch("");
                   }}
                   className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 >
@@ -514,7 +528,7 @@ export function CompleteDataClient({
               </div>
 
               <p className="text-sm text-gray-600 mb-4">
-                Select an unallocated Xero invoice to link to this sale. This is useful when a client pays in multiple parts (e.g. deposit + balance).
+                Search for a Xero invoice to link to this sale (e.g. deposit + balance).
               </p>
 
               {linkError && (
@@ -524,21 +538,39 @@ export function CompleteDataClient({
               )}
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Invoice</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Search by invoice number or client name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. INV-3291 or Kirsty..."
+                  value={linkSearch}
+                  onChange={(e) => {
+                    setLinkSearch(e.target.value);
+                    setSelectedLinkInvoiceId("");
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 mb-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  autoFocus
+                />
                 <select
                   value={selectedLinkInvoiceId}
                   onChange={(e) => setSelectedLinkInvoiceId(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   disabled={isLinking}
+                  size={Math.min(filteredImports.length + 1, 8)}
                 >
                   <option value="">Choose an invoice...</option>
-                  {availableImports.map((imp) => (
+                  {filteredImports.map((imp) => (
                     <option key={imp.id} value={imp.id}>
                       {imp.xeroInvoiceNumber} — {imp.buyerName} — {formatCurrency(imp.saleAmountIncVat)} ({formatDate(imp.saleDate)})
-                      {imp.buyerName === sale.buyerName ? " (Same Client)" : ""}
+                      {imp.buyerName === sale.buyerName ? " ★" : ""}
                     </option>
                   ))}
                 </select>
+                {linkSearch && filteredImports.length === 0 && (
+                  <p className="mt-2 text-xs text-gray-500">No invoices match &ldquo;{linkSearch}&rdquo;</p>
+                )}
+                {!linkSearch && (
+                  <p className="mt-2 text-xs text-gray-500">Type above to search {availableImports.length} available invoices</p>
+                )}
               </div>
 
               <div className="flex justify-end gap-3">
@@ -548,6 +580,7 @@ export function CompleteDataClient({
                     setShowLinkModal(false);
                     setSelectedLinkInvoiceId("");
                     setLinkError(null);
+                    setLinkSearch("");
                   }}
                   disabled={isLinking}
                   className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"

@@ -128,10 +128,11 @@ export async function POST(
       );
     }
 
-    // Validate it's a Xero import (not an atelier sale)
-    if (xeroImport.source !== 'xero_import') {
+    // Validate it's a Xero-originated invoice (import, allocated, or adopted — not an atelier sale)
+    const linkableSources = ['xero_import', 'allocated', 'adopted'];
+    if (!linkableSources.includes(xeroImport.source || '')) {
       return NextResponse.json(
-        { error: 'Can only link Xero-imported invoices' },
+        { error: 'Can only link Xero-originated invoices' },
         { status: 400 }
       );
     }

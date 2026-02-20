@@ -10,7 +10,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { db } from "@/db";
 import { sales, buyers, shoppers, suppliers as suppliersTable } from "@/db/schema";
-import { eq, and, isNull, desc } from "drizzle-orm";
+import { eq, and, isNull, desc, inArray } from "drizzle-orm";
 import { assessCompleteness } from "@/lib/completeness";
 import { CompleteDataClient } from "./CompleteDataClient";
 
@@ -88,11 +88,11 @@ export default async function CompleteDataPage({
   const allSuppliers = supplierRows
     .filter((s): s is { id: string; name: string } => s.name !== null);
 
-  // Fetch linkable Xero imports (any non-deleted Xero import, including allocated ones)
-  // This allows linking deposit invoices that may have already been allocated to a shopper
+  // Fetch linkable Xero-originated invoices (imports, allocated, and adopted)
+  // When invoices are allocated to a shopper their source changes from 'xero_import' to 'allocated'
   const linkableXeroImportsRaw = await db.query.sales.findMany({
     where: and(
-      eq(sales.source, 'xero_import'),
+      inArray(sales.source, ['xero_import', 'allocated', 'adopted']),
       isNull(sales.deletedAt)
     ),
     with: { buyer: true },
