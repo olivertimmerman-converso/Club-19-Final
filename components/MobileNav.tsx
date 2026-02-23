@@ -146,7 +146,24 @@ export function MobileNav({ role }: MobileNavProps) {
     // Special cases
     if (href === "/admin") return pathname === "/admin";
     if (href === "/trade/new") return pathname.startsWith("/trade");
+    // /admin/sync should NOT match /admin prefix for the admin tab
+    if (href === "/admin/sync" && pathname.startsWith("/admin/sync")) return true;
+    if (href === "/admin/sync") return false;
     return pathname.startsWith(href + "/");
+  };
+
+  // For bottom tabs: only highlight if the current path matches one of the tab hrefs
+  const isTabActive = (href: string) => {
+    // Exact match for tab highlighting (stricter than drawer)
+    if (href === pathname) return true;
+    if (href === "/trade/new") return pathname.startsWith("/trade");
+    if (href === "/admin/sync") return pathname.startsWith("/admin/sync");
+    if (href === "/sales") return pathname.startsWith("/sales");
+    if (href === "/clients") return pathname.startsWith("/clients");
+    if (href === "/finance") return pathname.startsWith("/finance");
+    if (href === "/invoices") return pathname.startsWith("/invoices");
+    if (href === "/dashboard") return pathname === "/dashboard";
+    return false;
   };
 
   return (
@@ -198,7 +215,7 @@ export function MobileNav({ role }: MobileNavProps) {
       <div className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 pb-[env(safe-area-inset-bottom)]">
         <nav className="flex items-stretch h-14">
           {tabs.map((tab) => {
-            const active = isActive(tab.href);
+            const active = isTabActive(tab.href);
             const Icon = tab.icon;
             return (
               <Link

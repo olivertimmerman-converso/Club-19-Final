@@ -263,21 +263,21 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     }));
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Sales</h1>
-          <p className="text-gray-600">
+          <h1 className="text-xl sm:text-3xl font-semibold text-gray-900 mb-1 sm:mb-2">Sales</h1>
+          <p className="text-sm sm:text-base text-gray-600">
             {salesData.length} active sale{salesData.length !== 1 ? 's' : ''}
             {role === 'superadmin' && deletedSales.length > 0 && ` • ${deletedSales.length} deleted`}
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <MonthPicker />
           <Link
             href="/trade/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-2 min-h-[44px] border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
           >
             <svg
               className="w-5 h-5 mr-2"
@@ -292,7 +292,8 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            Create Invoice
+            <span className="hidden sm:inline">Create Invoice</span>
+            <span className="sm:hidden">New Sale</span>
           </Link>
         </div>
       </div>

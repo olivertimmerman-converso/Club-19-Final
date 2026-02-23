@@ -254,54 +254,55 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     };
 
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900 mb-2">Clients</h1>
-            <p className="text-gray-600">
+            <h1 className="text-xl sm:text-3xl font-semibold text-gray-900 mb-1 sm:mb-2">Clients</h1>
+            <p className="text-sm sm:text-base text-gray-600">
               {getSubtitle()}
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <MonthPicker />
             <Link
               href="#"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+              className="inline-flex items-center justify-center px-4 py-2 min-h-[44px] border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Add Client
+              <span className="hidden sm:inline">Add Client</span>
+              <span className="sm:hidden">Add</span>
             </Link>
           </div>
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Clients</h3>
-            <p className="text-2xl font-bold text-gray-900">{totalClients}</p>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-6 mb-8">
+          <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-1 sm:mb-2">Total Clients</h3>
+            <p className="text-lg sm:text-2xl font-bold text-gray-900">{totalClients}</p>
             <p className="text-xs text-gray-500 mt-1">Active buyers</p>
           </div>
-          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Client Spend</h3>
-            <p className="text-2xl font-bold text-purple-600">{formatCurrency(totalClientSpend)}</p>
+          <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-1 sm:mb-2">Total Client Spend</h3>
+            <p className="text-lg sm:text-2xl font-bold text-purple-600">{formatCurrency(totalClientSpend)}</p>
             <p className="text-xs text-gray-500 mt-1">Lifetime value</p>
           </div>
-          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">2026 Spend</h3>
-            <p className="text-2xl font-bold text-blue-600">{formatCurrency(totalSpend2026)}</p>
+          <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-1 sm:mb-2">2026 Spend</h3>
+            <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(totalSpend2026)}</p>
             <p className="text-xs text-gray-500 mt-1">Atelier sales only</p>
           </div>
-          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">2026 Margin</h3>
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalMargin2026)}</p>
+          <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-1 sm:mb-2">2026 Margin</h3>
+            <p className="text-lg sm:text-2xl font-bold text-green-600">{formatCurrency(totalMargin2026)}</p>
             <p className="text-xs text-gray-500 mt-1">Atelier sales only</p>
           </div>
-          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Awaiting Payment</h3>
-            <p className="text-2xl font-bold text-yellow-600">{formatCurrency(totalPipeline)}</p>
+          <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-1 sm:mb-2">Awaiting Payment</h3>
+            <p className="text-lg sm:text-2xl font-bold text-yellow-600">{formatCurrency(totalPipeline)}</p>
             <p className="text-xs text-gray-500 mt-1">Unpaid invoices</p>
           </div>
         </div>
@@ -324,7 +325,42 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <>
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {clientsWithStats.map((client) => (
+              <Link
+                key={client.id}
+                href={`/clients/${client.id}`}
+                className={`block bg-white rounded-lg border border-gray-200 shadow-sm p-3 active:bg-gray-50 transition-colors ${client.has2026Activity ? 'border-l-2 border-l-blue-500' : ''}`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-sm text-gray-900">{client.name}</span>
+                  <span className="font-semibold text-sm text-gray-900">{formatCurrency(client.totalSpend)}</span>
+                </div>
+                {client.email && (
+                  <div className="text-xs text-gray-500 mb-1">{client.email}</div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">
+                    {client.tradesCount} sale{client.tradesCount !== 1 ? 's' : ''} · Last: {formatDate(client.lastPurchaseDate)}
+                  </span>
+                  {client.has2026Activity ? (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800">
+                      Active 2026
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-700">
+                      Legacy
+                    </span>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -402,6 +438,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
               </table>
             </div>
           </div>
+          </>
         )}
       </div>
     );

@@ -177,7 +177,56 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+      {/* ── Mobile Card View ── */}
+      <div className="md:hidden space-y-3">
+        {sales.map((sale) => (
+          <Link
+            key={sale.id}
+            href={`/sales/${sale.id}`}
+            className="block bg-white rounded-lg border border-gray-200 shadow-sm p-3 active:bg-gray-50 transition-colors"
+          >
+            {/* Row 1: Invoice ref + amount */}
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-semibold text-sm text-purple-600">
+                {sale.sale_reference || sale.xero_invoice_number || '—'}
+              </span>
+              <span className="font-semibold text-sm text-gray-900">
+                {formatCurrency(sale.sale_amount_inc_vat, sale.currency)}
+              </span>
+            </div>
+            {/* Row 2: Buyer name */}
+            <div className="text-sm text-gray-700 mb-0.5">
+              {sale.buyer?.name || '—'}
+            </div>
+            {/* Row 3: Brand + shopper */}
+            {(sale.brand || sale.shopper?.name) && (
+              <div className="text-xs text-gray-500 mb-1">
+                {[sale.brand, sale.shopper?.name].filter(Boolean).join(' · ')}
+              </div>
+            )}
+            {/* Row 4: Date + status + badges */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400">
+                {formatDate(sale.sale_date)}
+              </span>
+              <div className="flex items-center gap-1.5">
+                {isIncomplete(sale) && (
+                  <span className="text-amber-500 text-xs">⚠️</span>
+                )}
+                {sale.is_payment_plan && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800">
+                    Plan
+                  </span>
+                )}
+                {getStatusBadge(sale.invoice_status)}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* ── Desktop Table View ── */}
+      <div className="hidden md:block bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -268,7 +317,7 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
                           className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800"
                           title="Delivery cost pending confirmation"
                         >
-                          📦 Delivery TBC
+                          Delivery TBC
                         </span>
                       )}
                       {(sale.has_introducer || sale.introducer) && (
@@ -276,7 +325,7 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
                           className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
                           title={`Introducer: ${sale.introducer?.name || 'Set'}`}
                         >
-                          🤝
+                          Introducer
                         </span>
                       )}
                     </div>

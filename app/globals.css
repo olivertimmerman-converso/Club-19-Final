@@ -234,6 +234,29 @@
   }
 }
 
+/* Mobile form sizing — prevent iOS Safari auto-zoom on focus */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    min-height: 48px;
+  }
+
+  button,
+  [role="button"],
+  a.btn,
+  a.btn-primary,
+  a.btn-secondary {
+    min-height: 48px;
+  }
+}
+
 /* Print styles */
 @media print {
   .no-print {

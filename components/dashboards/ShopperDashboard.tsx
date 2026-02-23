@@ -221,7 +221,7 @@ export async function ShopperDashboard({
       {/* Needs Your Attention - Task Queue */}
       {incompleteSales.length > 0 && (
         <div className="mb-8">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 sm:p-6">
             <div className="flex items-start gap-3 mb-4">
               <svg
                 className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5"
@@ -251,49 +251,75 @@ export async function ShopperDashboard({
                 <Link
                   key={sale.id}
                   href={`/sales/${sale.id}/complete`}
-                  className="flex items-center justify-between bg-white p-4 rounded-lg border border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-colors group"
+                  className="block bg-white rounded-lg border border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-colors group"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 truncate">
+                  {/* Mobile: stacked card layout */}
+                  <div className="p-3 sm:hidden">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-sm text-gray-900">
                         {sale.xeroInvoiceNumber || 'No Invoice #'}
                       </span>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-sm text-gray-600 truncate">
-                        {sale.buyer?.name || 'Unknown Client'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm font-medium text-purple-600">
+                      <span className="font-semibold text-sm text-purple-600">
                         {formatCurrency(sale.saleAmountIncVat || 0)}
                       </span>
-                      {sale.allocatedAt && (
-                        <>
-                          <span className="text-gray-400">•</span>
-                          <span className="text-xs text-gray-500">
-                            Assigned {formatDate(sale.allocatedAt)}
-                          </span>
-                        </>
-                      )}
+                    </div>
+                    <div className="text-sm text-gray-600 mb-0.5">
+                      {sale.buyer?.name || 'Unknown Client'}
+                    </div>
+                    {sale.allocatedAt && (
+                      <div className="text-xs text-gray-400 mb-3">
+                        Assigned {formatDate(sale.allocatedAt)}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-center min-h-[44px] bg-amber-100 text-amber-700 text-sm font-medium rounded-lg">
+                      Add Details
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded">
-                      Add Details
-                    </span>
-                    <svg
-                      className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
+
+                  {/* Desktop: horizontal row layout */}
+                  <div className="hidden sm:flex items-center justify-between p-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900 truncate">
+                          {sale.xeroInvoiceNumber || 'No Invoice #'}
+                        </span>
+                        <span className="text-gray-400">•</span>
+                        <span className="text-sm text-gray-600 truncate">
+                          {sale.buyer?.name || 'Unknown Client'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm font-medium text-purple-600">
+                          {formatCurrency(sale.saleAmountIncVat || 0)}
+                        </span>
+                        {sale.allocatedAt && (
+                          <>
+                            <span className="text-gray-400">•</span>
+                            <span className="text-xs text-gray-500">
+                              Assigned {formatDate(sale.allocatedAt)}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                        Add Details
+                      </span>
+                      <svg
+                        className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </Link>
               ))}
