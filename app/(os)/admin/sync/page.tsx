@@ -162,8 +162,9 @@ export default async function SyncPage({ searchParams }: Props) {
   //   .sort("name", "asc")
   //   .getAll();
 
-  // Fetch shoppers
+  // Fetch active shoppers
   const shoppersRaw = await db.query.shoppers.findMany({
+    where: eq(shoppers.active, true),
     orderBy: [asc(shoppers.name)],
   });
 

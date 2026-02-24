@@ -68,8 +68,9 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   //   .sort('name', 'asc')
   //   .getAll();
 
-  // Fetch all shoppers for the dropdown
+  // Fetch all active shoppers for the dropdown
   const shoppersData = await db.query.shoppers.findMany({
+    where: eq(shoppers.active, true),
     orderBy: [asc(shoppers.name)],
   });
 

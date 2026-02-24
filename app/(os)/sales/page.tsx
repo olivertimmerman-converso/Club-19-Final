@@ -203,8 +203,9 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     //   .sort('name', 'asc')
     //   .getAll();
 
-    // Fetch all shoppers for the dropdown
+    // Fetch all active shoppers for the dropdown
     const shoppersRaw = await db.query.shoppers.findMany({
+      where: eq(shoppers.active, true),
       orderBy: [asc(shoppers.name)],
     });
 

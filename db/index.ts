@@ -11,6 +11,13 @@
  *   const shoppers = await db.select().from(schema.shoppers);
  */
 
+import dotenv from "dotenv";
+import path from "path";
+
+// Load .env.local for scripts and CLI tools (Next.js loads this automatically,
+// but standalone scripts and drizzle-kit don't)
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
