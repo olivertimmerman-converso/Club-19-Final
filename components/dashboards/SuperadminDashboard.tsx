@@ -3,7 +3,7 @@ import Link from "next/link";
 // ORIGINAL XATA: import type { SalesRecord } from "@/src/xata";
 import { db } from "@/db";
 import { sales, shoppers, buyers, suppliers, introducers } from "@/db/schema";
-import { eq, and, gte, lte, desc, ne, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, or, gte, lte, desc, ne, isNull, isNotNull } from "drizzle-orm";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { ViewAsSelector } from "@/components/ui/ViewAsSelector";
 import { getMonthDateRange } from "@/lib/dateUtils";
@@ -75,10 +75,11 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   // const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
 
   // Query Sales table for metrics using Drizzle
+  // Commission timing: prefer completedAt, fall back to saleDate for legacy data
   const whereConditions = dateRange
-    ? and(
-        gte(sales.saleDate, dateRange.start),
-        lte(sales.saleDate, dateRange.end)
+    ? or(
+        and(gte(sales.completedAt, dateRange.start), lte(sales.completedAt, dateRange.end)),
+        and(isNull(sales.completedAt), gte(sales.saleDate, dateRange.start), lte(sales.saleDate, dateRange.end))
       )
     : undefined;
 
@@ -100,7 +101,8 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
     sale.source !== 'xero_import' &&
     !sale.deletedAt &&
     !sale.needsAllocation &&
-    !sale.dismissed
+    !sale.dismissed &&
+    sale.status !== 'ongoing'
   );
 
   // Calculate metrics
@@ -130,16 +132,16 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
     const lastMonthSalesRaw = await db.query.sales.findMany({
-      where: and(
-        gte(sales.saleDate, lastMonthStart),
-        lte(sales.saleDate, lastMonthEnd)
+      where: or(
+        and(gte(sales.completedAt, lastMonthStart), lte(sales.completedAt, lastMonthEnd)),
+        and(isNull(sales.completedAt), gte(sales.saleDate, lastMonthStart), lte(sales.saleDate, lastMonthEnd))
       ),
       limit: 1000,
     });
 
     // Filter in JavaScript
     const lastMonthSales = lastMonthSalesRaw.filter(sale =>
-      sale.source !== 'xero_import' && !sale.deletedAt
+      sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
     );
 
     const lastTotal = lastMonthSales.reduce((sum, sale) => sum + (sale.saleAmountIncVat || 0), 0);

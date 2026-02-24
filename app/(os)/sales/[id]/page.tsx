@@ -169,6 +169,8 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
       name: sale.introducer.name || 'Unknown',
     } : null,
     linked_invoices: (sale.linkedInvoices as any[] | null) || [],
+    status: sale.status || null,
+    completed_at: sale.completedAt ? sale.completedAt.toISOString() : null,
   };
 
   // Debug: Log serialized data

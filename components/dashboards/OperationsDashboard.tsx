@@ -92,10 +92,11 @@ export async function OperationsDashboard({
   // const allSalesRaw = await salesQuery.sort("sale_date", "desc").getMany({ pagination: { size: 200 } });
 
   // Fetch comprehensive sales data for this month using Drizzle
+  // Commission timing: prefer completedAt, fall back to saleDate for legacy data
   const allSalesRaw = await db.query.sales.findMany({
-    where: and(
-      gte(sales.saleDate, dateRange.start),
-      lte(sales.saleDate, dateRange.end)
+    where: or(
+      and(gte(sales.completedAt, dateRange.start), lte(sales.completedAt, dateRange.end)),
+      and(isNull(sales.completedAt), gte(sales.saleDate, dateRange.start), lte(sales.saleDate, dateRange.end))
     ),
     with: {
       shopper: true,
@@ -105,9 +106,9 @@ export async function OperationsDashboard({
     limit: 200,
   });
 
-  // Filter out xero_import and deleted sales in JavaScript
+  // Filter out xero_import, deleted, and ongoing sales in JavaScript
   const salesData = allSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt
+    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
   );
 
   // ORIGINAL XATA:
@@ -129,9 +130,9 @@ export async function OperationsDashboard({
   lastMonthEnd.setHours(23, 59, 59);
 
   const lastMonthSalesRaw = await db.query.sales.findMany({
-    where: and(
-      gte(sales.saleDate, lastMonthStart),
-      lte(sales.saleDate, lastMonthEnd)
+    where: or(
+      and(gte(sales.completedAt, lastMonthStart), lte(sales.completedAt, lastMonthEnd)),
+      and(isNull(sales.completedAt), gte(sales.saleDate, lastMonthStart), lte(sales.saleDate, lastMonthEnd))
     ),
     with: {
       shopper: true,
@@ -141,7 +142,7 @@ export async function OperationsDashboard({
 
   // Filter in JavaScript
   const lastMonthSales = lastMonthSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt
+    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
   );
 
   // ORIGINAL XATA:
@@ -158,9 +159,9 @@ export async function OperationsDashboard({
   // Fetch YTD data - limit to 500
   const ytdStart = new Date(dateRange.start.getFullYear(), 0, 1);
   const ytdSalesRaw = await db.query.sales.findMany({
-    where: and(
-      gte(sales.saleDate, ytdStart),
-      lte(sales.saleDate, dateRange.end)
+    where: or(
+      and(gte(sales.completedAt, ytdStart), lte(sales.completedAt, dateRange.end)),
+      and(isNull(sales.completedAt), gte(sales.saleDate, ytdStart), lte(sales.saleDate, dateRange.end))
     ),
     with: {
       shopper: true,
@@ -170,7 +171,7 @@ export async function OperationsDashboard({
 
   // Filter in JavaScript
   const ytdSales = ytdSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt
+    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
   );
 
   // ORIGINAL XATA:

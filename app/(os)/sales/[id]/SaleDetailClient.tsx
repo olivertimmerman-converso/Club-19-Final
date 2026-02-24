@@ -59,6 +59,8 @@ interface Sale {
   shipping_method: string | null;
   shipping_cost_confirmed: boolean;
   linked_invoices: LinkedInvoice[];
+  status: string | null;
+  completed_at: string | null;
 }
 
 interface PaymentInstalment {
@@ -224,6 +226,12 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
   const [editDescription, setEditDescription] = useState(sale.item_title || '');
   const [editBuyPrice, setEditBuyPrice] = useState(sale.buy_price?.toString() || '0');
   const [editSupplierId, setEditSupplierId] = useState(sale.supplier?.id || '');
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const filteredSuppliers = useMemo(() => {
+    if (!supplierSearch) return suppliers;
+    const search = supplierSearch.toLowerCase();
+    return suppliers.filter((s) => s.name.toLowerCase().includes(search));
+  }, [suppliers, supplierSearch]);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [editSuccess, setEditSuccess] = useState(false);
@@ -245,6 +253,12 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
   const [linkAdditionalSuccess, setLinkAdditionalSuccess] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState<string | null>(null);
   const [unlinkError, setUnlinkError] = useState<string | null>(null);
+
+  // Sale status transition state (ongoing/complete)
+  const [saleStatus, setSaleStatus] = useState(sale.status);
+  const [isTransitioningStatus, setIsTransitioningStatus] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [statusMissingFields, setStatusMissingFields] = useState<string[] | null>(null);
 
   // Fetch introducers on mount
   useEffect(() => {
@@ -930,6 +944,39 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
     return `£${amount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
+  // Handle sale status transition (ongoing / completed)
+  const handleStatusTransition = async (targetStatus: 'ongoing' | 'completed') => {
+    setIsTransitioningStatus(true);
+    setStatusError(null);
+    setStatusMissingFields(null);
+
+    try {
+      const res = await fetch(`/api/sales/${sale.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: targetStatus }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setStatusError(data.error || 'Failed to update status');
+        if (data.missingFields) {
+          setStatusMissingFields(data.missingFields);
+        }
+        return;
+      }
+
+      // Update local state and refresh
+      setSaleStatus(data.status);
+      router.refresh();
+    } catch {
+      setStatusError('Failed to update sale status');
+    } finally {
+      setIsTransitioningStatus(false);
+    }
+  };
+
   // Format date
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '—';
@@ -1023,14 +1070,39 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
           <h1 className="text-3xl font-semibold text-gray-900 mb-2">
             {sale.sale_reference || `Sale #${sale.id.slice(0, 8)}`}
           </h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {getStatusBadge(sale.invoice_status)}
+            {saleStatus === 'ongoing' && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                Ongoing
+              </span>
+            )}
             <span className="text-sm text-gray-500">
               {formatDate(sale.sale_date)}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Ongoing / Complete buttons */}
+          {saleStatus === 'ongoing' ? (
+            <button
+              onClick={() => handleStatusTransition('completed')}
+              disabled={isTransitioningStatus}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors disabled:opacity-50"
+            >
+              {isTransitioningStatus ? 'Completing...' : 'Mark as Complete'}
+            </button>
+          ) : (
+            saleStatus !== 'locked' && saleStatus !== 'commission_paid' && (
+              <button
+                onClick={() => handleStatusTransition('ongoing')}
+                disabled={isTransitioningStatus}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50"
+              >
+                {isTransitioningStatus ? 'Updating...' : 'Mark as Ongoing'}
+              </button>
+            )
+          )}
           {sale.xero_invoice_url && (
             <a
               href={sale.xero_invoice_url}
@@ -1097,6 +1169,18 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
       {editError && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-sm font-medium text-red-800">{editError}</p>
+        </div>
+      )}
+      {statusError && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm font-medium text-red-800">{statusError}</p>
+          {statusMissingFields && statusMissingFields.length > 0 && (
+            <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
+              {statusMissingFields.map((field) => (
+                <li key={field}>{field}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
@@ -1180,6 +1264,14 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Supplier</label>
+                <input
+                  type="text"
+                  placeholder="Search suppliers..."
+                  value={supplierSearch}
+                  onChange={(e) => setSupplierSearch(e.target.value)}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-base sm:text-sm mb-1"
+                  disabled={isSavingEdit}
+                />
                 <select
                   value={editSupplierId}
                   onChange={(e) => setEditSupplierId(e.target.value)}
@@ -1187,7 +1279,7 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                   disabled={isSavingEdit}
                 >
                   <option value="">Select supplier...</option>
-                  {suppliers.map((s) => (
+                  {filteredSuppliers.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>

@@ -206,6 +206,11 @@ export async function GET(request: NextRequest) {
           .limit(1);
 
         if (existing) {
+          // Skip soft-deleted records — don't update or resurrect them
+          if (existing.deletedAt) {
+            skippedCount++;
+            continue;
+          }
           // Update status if changed
           if (existing.invoiceStatus !== invoice.Status) {
             await db

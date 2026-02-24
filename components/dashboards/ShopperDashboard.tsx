@@ -124,11 +124,16 @@ export async function ShopperDashboard({
   // const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 100 } });
 
   // Query sales for this shopper using Drizzle
+  // Commission timing: prefer completedAt, fall back to saleDate for legacy data
   const whereConditions = dateRange
     ? and(
         eq(sales.shopperId, shopperResult.id),
-        gte(sales.saleDate, dateRange.start),
-        lte(sales.saleDate, dateRange.end)
+        or(
+          // completedAt falls within date range
+          and(gte(sales.completedAt, dateRange.start), lte(sales.completedAt, dateRange.end)),
+          // Fallback: completedAt is null AND saleDate falls within range (legacy data)
+          and(isNull(sales.completedAt), gte(sales.saleDate, dateRange.start), lte(sales.saleDate, dateRange.end))
+        )
       )
     : eq(sales.shopperId, shopperResult.id);
 
@@ -141,9 +146,9 @@ export async function ShopperDashboard({
     limit: 100,
   });
 
-  // Filter out xero_import and deleted sales in JavaScript
+  // Filter out xero_import, deleted, and ongoing sales in JavaScript
   const salesData = allSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt
+    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
   );
 
   // Query for incomplete sales that need attention
@@ -166,6 +171,19 @@ export async function ShopperDashboard({
     },
     orderBy: [desc(sales.allocatedAt)],
     limit: 20,
+  });
+
+  // Query for ongoing sales (parked multi-instalment deals)
+  const ongoingSales = await db.query.sales.findMany({
+    where: and(
+      eq(sales.shopperId, shopperResult.id),
+      eq(sales.status, 'ongoing'),
+      isNull(sales.deletedAt)
+    ),
+    with: {
+      buyer: true,
+    },
+    orderBy: [desc(sales.saleDate)],
   });
 
   // Calculate totals
@@ -308,6 +326,112 @@ export async function ShopperDashboard({
                       </span>
                       <svg
                         className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ongoing Sales */}
+      {ongoingSales.length > 0 && (
+        <div className="mb-8">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <svg
+                className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div>
+                <h2 className="text-lg font-semibold text-blue-900">
+                  Ongoing Sales ({ongoingSales.length})
+                </h2>
+                <p className="text-sm text-blue-700 mt-1">
+                  Multi-instalment deals awaiting full payment. These are excluded from monthly commission until completed.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {ongoingSales.map((sale) => (
+                <Link
+                  key={sale.id}
+                  href={`/sales/${sale.id}`}
+                  className="block bg-white rounded-lg border border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-colors group"
+                >
+                  {/* Mobile: stacked card */}
+                  <div className="p-3 sm:hidden">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-sm text-gray-900">
+                        {sale.xeroInvoiceNumber || sale.saleReference || 'No Ref'}
+                      </span>
+                      <span className="font-semibold text-sm text-purple-600">
+                        {formatCurrency(sale.saleAmountIncVat || 0)}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600 mb-1">
+                      {sale.buyer?.name || 'Unknown Client'}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">
+                        {formatDate(sale.saleDate)}
+                      </span>
+                      <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+                        Ongoing
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Desktop: horizontal row */}
+                  <div className="hidden sm:flex items-center justify-between p-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900 truncate">
+                          {sale.xeroInvoiceNumber || sale.saleReference || 'No Ref'}
+                        </span>
+                        <span className="text-gray-400">&middot;</span>
+                        <span className="text-sm text-gray-600 truncate">
+                          {sale.buyer?.name || 'Unknown Client'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm font-medium text-purple-600">
+                          {formatCurrency(sale.saleAmountIncVat || 0)}
+                        </span>
+                        <span className="text-gray-400">&middot;</span>
+                        <span className="text-xs text-gray-500">
+                          Started {formatDate(sale.saleDate)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-1 rounded">
+                        Ongoing
+                      </span>
+                      <svg
+                        className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"

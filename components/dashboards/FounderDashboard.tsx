@@ -11,7 +11,7 @@ import Link from "next/link";
 // ORIGINAL XATA: import { XataClient } from "@/src/xata";
 import { db } from "@/db";
 import { sales, shoppers, buyers } from "@/db/schema";
-import { eq, and, gte, lte, desc, ne, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, or, gte, lte, desc, ne, isNull, isNotNull } from "drizzle-orm";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMonthDateRange, formatMonthLabel } from "@/lib/dateUtils";
 import * as logger from '@/lib/logger';
@@ -86,10 +86,11 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
     // Query all sales for the selected month (exclude xero_import records) using Drizzle
     logger.info('DASHBOARD', 'Fetching sales');
 
+    // Commission timing: prefer completedAt, fall back to saleDate for legacy data
     const whereConditions = dateRange
-      ? and(
-          gte(sales.saleDate, dateRange.start),
-          lte(sales.saleDate, dateRange.end)
+      ? or(
+          and(gte(sales.completedAt, dateRange.start), lte(sales.completedAt, dateRange.end)),
+          and(isNull(sales.completedAt), gte(sales.saleDate, dateRange.start), lte(sales.saleDate, dateRange.end))
         )
       : undefined;
 
@@ -103,9 +104,9 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
       limit: 200,
     });
 
-  // Filter out xero_import and deleted sales in JavaScript
+  // Filter out xero_import, deleted, and ongoing sales in JavaScript
   const salesData = allSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt
+    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
   );
   logger.info('DASHBOARD', 'Sales fetched and filtered', { count: salesData.length });
 
@@ -126,9 +127,9 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
   const ytdStart = new Date(now.getFullYear(), 0, 1);
 
   const ytdSalesRaw = await db.query.sales.findMany({
-    where: and(
-      gte(sales.saleDate, ytdStart),
-      lte(sales.saleDate, now)
+    where: or(
+      and(gte(sales.completedAt, ytdStart), lte(sales.completedAt, now)),
+      and(isNull(sales.completedAt), gte(sales.saleDate, ytdStart), lte(sales.saleDate, now))
     ),
     with: {
       shopper: true,
@@ -138,7 +139,7 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
 
   // Filter in JavaScript
   const ytdSales = ytdSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt
+    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
   );
   logger.info('DASHBOARD', 'YTD sales fetched and filtered', { count: ytdSales.length });
 

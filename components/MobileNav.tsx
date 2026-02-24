@@ -16,9 +16,11 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { type StaffRole } from "@/lib/permissions";
 import { getSidebarItemsForRole } from "@/lib/sidebarConfig";
+import { SearchOverlay, useSearchShortcut } from "./SearchOverlay";
 import {
   Menu,
   X,
+  Search,
   PlusCircle,
   Briefcase,
   Hourglass,
@@ -99,6 +101,7 @@ interface MobileNavProps {
 
 export function MobileNav({ role }: MobileNavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const viewAs = searchParams.get("viewAs");
@@ -132,6 +135,9 @@ export function MobileNav({ role }: MobileNavProps) {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [drawerOpen]);
+
+  // Cmd+K / Ctrl+K to open search
+  useSearchShortcut(useCallback(() => setSearchOpen(true), []));
 
   const buildHref = useCallback(
     (basePath: string) => {
@@ -198,16 +204,25 @@ export function MobileNav({ role }: MobileNavProps) {
           </div>
         </Link>
 
-        {/* User Button */}
-        <div className="flex items-center justify-center w-10 h-10">
-          <UserButton
-            afterSignOutUrl="/sign-in"
-            appearance={{
-              elements: {
-                avatarBox: "w-8 h-8",
-              },
-            }}
-          />
+        {/* Search + User Button */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center justify-center w-10 h-10 rounded-lg text-gray-700 active:bg-gray-100 transition-colors"
+            aria-label="Search sales"
+          >
+            <Search size={20} />
+          </button>
+          <div className="flex items-center justify-center w-10 h-10">
+            <UserButton
+              afterSignOutUrl="/sign-in"
+              appearance={{
+                elements: {
+                  avatarBox: "w-8 h-8",
+                },
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -238,6 +253,9 @@ export function MobileNav({ role }: MobileNavProps) {
           })}
         </nav>
       </div>
+
+      {/* ── Search Overlay ── */}
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* ── Drawer Overlay ── */}
       {drawerOpen && (

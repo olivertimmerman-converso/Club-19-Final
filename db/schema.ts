@@ -270,6 +270,8 @@ export const sales = pgTable(
     index("sales_needs_allocation_idx").on(table.needsAllocation),
     index("sales_source_idx").on(table.source),
     index("sales_completed_at_idx").on(table.completedAt),
+    index("sales_xero_invoice_number_idx").on(table.xeroInvoiceNumber),
+    index("sales_sale_reference_idx").on(table.saleReference),
   ]
 );
 

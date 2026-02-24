@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getValidTokens } from '@/lib/xero-auth';
 import { db } from "@/db";
 import { sales, errors } from "@/db/schema";
-import { and, ne, isNotNull, eq } from "drizzle-orm";
+import { and, ne, isNotNull, isNull, eq } from "drizzle-orm";
 import * as logger from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -77,7 +77,8 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           ne(sales.invoiceStatus, 'PAID'),
-          isNotNull(sales.xeroInvoiceId)
+          isNotNull(sales.xeroInvoiceId),
+          isNull(sales.deletedAt)
         )
       );
 
@@ -149,12 +150,21 @@ export async function GET(request: NextRequest) {
             newStatus: invoice.Status
           });
 
+          // Auto-soft-delete VOIDED invoices so they disappear from active views
+          const updateData: Record<string, unknown> = {
+            invoiceStatus: invoice.Status,
+            invoicePaidDate: invoice.Status === 'PAID' ? new Date() : null,
+          };
+          if (invoice.Status === 'VOIDED') {
+            updateData.deletedAt = new Date();
+            logger.info('XERO_CRON_PAYMENTS', 'Auto-deleting VOIDED invoice', {
+              invoiceNumber: sale.xeroInvoiceNumber,
+            });
+          }
+
           await db
             .update(sales)
-            .set({
-              invoiceStatus: invoice.Status,
-              invoicePaidDate: invoice.Status === 'PAID' ? new Date() : null,
-            })
+            .set(updateData)
             .where(eq(sales.id, sale.id));
 
           updatedCount++;

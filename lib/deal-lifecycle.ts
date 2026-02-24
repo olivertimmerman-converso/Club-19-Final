@@ -38,7 +38,7 @@ import * as logger from './logger';
 // TYPE DEFINITIONS
 // ============================================================================
 
-export type DealStatus = "draft" | "invoiced" | "paid" | "locked" | "commission_paid";
+export type DealStatus = "draft" | "invoiced" | "paid" | "locked" | "commission_paid" | "ongoing";
 
 export interface TransitionSaleStatusArgs {
   saleId: string;
@@ -60,7 +60,8 @@ export interface TransitionResult {
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   draft: ["invoiced"],
-  invoiced: ["paid"],
+  invoiced: ["paid", "ongoing"],
+  ongoing: ["paid"],
   paid: ["locked"],
   locked: ["commission_paid"],
   commission_paid: [], // Terminal state

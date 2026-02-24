@@ -9,7 +9,9 @@
 
 import { UserButton } from "@clerk/nextjs";
 import { type StaffRole } from "@/lib/permissions";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { Search } from "lucide-react";
+import { SearchOverlay, useSearchShortcut } from "./SearchOverlay";
 import * as logger from '@/lib/logger';
 
 interface OSNavProps {
@@ -19,6 +21,9 @@ interface OSNavProps {
 export function OSNav({ role }: OSNavProps) {
   const [mounted, setMounted] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useSearchShortcut(useCallback(() => setSearchOpen(true), []));
 
   useEffect(() => {
     setMounted(true);
@@ -46,6 +51,19 @@ export function OSNav({ role }: OSNavProps) {
   try {
     return (
       <div className="flex items-center gap-4">
+        {/* Search trigger */}
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          <Search size={14} />
+          <span>Search...</span>
+          <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-gray-400 bg-white rounded border border-gray-200">
+            ⌘K
+          </kbd>
+        </button>
+        <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+
         <div className="text-sm text-gray-600">
           Role: <span className="font-medium text-gray-900">{role}</span>
         </div>
