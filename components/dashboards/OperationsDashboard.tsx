@@ -82,213 +82,128 @@ export async function OperationsDashboard({
   const dateRange = getDateRange(monthParam);
   const monthLabel = getMonthLabel(monthParam);
 
-  // ORIGINAL XATA:
-  // const salesQuery = xata.db.Sales.filter({
-  //   sale_date: {
-  //     $ge: dateRange.start,
-  //     $le: dateRange.end,
-  //   }
-  // }).select([...]);
-  // const allSalesRaw = await salesQuery.sort("sale_date", "desc").getMany({ pagination: { size: 200 } });
-
-  // Fetch comprehensive sales data for this month using Drizzle
-  // Commission timing: prefer completedAt, fall back to saleDate for legacy data
-  const allSalesRaw = await db.query.sales.findMany({
-    where: or(
-      and(gte(sales.completedAt, dateRange.start), lte(sales.completedAt, dateRange.end)),
-      and(isNull(sales.completedAt), gte(sales.saleDate, dateRange.start), lte(sales.saleDate, dateRange.end))
-    ),
-    with: {
-      shopper: true,
-      buyer: true,
-    },
-    orderBy: [desc(sales.saleDate)],
-    limit: 200,
-  });
-
-  // Filter out xero_import, deleted, and ongoing sales in JavaScript
-  const salesData = allSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
-  );
-
-  // ORIGINAL XATA:
-  // const lastMonthSalesRaw = await xata.db.Sales
-  //   .filter({
-  //     sale_date: {
-  //       $ge: lastMonthStart,
-  //       $le: lastMonthEnd,
-  //     }
-  //   })
-  //   .select([...])
-  //   .getMany({ pagination: { size: 200 } });
-
-  // Fetch last month's data for comparison
+  // Pre-compute date ranges before parallel queries
   const lastMonthStart = new Date(dateRange.start);
   lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
   const lastMonthEnd = new Date(dateRange.start);
   lastMonthEnd.setDate(0);
   lastMonthEnd.setHours(23, 59, 59);
 
-  const lastMonthSalesRaw = await db.query.sales.findMany({
-    where: or(
-      and(gte(sales.completedAt, lastMonthStart), lte(sales.completedAt, lastMonthEnd)),
-      and(isNull(sales.completedAt), gte(sales.saleDate, lastMonthStart), lte(sales.saleDate, lastMonthEnd))
-    ),
-    with: {
-      shopper: true,
-    },
-    limit: 200,
-  });
-
-  // Filter in JavaScript
-  const lastMonthSales = lastMonthSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
-  );
-
-  // ORIGINAL XATA:
-  // const ytdSalesRaw = await xata.db.Sales
-  //   .filter({
-  //     sale_date: {
-  //       $ge: ytdStart,
-  //       $le: dateRange.end,
-  //     }
-  //   })
-  //   .select([...])
-  //   .getMany({ pagination: { size: 500 } });
-
-  // Fetch YTD data - limit to 500
   const ytdStart = new Date(dateRange.start.getFullYear(), 0, 1);
-  const ytdSalesRaw = await db.query.sales.findMany({
-    where: or(
-      and(gte(sales.completedAt, ytdStart), lte(sales.completedAt, dateRange.end)),
-      and(isNull(sales.completedAt), gte(sales.saleDate, ytdStart), lte(sales.saleDate, dateRange.end))
-    ),
-    with: {
-      shopper: true,
-    },
-    limit: 500,
-  });
 
-  // Filter in JavaScript
-  const ytdSales = ytdSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
-  );
-
-  // ORIGINAL XATA:
-  // const invoicesRaw = await xata.db.Sales
-  //   .filter({
-  //     xero_invoice_number: { $isNot: null }
-  //   })
-  //   .select([...])
-  //   .sort("sale_date", "desc")
-  //   .getMany({ pagination: { size: 500 } });
-
-  // Fetch recent invoices to calculate outstanding amounts - limit to 500
-  const invoicesRaw = await db.query.sales.findMany({
-    where: isNotNull(sales.xeroInvoiceNumber),
-    orderBy: [desc(sales.saleDate)],
-    limit: 500,
-  });
-
-  // Filter in JavaScript
-  const invoices = invoicesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt
-  );
-
-  // ORIGINAL XATA:
-  // const allBuyers = await xata.db.Buyers.select(["id", "name"]).getMany({ pagination: { size: 200 } });
-
-  // Fetch buyers - limit to 200
-  const allBuyers = await db.query.buyers.findMany({
-    limit: 200,
-  });
-
-  // PIPELINE STATS - for management summary
-  // 1. Unallocated sales count
-  const unallocatedSalesCount = await db.query.sales.findMany({
-    where: and(
-      eq(sales.needsAllocation, true),
-      isNull(sales.deletedAt),
-      or(eq(sales.dismissed, false), isNull(sales.dismissed))
-    ),
-  });
-
-  // 2. Incomplete sales count (sales with buy_price = 0 or missing brand/supplier)
-  const incompleteSalesCount = await db.query.sales.findMany({
-    where: and(
-      isNull(sales.deletedAt),
-      isNotNull(sales.shopperId),
-      or(
-        eq(sales.buyPrice, 0),
-        isNull(sales.buyPrice),
-        isNull(sales.supplierId),
-        isNull(sales.brand),
-        eq(sales.brand, "Unknown")
-      )
-    ),
-  });
-
-  // 3. Completed today (sales with completedAt timestamp today)
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
-  const completedTodayCount = await db.query.sales.findMany({
-    where: and(
-      isNull(sales.deletedAt),
-      gte(sales.completedAt, todayStart),
-      lte(sales.completedAt, todayEnd)
+  // Commission timing helper: prefer completedAt, fall back to saleDate for legacy data
+  const commissionDateFilter = (start: Date, end: Date) => or(
+    and(gte(sales.completedAt, start), lte(sales.completedAt, end)),
+    and(isNull(sales.completedAt), gte(sales.saleDate, start), lte(sales.saleDate, end))
+  );
+
+  // Run ALL queries in parallel to avoid sequential timeout
+  const [
+    allSalesRaw,
+    lastMonthSalesRaw,
+    ytdSalesRaw,
+    invoicesRaw,
+    allBuyers,
+    unallocatedCountResult,
+    incompleteCountResult,
+    completedTodayCountResult,
+    allSalesForBuyersRaw,
+  ] = await Promise.all([
+    // 1. Monthly sales
+    db.query.sales.findMany({
+      where: commissionDateFilter(dateRange.start, dateRange.end),
+      with: { shopper: true, buyer: true },
+      orderBy: [desc(sales.saleDate)],
+      limit: 200,
+    }),
+    // 2. Last month sales
+    db.query.sales.findMany({
+      where: commissionDateFilter(lastMonthStart, lastMonthEnd),
+      with: { shopper: true },
+      limit: 200,
+    }),
+    // 3. YTD sales
+    db.query.sales.findMany({
+      where: commissionDateFilter(ytdStart, dateRange.end),
+      with: { shopper: true },
+      limit: 500,
+    }),
+    // 4. Recent invoices
+    db.query.sales.findMany({
+      where: isNotNull(sales.xeroInvoiceNumber),
+      orderBy: [desc(sales.saleDate)],
+      limit: 500,
+    }),
+    // 5. All buyers
+    db.query.buyers.findMany({ limit: 200 }),
+    // 6. Pipeline: unallocated count (SQL COUNT instead of fetching all rows)
+    db.select({ count: sql<number>`count(*)` }).from(sales).where(
+      and(
+        eq(sales.needsAllocation, true),
+        isNull(sales.deletedAt),
+        or(eq(sales.dismissed, false), isNull(sales.dismissed))
+      )
     ),
-  });
+    // 7. Pipeline: incomplete count (SQL COUNT instead of fetching all rows)
+    db.select({ count: sql<number>`count(*)` }).from(sales).where(
+      and(
+        isNull(sales.deletedAt),
+        isNotNull(sales.shopperId),
+        or(
+          eq(sales.buyPrice, 0),
+          isNull(sales.buyPrice),
+          isNull(sales.supplierId),
+          isNull(sales.brand),
+          eq(sales.brand, "Unknown")
+        )
+      )
+    ),
+    // 8. Pipeline: completed today count (SQL COUNT instead of fetching all rows)
+    db.select({ count: sql<number>`count(*)` }).from(sales).where(
+      and(
+        isNull(sales.deletedAt),
+        gte(sales.completedAt, todayStart),
+        lte(sales.completedAt, todayEnd)
+      )
+    ),
+    // 9. All sales for buyer analysis
+    db.query.sales.findMany({
+      with: { buyer: true },
+      orderBy: [asc(sales.saleDate)],
+      limit: 1000,
+    }),
+  ]);
+
+  // Filter out xero_import, deleted, and ongoing sales in JavaScript
+  const salesData = allSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
+  );
+
+  const lastMonthSales = lastMonthSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
+  );
+
+  const ytdSales = ytdSalesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
+  );
+
+  const invoices = invoicesRaw.filter(sale =>
+    sale.source !== 'xero_import' && !sale.deletedAt
+  );
 
   const pipelineStats = {
-    unallocated: unallocatedSalesCount.length,
-    incomplete: incompleteSalesCount.length,
-    completedToday: completedTodayCount.length,
+    unallocated: Number(unallocatedCountResult[0]?.count ?? 0),
+    incomplete: Number(incompleteCountResult[0]?.count ?? 0),
+    completedToday: Number(completedTodayCountResult[0]?.count ?? 0),
   };
 
   const buyerFirstPurchase = new Map<string, Date>();
 
-  // TEMPORARILY DISABLED: Xero sync functionality
-  // const unallocatedSalesRaw = await xata.db.Sales
-  //   .filter({ needs_allocation: true })
-  //   .select(['id', 'xero_invoice_number', 'sale_date', 'sale_amount_inc_vat', 'buyer_name', 'internal_notes', 'buyer.name'])
-  //   .getMany();
-  // const unallocatedSales = unallocatedSalesRaw.map(sale => ({
-  //   id: sale.id,
-  //   xero_invoice_number: sale.xero_invoice_number,
-  //   sale_date: sale.sale_date ? sale.sale_date.toISOString() : null,
-  //   sale_amount_inc_vat: sale.sale_amount_inc_vat,
-  //   buyer_name: sale.buyer_name,
-  //   internal_notes: sale.internal_notes,
-  //   buyer: sale.buyer ? { name: sale.buyer.name } : null,
-  // }));
-  // const shoppersRaw = await xata.db.Shoppers
-  //   .select(['id', 'name'])
-  //   .sort('name', 'asc')
-  //   .getMany();
-  // const shoppers = shoppersRaw.map(shopper => ({
-  //   id: shopper.id,
-  //   name: shopper.name,
-  // }));
-
-  // ORIGINAL XATA:
-  // const allSalesForBuyersRaw = await xata.db.Sales
-  //   .select(["buyer.id", "sale_date", "source", "deleted_at"])
-  //   .sort("sale_date", "asc")
-  //   .getMany({ pagination: { size: 1000 } });
-
-  // Fetch recent sales for buyer analysis - limit to 1000
-  const allSalesForBuyersRaw = await db.query.sales.findMany({
-    with: {
-      buyer: true,
-    },
-    orderBy: [asc(sales.saleDate)],
-    limit: 1000,
-  });
-
-  // Filter in JavaScript
   const allSalesForBuyers = allSalesForBuyersRaw.filter(sale =>
     sale.source !== 'xero_import' && !sale.deletedAt
   );
