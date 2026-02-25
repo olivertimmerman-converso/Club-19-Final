@@ -35,6 +35,7 @@ export interface ScoredResult {
   contact: ExtendedContact;
   score: number;
   matchedField: string;
+  isExistingCustomer?: boolean;
 }
 
 /**
@@ -239,13 +240,28 @@ export function isSupplier(contact: ExtendedContact): boolean {
 }
 
 /**
- * Filter and rank buyer contacts
- * Returns top N buyer results
+ * Search and rank contacts for buyer selection
+ *
+ * Returns ALL matching contacts (not just pre-classified customers).
+ * First-time clients who exist in Xero as generic contacts will now appear.
+ * Existing customers are sorted first, followed by unclassified contacts.
+ * Each result includes an `isExistingCustomer` flag for UI distinction.
  */
 export function searchBuyers(query: string, contacts: ExtendedContact[], limit = 15): ScoredResult[] {
   const allResults = searchContacts(query, contacts);
-  const buyerResults = allResults.filter((result) => isBuyer(result.contact));
-  return buyerResults.slice(0, limit);
+  const ranked = allResults
+    .map((result) => ({
+      ...result,
+      isExistingCustomer: isBuyer(result.contact),
+    }))
+    .sort((a, b) => {
+      // Existing customers first
+      if (a.isExistingCustomer && !b.isExistingCustomer) return -1;
+      if (!a.isExistingCustomer && b.isExistingCustomer) return 1;
+      // Then by match score
+      return b.score - a.score;
+    });
+  return ranked.slice(0, limit);
 }
 
 /**

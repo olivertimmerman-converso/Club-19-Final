@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getAllXeroContacts } from "@/lib/xero-contacts-cache";
+import { getAllXeroContacts, clearContactsCache } from "@/lib/xero-contacts-cache";
 import { searchBuyers } from "@/lib/search";
 import { withRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import * as logger from "@/lib/logger";
@@ -17,6 +17,7 @@ interface NormalizedContact {
   email?: string;
   isCustomer: boolean;
   isSupplier: boolean;
+  isExistingCustomer?: boolean;
 }
 
 /**
@@ -156,7 +157,10 @@ export async function GET(request: NextRequest) {
         })),
       });
     } else {
-      logger.info("XERO_CONTACTS", "No buyer matches found", { query });
+      // Cache may be stale — contact could have been added to Xero recently.
+      // Clear cache so the next search triggers a fresh fetch.
+      clearContactsCache(integrationUserId);
+      logger.info("XERO_CONTACTS", "No buyer matches found, cleared cache for next search", { query });
     }
 
     // 6. Convert to UI format
@@ -167,6 +171,7 @@ export async function GET(request: NextRequest) {
       email: result.contact.email,
       isCustomer: result.contact.isCustomer,
       isSupplier: result.contact.isSupplier,
+      isExistingCustomer: result.isExistingCustomer ?? result.contact.isCustomer,
     }));
     normalizationDuration = Date.now() - normalizationStartTime;
 

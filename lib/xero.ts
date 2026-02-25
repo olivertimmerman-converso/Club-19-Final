@@ -21,6 +21,7 @@ export type NormalizedContact = {
   email?: string;
   isCustomer: boolean;
   isSupplier: boolean;
+  isExistingCustomer?: boolean;
 };
 
 /**

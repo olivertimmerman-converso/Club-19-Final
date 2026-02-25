@@ -312,8 +312,15 @@ export function StepSupplierBuyer() {
                       idx === buyerSelectedIndex ? "bg-purple-100" : ""
                     }`}
                   >
-                    <div className="text-sm font-medium text-gray-900">
-                      {contact.name}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900">
+                        {contact.name}
+                      </span>
+                      {contact.isExistingCustomer === false && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
+                          New client
+                        </span>
+                      )}
                     </div>
                     {contact.email && (
                       <div className="text-xs text-gray-500">
