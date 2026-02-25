@@ -21,7 +21,6 @@ export function StepLogisticsTax() {
     setDirectShip: setDirectShipContext,
     setLandedDelivery: setLandedDeliveryContext,
     setImportVAT,
-    setHasDeliveryCost,
   } = useTrade();
 
   // ============================================================================
@@ -40,10 +39,6 @@ export function StepLogisticsTax() {
   const [insuranceLanded, setInsuranceLanded] = useState<string | null>(
     state.landedDelivery
   );
-  const [hasDeliveryCostLocal, setHasDeliveryCostLocal] = useState<boolean | null>(
-    state.hasDeliveryCost
-  );
-
   // Touched flags to prevent auto-sync from overriding manual user selections
   const [itemLocationTouched, setItemLocationTouched] = useState(false);
   const [clientLocationTouched, setClientLocationTouched] = useState(false);
@@ -182,17 +177,6 @@ export function StepLogisticsTax() {
   useEffect(() => {
     setLandedDeliveryContext(insuranceLanded);
   }, [insuranceLanded, setLandedDeliveryContext]);
-
-  useEffect(() => {
-    setHasDeliveryCost(hasDeliveryCostLocal);
-  }, [hasDeliveryCostLocal, setHasDeliveryCost]);
-
-  // Default hasDeliveryCost to true when tax scenario is first determined
-  useEffect(() => {
-    if (result && hasDeliveryCostLocal === null) {
-      setHasDeliveryCostLocal(true);
-    }
-  }, [result, hasDeliveryCostLocal]);
 
   // ============================================================================
   // DISPLAY HELPERS
@@ -588,81 +572,6 @@ export function StepLogisticsTax() {
             </div>
           )}
         </>
-      )}
-
-      {/* ========================================================================
-          DELIVERY COST SELECTION
-          ======================================================================== */}
-      {result && (
-        <div className="border-t pt-6 space-y-4 animate-fade-in">
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-1">
-              Does this sale have a delivery cost?
-            </h3>
-            <p className="text-xs text-gray-500">
-              If there&apos;s any cost to get this item to the client, select &quot;Yes&quot; and add the cost later.
-            </p>
-          </div>
-
-          {/* Delivery cost radio buttons */}
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setHasDeliveryCostLocal(true)}
-              className={`w-full p-4 border rounded-md text-left transition-colors ${
-                hasDeliveryCostLocal === true
-                  ? "border-blue-600 bg-blue-50 text-blue-900 font-medium"
-                  : "border-gray-300 hover:border-gray-400 text-gray-700"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                  hasDeliveryCostLocal === true
-                    ? "border-blue-600 bg-blue-600"
-                    : "border-gray-400"
-                }`}>
-                  {hasDeliveryCostLocal === true && (
-                    <div className="w-2 h-2 rounded-full bg-white" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">Yes - delivery cost to be confirmed</div>
-                  <div className="text-xs text-gray-600 mt-1">
-                    Shipping/courier/travel costs will be added later in Sales OS
-                  </div>
-                </div>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setHasDeliveryCostLocal(false)}
-              className={`w-full p-4 border rounded-md text-left transition-colors ${
-                hasDeliveryCostLocal === false
-                  ? "border-blue-600 bg-blue-50 text-blue-900 font-medium"
-                  : "border-gray-300 hover:border-gray-400 text-gray-700"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                  hasDeliveryCostLocal === false
-                    ? "border-blue-600 bg-blue-600"
-                    : "border-gray-400"
-                }`}>
-                  {hasDeliveryCostLocal === false && (
-                    <div className="w-2 h-2 rounded-full bg-white" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">No - free delivery</div>
-                  <div className="text-xs text-gray-600 mt-1">
-                    Client collects, local handover, or delivery included in price
-                  </div>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
       )}
 
       {/* ========================================================================

@@ -103,6 +103,7 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
     with: {
       shopper: true,
     },
+    limit: 500,
   });
 
   // Calculate P&L totals

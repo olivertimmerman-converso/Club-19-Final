@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/getCurrentUser";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMonthDateRange } from "@/lib/dateUtils";
 import { SalesTableClient } from "./SalesTableClient";
+import { SalesFilters } from "@/components/ui/SalesFilters";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
  */
 
 interface SalesPageProps {
-  searchParams: Promise<{ month?: string; viewAs?: string }>;
+  searchParams: Promise<{ month?: string; viewAs?: string; shopper?: string; status?: string }>;
 }
 
 /**
@@ -55,7 +56,8 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     const params = await searchParams;
     const monthParam = params.month || "current";
     const viewAs = params.viewAs;
-    console.log('[SalesPage] Month param:', monthParam, 'viewAs:', viewAs);
+    const shopperParam = params.shopper;
+    console.log('[SalesPage] Month param:', monthParam, 'viewAs:', viewAs, 'shopper:', shopperParam);
 
     const dateRange = getMonthDateRange(monthParam);
     console.log('[SalesPage] Date range:', dateRange);
@@ -147,6 +149,11 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       console.log('[SalesPage] Shopper viewing current month - showing all sales');
     }
 
+    // If a specific shopper filter is applied (by non-shopper roles), filter server-side
+    if (shopperParam && !isShopperView) {
+      conditions.push(eq(sales.shopperId, shopperParam));
+    }
+
     // Apply date range filter if specified
     if (dateRange) {
       console.log('[SalesPage] Applying date range filter');
@@ -154,60 +161,26 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       conditions.push(lte(sales.saleDate, dateRange.end));
     }
 
-    console.log('[SalesPage] Executing query...');
-    // ORIGINAL XATA: const allSalesRaw = await allSalesQuery.sort('sale_date', 'desc').getAll();
-    const allSalesRaw = await db.query.sales.findMany({
-      where: conditions.length > 0 ? and(...conditions) : undefined,
-      with: {
-        buyer: true,
-        shopper: true,
-        supplier: true,
-        introducer: true,
-      },
-      orderBy: [desc(sales.saleDate)],
-    });
-    console.log('[SalesPage] Total sales fetched:', allSalesRaw.length);
+    // Run sales + shoppers queries in parallel
+    const [allSalesRaw, shoppersRaw] = await Promise.all([
+      db.query.sales.findMany({
+        where: conditions.length > 0 ? and(...conditions) : undefined,
+        with: { buyer: true, shopper: true, supplier: true, introducer: true },
+        orderBy: [desc(sales.saleDate)],
+        limit: 500,
+      }),
+      db.query.shoppers.findMany({
+        where: eq(shoppers.active, true),
+        orderBy: [asc(shoppers.name)],
+      }),
+    ]);
 
     // Filter out xero_import records in JavaScript (keeping consistent with original)
     const nonImportedSales = allSalesRaw.filter(sale => sale.source !== 'xero_import');
-    console.log('[SalesPage] After excluding xero_import:', nonImportedSales.length);
 
     // Split into active and deleted using JavaScript (reliable!)
     const salesRaw = nonImportedSales.filter(sale => !sale.deletedAt);
     const deletedSalesRaw = role === 'superadmin' ? nonImportedSales.filter(sale => sale.deletedAt) : [];
-
-    console.log('[SalesPage] Active sales count:', salesRaw.length);
-    console.log('[SalesPage] Deleted sales count:', deletedSalesRaw.length);
-
-    // Debug: Log sample records to verify filtering
-    if (salesRaw.length > 0) {
-      console.log('[SalesPage] Sample active sale:', {
-        id: salesRaw[0].id,
-        ref: salesRaw[0].saleReference,
-        deleted_at: salesRaw[0].deletedAt,
-        invoice_status: salesRaw[0].invoiceStatus
-      });
-    }
-    if (deletedSalesRaw.length > 0) {
-      console.log('[SalesPage] Sample deleted sale:', {
-        id: deletedSalesRaw[0].id,
-        ref: deletedSalesRaw[0].saleReference,
-        deleted_at: deletedSalesRaw[0].deletedAt,
-        invoice_status: deletedSalesRaw[0].invoiceStatus
-      });
-    }
-
-    // ORIGINAL XATA:
-    // const shoppersRaw = await xata.db.Shoppers
-    //   .select(['id', 'name'])
-    //   .sort('name', 'asc')
-    //   .getAll();
-
-    // Fetch all active shoppers for the dropdown
-    const shoppersRaw = await db.query.shoppers.findMany({
-      where: eq(shoppers.active, true),
-      orderBy: [asc(shoppers.name)],
-    });
 
     // Serialize data for client component
     const salesData = salesRaw.map(sale => ({
@@ -223,6 +196,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       xero_invoice_number: sale.xeroInvoiceNumber || null,
       invoice_status: sale.invoiceStatus || null,
       currency: sale.currency || null,
+      status: sale.status || null,
       buyer: sale.buyer ? { name: sale.buyer.name || 'Unknown' } : null,
       shopper: sale.shopper ? { id: sale.shopper.id, name: sale.shopper.name || 'Unknown' } : null,
       supplier: sale.supplier ? { id: sale.supplier.id } : null,
@@ -247,6 +221,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       xero_invoice_number: sale.xeroInvoiceNumber || null,
       invoice_status: sale.invoiceStatus || null,
       currency: sale.currency || null,
+      status: sale.status || null,
       buyer: sale.buyer ? { name: sale.buyer.name || 'Unknown' } : null,
       shopper: sale.shopper ? { id: sale.shopper.id, name: sale.shopper.name || 'Unknown' } : null,
       supplier: sale.supplier ? { id: sale.supplier.id } : null,
@@ -266,37 +241,44 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
   return (
     <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-xl sm:text-3xl font-semibold text-gray-900 mb-1 sm:mb-2">Sales</h1>
-          <p className="text-sm sm:text-base text-gray-600">
-            {salesData.length} active sale{salesData.length !== 1 ? 's' : ''}
-            {role === 'superadmin' && deletedSales.length > 0 && ` • ${deletedSales.length} deleted`}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 sm:gap-4">
-          <MonthPicker />
-          <Link
-            href="/trade/new"
-            className="inline-flex items-center justify-center px-4 py-2 min-h-[44px] border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-          >
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-3xl font-semibold text-gray-900 mb-1 sm:mb-2">Sales</h1>
+            <p className="text-sm sm:text-base text-gray-600">
+              {salesData.length} active sale{salesData.length !== 1 ? 's' : ''}
+              {role === 'superadmin' && deletedSales.length > 0 && ` • ${deletedSales.length} deleted`}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <MonthPicker />
+            <Link
+              href="/trade/new"
+              className="inline-flex items-center justify-center px-4 py-2 min-h-[44px] border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            <span className="hidden sm:inline">Create Invoice</span>
-            <span className="sm:hidden">New Sale</span>
-          </Link>
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span className="hidden sm:inline">Create Invoice</span>
+              <span className="sm:hidden">New Sale</span>
+            </Link>
+          </div>
         </div>
+
+        {/* Shopper + Status filters (non-shopper roles only) */}
+        {!isShopperView && (
+          <SalesFilters shoppers={shoppersData} />
+        )}
       </div>
 
       {/* Active Sales Section */}

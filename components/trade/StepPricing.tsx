@@ -32,7 +32,7 @@ function getTaxRegime(country: string): TaxRegime {
 }
 
 export function StepPricing() {
-  const { state, updateItem, setCurrentSupplier } = useTrade();
+  const { state, updateItem, setCurrentSupplier, setShippingCost } = useTrade();
 
   // Local state for each item's prices and suppliers (keyed by item ID)
   const [localPrices, setLocalPrices] = useState<Record<string, { buyPrice: string; sellPrice: string }>>({});
@@ -46,6 +46,11 @@ export function StepPricing() {
   const [supplierCreateError, setSupplierCreateError] = useState<string | null>(null);
   const supplierDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const supplierAbortController = useRef<AbortController | null>(null);
+
+  // Shipping cost local state
+  const [localShippingCost, setLocalShippingCost] = useState(
+    state.shippingCost > 0 ? state.shippingCost.toString() : ""
+  );
 
   // Initialize local prices and suppliers from context
   useEffect(() => {
@@ -278,7 +283,7 @@ export function StepPricing() {
       </div>
 
       {/* Pricing Table */}
-      <div className="border border-gray-200 rounded-lg overflow-x-auto overflow-y-visible">
+      <div className="border border-gray-200 rounded-lg overflow-visible">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -493,6 +498,31 @@ export function StepPricing() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Shipping Cost (Optional) */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-1">Shipping Cost (Optional)</h3>
+        <p className="text-xs text-gray-500 mb-3">
+          If there&apos;s a cost to ship this item to the client, enter it here
+        </p>
+        <div className="relative w-full sm:w-48">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">£</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            min="0"
+            value={localShippingCost}
+            onChange={(e) => setLocalShippingCost(e.target.value)}
+            onBlur={() => {
+              const parsed = parseFloat(localShippingCost);
+              setShippingCost(!isNaN(parsed) && parsed > 0 ? parsed : 0);
+            }}
+            placeholder="0.00"
+            className="w-full h-12 text-base border border-gray-300 rounded-lg pl-7 pr-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          />
         </div>
       </div>
 

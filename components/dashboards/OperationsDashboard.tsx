@@ -11,30 +11,13 @@ import { sales, shoppers, buyers } from "@/db/schema";
 import { eq, and, gte, lte, desc, asc, isNotNull, isNull, or, sql } from "drizzle-orm";
 import Link from "next/link";
 import { MonthPicker } from "@/components/ui/MonthPicker";
+import { getMonthDateRange, formatMonthLabel } from "@/lib/dateUtils";
 // import { DashboardClientWrapper } from "./DashboardClientWrapper"; // Temporarily disabled
 
 // ORIGINAL XATA: const xata = new XataClient();
 
 interface OperationsDashboardProps {
   monthParam?: string;
-}
-
-// Helper to get date range from monthParam
-function getDateRange(monthParam: string = "current") {
-  const now = new Date();
-  let start: Date;
-  let end: Date;
-
-  if (monthParam === "current") {
-    start = new Date(now.getFullYear(), now.getMonth(), 1);
-    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  } else {
-    const [year, month] = monthParam.split("-").map(Number);
-    start = new Date(year, month - 1, 1);
-    end = new Date(year, month, 0, 23, 59, 59);
-  }
-
-  return { start, end };
 }
 
 // Helper to format currency
@@ -61,26 +44,18 @@ const formatDate = (date: Date | null | string | undefined) => {
   });
 };
 
-// Helper to get month label
-function getMonthLabel(monthParam: string = "current") {
-  if (monthParam === "current") {
-    return new Date().toLocaleDateString("en-GB", {
-      month: "long",
-      year: "numeric",
-    });
-  }
-  const [year, month] = monthParam.split("-").map(Number);
-  return new Date(year, month - 1, 1).toLocaleDateString("en-GB", {
-    month: "long",
-    year: "numeric",
-  });
-}
 
 export async function OperationsDashboard({
   monthParam = "current",
 }: OperationsDashboardProps) {
-  const dateRange = getDateRange(monthParam);
-  const monthLabel = getMonthLabel(monthParam);
+  // Use shared date utility — handles "current", "last", "YYYY-MM", and "all"
+  // Fall back to current month if null (all time) since this dashboard needs concrete date boundaries
+  const now = new Date();
+  const dateRange = getMonthDateRange(monthParam) ?? {
+    start: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0),
+    end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
+  };
+  const monthLabel = formatMonthLabel(monthParam);
 
   // Pre-compute date ranges before parallel queries
   const lastMonthStart = new Date(dateRange.start);
@@ -95,6 +70,9 @@ export async function OperationsDashboard({
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
+
+  // Floor date: exclude all legacy data before 2026
+  const dataFloorDate = new Date(2026, 0, 1);
 
   // Commission timing helper: prefer completedAt, fall back to saleDate for legacy data
   const commissionDateFilter = (start: Date, end: Date) => or(
@@ -133,27 +111,31 @@ export async function OperationsDashboard({
       with: { shopper: true },
       limit: 500,
     }),
-    // 4. Recent invoices
+    // 4. Recent invoices (2026 onwards only)
     db.query.sales.findMany({
-      where: isNotNull(sales.xeroInvoiceNumber),
+      where: and(isNotNull(sales.xeroInvoiceNumber), gte(sales.saleDate, dataFloorDate)),
       orderBy: [desc(sales.saleDate)],
       limit: 500,
     }),
     // 5. All buyers
     db.query.buyers.findMany({ limit: 200 }),
     // 6. Pipeline: unallocated count (SQL COUNT instead of fetching all rows)
+    // Excludes pre-2026 legacy data
     db.select({ count: sql<number>`count(*)` }).from(sales).where(
       and(
         eq(sales.needsAllocation, true),
         isNull(sales.deletedAt),
-        or(eq(sales.dismissed, false), isNull(sales.dismissed))
+        or(eq(sales.dismissed, false), isNull(sales.dismissed)),
+        gte(sales.saleDate, dataFloorDate)
       )
     ),
     // 7. Pipeline: incomplete count (SQL COUNT instead of fetching all rows)
+    // Excludes pre-2026 legacy data
     db.select({ count: sql<number>`count(*)` }).from(sales).where(
       and(
         isNull(sales.deletedAt),
         isNotNull(sales.shopperId),
+        gte(sales.saleDate, dataFloorDate),
         or(
           eq(sales.buyPrice, 0),
           isNull(sales.buyPrice),
@@ -236,7 +218,6 @@ export async function OperationsDashboard({
   );
 
   // Calculate overdue invoices (30+ days)
-  const now = new Date();
   const overdueInvoices = outstandingInvoices.filter((inv) => {
     const invoiceDate = inv.saleDate;
     if (!invoiceDate) return false;

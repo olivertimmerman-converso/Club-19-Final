@@ -74,7 +74,6 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   // }
   // const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
 
-  // Query Sales table for metrics using Drizzle
   // Commission timing: prefer completedAt, fall back to saleDate for legacy data
   const whereConditions = dateRange
     ? or(
@@ -83,20 +82,32 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
       )
     : undefined;
 
-  const allSalesRaw = await db.query.sales.findMany({
-    where: whereConditions,
-    with: {
-      shopper: true,
-      buyer: true,
-      supplier: true,
-      introducer: true,
-    },
-    orderBy: [desc(sales.saleDate)],
-    limit: 200,
-  });
+  // Pre-compute last month date range for parallel query
+  const needsLastMonth = monthParam === "current" || !monthParam;
+  const now = new Date();
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  // Run both queries in parallel
+  const [allSalesRaw, lastMonthSalesRaw] = await Promise.all([
+    db.query.sales.findMany({
+      where: whereConditions,
+      with: { shopper: true, buyer: true, supplier: true, introducer: true },
+      orderBy: [desc(sales.saleDate)],
+      limit: 200,
+    }),
+    needsLastMonth
+      ? db.query.sales.findMany({
+          where: or(
+            and(gte(sales.completedAt, lastMonthStart), lte(sales.completedAt, lastMonthEnd)),
+            and(isNull(sales.completedAt), gte(sales.saleDate, lastMonthStart), lte(sales.saleDate, lastMonthEnd))
+          ),
+          limit: 1000,
+        })
+      : Promise.resolve([]),
+  ]);
 
   // Filter out xero_import, deleted, needs_allocation, and dismissed sales in JavaScript
-  // This ensures summary cards, sales table, and leaderboard all use the EXACT same dataset
   const salesData = allSalesRaw.filter(sale =>
     sale.source !== 'xero_import' &&
     !sale.deletedAt &&
@@ -113,33 +124,9 @@ export async function SuperadminDashboard({ monthParam = "current" }: Superadmin
   const tradesCount = salesData.length;
   const avgMarginPercent = total > 0 ? (margin / total) * 100 : 0;
 
-  // ORIGINAL XATA:
-  // const lastMonthSalesRaw = await xata.db.Sales
-  //   .select(['sale_amount_inc_vat', 'gross_margin', 'source', 'deleted_at'])
-  //   .filter({
-  //     sale_date: {
-  //       $ge: lastMonthStart,
-  //       $le: lastMonthEnd,
-  //     }
-  //   })
-  //   .getMany({ pagination: { size: 1000 } });
-
-  // Calculate last month's metrics for trend comparison (only if viewing current month)
+  // Calculate last month's metrics for trend comparison
   let lastMonthData = null;
-  if (monthParam === "current" || !monthParam) {
-    const now = new Date();
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-
-    const lastMonthSalesRaw = await db.query.sales.findMany({
-      where: or(
-        and(gte(sales.completedAt, lastMonthStart), lte(sales.completedAt, lastMonthEnd)),
-        and(isNull(sales.completedAt), gte(sales.saleDate, lastMonthStart), lte(sales.saleDate, lastMonthEnd))
-      ),
-      limit: 1000,
-    });
-
-    // Filter in JavaScript
+  if (needsLastMonth && lastMonthSalesRaw.length > 0) {
     const lastMonthSales = lastMonthSalesRaw.filter(sale =>
       sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
     );

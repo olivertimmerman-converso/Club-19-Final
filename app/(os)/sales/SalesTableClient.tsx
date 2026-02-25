@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 
@@ -18,6 +18,7 @@ interface Sale {
   xero_invoice_number: string | null;
   invoice_status: string | null;
   currency: string | null;
+  status: string | null;
   buyer: { name: string } | null;
   shopper: { id: string; name: string } | null;
   supplier: { id: string } | null;
@@ -43,6 +44,7 @@ interface SalesTableClientProps {
 
 export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection = false }: SalesTableClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [updating, setUpdating] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -169,6 +171,27 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
     return getMissingFields(sale).length > 0;
   };
 
+  // Client-side status filtering
+  const statusFilter = searchParams.get("status") || "all";
+  const filteredSales = statusFilter === "all"
+    ? sales
+    : sales.filter((sale) => {
+        switch (statusFilter) {
+          case "needs-attention":
+            return isIncomplete(sale);
+          case "completed":
+            return !isIncomplete(sale) && sale.status !== "ongoing";
+          case "ongoing":
+            return sale.status === "ongoing";
+          default:
+            return true;
+        }
+      });
+
+  // Build returnTo param so the detail page can navigate back with filters preserved
+  const returnToParams = searchParams.toString();
+  const returnToSuffix = returnToParams ? `?returnTo=${encodeURIComponent('?' + returnToParams)}` : '';
+
   return (
     <>
       {error && (
@@ -177,12 +200,18 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
         </div>
       )}
 
+      {filteredSales.length === 0 && sales.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center">
+          <p className="text-sm text-gray-500">No sales match the selected filter.</p>
+        </div>
+      )}
+
       {/* ── Mobile Card View ── */}
       <div className="md:hidden space-y-3">
-        {sales.map((sale) => (
+        {filteredSales.map((sale) => (
           <Link
             key={sale.id}
-            href={`/sales/${sale.id}`}
+            href={`/sales/${sale.id}${returnToSuffix}`}
             className="block bg-white rounded-lg border border-gray-200 shadow-sm p-3 active:bg-gray-50 transition-colors"
           >
             {/* Row 1: Invoice ref + amount */}
@@ -299,7 +328,7 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {sales.map((sale) => (
+              {filteredSales.map((sale) => (
                 <tr
                   key={sale.id}
                   className="hover:bg-gray-50 transition-colors"
@@ -307,19 +336,11 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Link
-                        href={`/sales/${sale.id}`}
+                        href={`/sales/${sale.id}${returnToSuffix}`}
                         className="text-sm font-medium text-purple-600 hover:text-purple-900"
                       >
                         {sale.sale_reference || '—'}
                       </Link>
-                      {!sale.shipping_cost_confirmed && (
-                        <span
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800"
-                          title="Delivery cost pending confirmation"
-                        >
-                          Delivery TBC
-                        </span>
-                      )}
                       {(sale.has_introducer || sale.introducer) && (
                         <span
                           className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"

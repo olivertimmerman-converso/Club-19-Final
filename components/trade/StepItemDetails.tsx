@@ -478,7 +478,7 @@ export function StepItemDetails() {
             <button
               onClick={handleSaveItem}
               disabled={!isFormValid}
-              className="flex-1 min-w-[120px] px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+              className="flex-1 min-w-[120px] px-4 py-2 bg-white text-blue-600 border-2 border-blue-600 rounded-md hover:bg-blue-50 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {editingItem ? "Update Item" : "Save Item"}
             </button>

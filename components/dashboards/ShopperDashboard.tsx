@@ -137,54 +137,47 @@ export async function ShopperDashboard({
       )
     : eq(sales.shopperId, shopperResult.id);
 
-  const allSalesRaw = await db.query.sales.findMany({
-    where: whereConditions,
-    with: {
-      buyer: true,
-    },
-    orderBy: [desc(sales.saleDate)],
-    limit: 100,
-  });
+  // Run all 3 queries in parallel
+  const [allSalesRaw, incompleteSales, ongoingSales] = await Promise.all([
+    db.query.sales.findMany({
+      where: whereConditions,
+      with: { buyer: true },
+      orderBy: [desc(sales.saleDate)],
+      limit: 100,
+    }),
+    // Incomplete sales that need attention (allocated but missing cost details)
+    db.query.sales.findMany({
+      where: and(
+        eq(sales.shopperId, shopperResult.id),
+        eq(sales.source, 'allocated'),
+        isNull(sales.completedAt),
+        isNull(sales.deletedAt),
+        or(
+          eq(sales.buyPrice, 0),
+          isNull(sales.buyPrice),
+          isNull(sales.supplierId)
+        )
+      ),
+      with: { buyer: true },
+      orderBy: [desc(sales.allocatedAt)],
+      limit: 20,
+    }),
+    // Ongoing sales (parked multi-instalment deals)
+    db.query.sales.findMany({
+      where: and(
+        eq(sales.shopperId, shopperResult.id),
+        eq(sales.status, 'ongoing'),
+        isNull(sales.deletedAt)
+      ),
+      with: { buyer: true },
+      orderBy: [desc(sales.saleDate)],
+    }),
+  ]);
 
   // Filter out xero_import, deleted, and ongoing sales in JavaScript
   const salesData = allSalesRaw.filter(sale =>
     sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
   );
-
-  // Query for incomplete sales that need attention
-  // These are sales allocated to the shopper that haven't been completed yet
-  const incompleteSales = await db.query.sales.findMany({
-    where: and(
-      eq(sales.shopperId, shopperResult.id),
-      eq(sales.source, 'allocated'),
-      isNull(sales.completedAt),
-      isNull(sales.deletedAt),
-      // Either buy price is 0/null or supplier is not set
-      or(
-        eq(sales.buyPrice, 0),
-        isNull(sales.buyPrice),
-        isNull(sales.supplierId)
-      )
-    ),
-    with: {
-      buyer: true,
-    },
-    orderBy: [desc(sales.allocatedAt)],
-    limit: 20,
-  });
-
-  // Query for ongoing sales (parked multi-instalment deals)
-  const ongoingSales = await db.query.sales.findMany({
-    where: and(
-      eq(sales.shopperId, shopperResult.id),
-      eq(sales.status, 'ongoing'),
-      isNull(sales.deletedAt)
-    ),
-    with: {
-      buyer: true,
-    },
-    orderBy: [desc(sales.saleDate)],
-  });
 
   // Calculate totals
   const totalSales = salesData.length;

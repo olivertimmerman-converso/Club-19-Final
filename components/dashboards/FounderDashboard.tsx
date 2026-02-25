@@ -83,9 +83,6 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
     // }
     // const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 200 } });
 
-    // Query all sales for the selected month (exclude xero_import records) using Drizzle
-    logger.info('DASHBOARD', 'Fetching sales');
-
     // Commission timing: prefer completedAt, fall back to saleDate for legacy data
     const whereConditions = dateRange
       ? or(
@@ -94,54 +91,35 @@ export async function FounderDashboard({ monthParam = "current" }: FounderDashbo
         )
       : undefined;
 
-    const allSalesRaw = await db.query.sales.findMany({
+  const now = new Date();
+  const ytdStart = new Date(now.getFullYear(), 0, 1);
+
+  // Run both queries in parallel
+  const [allSalesRaw, ytdSalesRaw] = await Promise.all([
+    db.query.sales.findMany({
       where: whereConditions,
-      with: {
-        shopper: true,
-        buyer: true,
-      },
+      with: { shopper: true, buyer: true },
       orderBy: [desc(sales.saleDate)],
       limit: 200,
-    });
+    }),
+    db.query.sales.findMany({
+      where: or(
+        and(gte(sales.completedAt, ytdStart), lte(sales.completedAt, now)),
+        and(isNull(sales.completedAt), gte(sales.saleDate, ytdStart), lte(sales.saleDate, now))
+      ),
+      with: { shopper: true },
+      limit: 500,
+    }),
+  ]);
 
   // Filter out xero_import, deleted, and ongoing sales in JavaScript
   const salesData = allSalesRaw.filter(sale =>
     sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
   );
-  logger.info('DASHBOARD', 'Sales fetched and filtered', { count: salesData.length });
 
-  // ORIGINAL XATA:
-  // const ytdSalesRaw = await xata.db.Sales
-  //   .select(['sale_amount_inc_vat', 'shopper.id', 'shopper.name', 'source', 'deleted_at'])
-  //   .filter({
-  //     sale_date: {
-  //       $ge: ytdStart,
-  //       $le: now,
-  //     }
-  //   })
-  //   .getMany({ pagination: { size: 500 } });
-
-  // Get YTD sales for comparison (Jan 1 to now) - limit to 500
-  logger.info('DASHBOARD', 'Fetching YTD sales');
-  const now = new Date();
-  const ytdStart = new Date(now.getFullYear(), 0, 1);
-
-  const ytdSalesRaw = await db.query.sales.findMany({
-    where: or(
-      and(gte(sales.completedAt, ytdStart), lte(sales.completedAt, now)),
-      and(isNull(sales.completedAt), gte(sales.saleDate, ytdStart), lte(sales.saleDate, now))
-    ),
-    with: {
-      shopper: true,
-    },
-    limit: 500,
-  });
-
-  // Filter in JavaScript
   const ytdSales = ytdSalesRaw.filter(sale =>
     sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
   );
-  logger.info('DASHBOARD', 'YTD sales fetched and filtered', { count: ytdSales.length });
 
   // Calculate shopper performance
   const shopperStats = new Map<string, ShopperPerformance>();

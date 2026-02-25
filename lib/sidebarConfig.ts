@@ -69,11 +69,12 @@ const ALL_SIDEBAR_ITEMS: SidebarItem[] = [
   //   icon: "Archive",
   // },
   // Note: Sales Sheet Data page still accessible at /legacy if needed
-  {
-    label: "Legacy Xero Data",
-    href: "/legacy-xero",
-    icon: "Archive",
-  },
+  // {
+  //   label: "Legacy Xero Data",
+  //   href: "/legacy-xero",
+  //   icon: "Archive",
+  // },
+  // Note: Legacy Xero Data page still accessible at /legacy-xero if needed
   {
     label: "Admin",
     href: "/admin",
@@ -159,10 +160,10 @@ export const sidebarConfig: Record<string, SidebarItem & { roles: StaffRole[] }>
     roles: ["superadmin", "admin", "finance", "operations"],
     icon: "Archive",
   },
-  legacyXero: {
-    label: "Legacy Xero Data",
-    href: "/legacy-xero",
-    roles: ["superadmin", "admin", "finance", "operations"],
-    icon: "Archive",
-  },
+  // legacyXero: {
+  //   label: "Legacy Xero Data",
+  //   href: "/legacy-xero",
+  //   roles: ["superadmin", "admin", "finance", "operations"],
+  //   icon: "Archive",
+  // },
 };

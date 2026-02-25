@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useTrade } from "@/contexts/TradeContext";
-import { calculateImpliedCosts } from "@/lib/implied-costs";
 import { FileText, CheckCircle } from "lucide-react";
 import * as logger from '@/lib/logger';
-import { roundCurrency, subtractCurrency, multiplyCurrency } from '@/lib/utils/currency';
+import { roundCurrency, subtractCurrency, multiplyCurrency, addCurrency } from '@/lib/utils/currency';
+import { PaymentMethod } from "@/lib/types/invoice";
 
 export function StepReview() {
   const {
@@ -71,27 +71,30 @@ export function StepReview() {
     };
   }, [state.items]);
 
-  // Calculate implied costs
+  // Calculate handling/shipping line item for invoice
+  const CARD_FEE_RATE = 0.024; // 2.4%
+
+  const handlingLineItem = useMemo(() => {
+    const shippingAmount = state.shippingCost || 0;
+    const isCardPayment = state.currentPaymentMethod === PaymentMethod.CARD;
+    const cardFeeBase = addCurrency(totalSellGBP, shippingAmount);
+    const cardFee = isCardPayment ? roundCurrency(cardFeeBase * CARD_FEE_RATE) : 0;
+    const total = addCurrency(shippingAmount, cardFee);
+    const label = shippingAmount > 0 && cardFee > 0 ? 'Handling + Shipping'
+      : shippingAmount > 0 ? 'Shipping'
+      : cardFee > 0 ? 'Handling' : null;
+    return { cardFee, shippingAmount, total, label };
+  }, [totalSellGBP, state.shippingCost, state.currentPaymentMethod]);
+
+  // Invoice total = product sell prices + handling/shipping line item
+  const invoiceTotal = addCurrency(totalSellGBP, handlingLineItem.total);
+
+  // Implied costs: handling/shipping are now billed to the client (invoice line item),
+  // so they're NOT deducted from commissionable margin. Only import VAT and
+  // import/export taxes remain as internal cost deductions.
   const impliedCosts = useMemo(() => {
-    if (state.items.length === 0) {
-      return { shipping: 0, cardFees: 0, total: 0 };
-    }
-
-    const costs = calculateImpliedCosts({
-      items: state.items,
-      paymentMethod: state.currentPaymentMethod,
-      deliveryCountry: state.deliveryCountry,
-    });
-
-    // If hasDeliveryCost is false (free delivery), shipping is £0
-    // If hasDeliveryCost is true (cost TBC), don't deduct from margin yet (set to 0)
-    // Either way, shipping doesn't affect commissionable margin
-    return { ...costs, shipping: 0, total: costs.cardFees };
-  }, [state.items, state.currentPaymentMethod, state.deliveryCountry]);
-
-  // Track whether delivery has a cost (true = TBC, false = free)
-  const deliveryCostTBC = state.hasDeliveryCost === true;
-  const deliveryFree = state.hasDeliveryCost === false;
+    return { shipping: 0, cardFees: 0, total: 0 };
+  }, []);
 
   // Calculate commissionable margin with currency rounding
   const commissionableMarginGBP = useMemo(() => {
@@ -135,6 +138,22 @@ export function StepReview() {
         supplierName: item.supplier?.name || state.currentSupplier?.name,
       }));
 
+      // Add handling/shipping line item if applicable
+      if (handlingLineItem.label && handlingLineItem.total > 0) {
+        lineItems.push({
+          lineNumber: lineItems.length + 1,
+          brand: '',
+          category: '',
+          description: handlingLineItem.label,
+          quantity: 1,
+          buyPrice: 0,
+          sellPrice: handlingLineItem.total,
+          lineTotal: handlingLineItem.total,
+          lineMargin: 0,
+          supplierName: '',
+        });
+      }
+
       // Create invoice payload for native Xero API with multi-line items
       const invoicePayload = {
         buyerContactId: state.buyer.xeroContactId,
@@ -150,8 +169,9 @@ export function StepReview() {
         totalBuyPrice: totalBuyGBP,
         grossMargin: grossMarginGBP,
         commissionableMargin: commissionableMarginGBP,
-        cardFees: impliedCosts.cardFees,
-        shippingCost: impliedCosts.shipping,
+        cardFees: handlingLineItem.cardFee,
+        shippingCost: state.shippingCost || 0,
+        paymentMethod: state.currentPaymentMethod,
         notes: state.notes || undefined,
 
         // Legacy fields for backward compatibility (use first item)
@@ -265,74 +285,83 @@ export function StepReview() {
             <h3 className="font-semibold text-gray-900">Invoice Summary</h3>
           </div>
 
-          {/* Item Details */}
+          {/* Invoice Line Items */}
           <div className="p-4 space-y-3">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+              Invoice Line Items
+            </p>
+
             {state.items.map((item, index) => (
-              <div key={item.id} className="pb-3 border-b border-gray-200 last:border-b-0">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {item.brand} · {item.category}
-                    </p>
-                    <p className="text-sm text-gray-700 mt-1">{item.description}</p>
+              <div key={item.id} className="flex justify-between items-start pb-3 border-b border-gray-200 last:border-b-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm text-gray-500 font-medium mt-0.5">{index + 1}.</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {item.brand} {item.category}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-0.5">{item.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Qty: {item.quantity} × £{item.sellPrice.toFixed(2)}
+                        <span className="mx-1">·</span>
+                        Supplier: {item.supplier.name}
+                      </p>
+                    </div>
                   </div>
+                </div>
+                <div className="text-right ml-3 flex-shrink-0">
+                  <span className="text-sm font-semibold text-gray-900">
+                    £{multiplyCurrency(roundCurrency(item.sellPrice), item.quantity).toFixed(2)}
+                  </span>
                   <button
                     type="button"
                     onClick={() => goToStep(0)}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium ml-2"
+                    className="block text-xs text-blue-600 hover:text-blue-800 font-medium mt-1"
                   >
                     Edit
                   </button>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm mt-3">
-                  <div>
-                    <span className="text-gray-600">Quantity:</span>
-                    <span className="font-medium text-gray-900 ml-1">{item.quantity}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Supplier:</span>
-                    <span className="font-medium text-gray-900 ml-1">{item.supplier.name}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Buy Price:</span>
-                    <span className="font-medium text-gray-900 ml-1">
-                      £{item.buyPrice.toFixed(2)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Sell Price:</span>
-                    <span className="font-medium text-gray-900 ml-1">
-                      £{item.sellPrice.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-gray-700">Item Margin:</span>
-                    <span className="font-semibold text-gray-900">
-                      £{((item.sellPrice - item.buyPrice) * item.quantity).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
               </div>
             ))}
 
-            {/* Totals */}
+            {/* Handling/Shipping line item */}
+            {handlingLineItem.label && handlingLineItem.total > 0 && (
+              <div className="flex justify-between items-start pb-3 border-b border-gray-200">
+                <div className="flex items-start gap-2">
+                  <span className="text-sm text-gray-500 font-medium mt-0.5">{state.items.length + 1}.</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{handlingLineItem.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {handlingLineItem.cardFee > 0 && handlingLineItem.shippingAmount > 0
+                        ? `Shipping £${handlingLineItem.shippingAmount.toFixed(2)} + Card handling (2.4%) £${handlingLineItem.cardFee.toFixed(2)}`
+                        : handlingLineItem.cardFee > 0
+                        ? `Card handling (2.4%) on £${addCurrency(totalSellGBP, handlingLineItem.shippingAmount).toFixed(2)}`
+                        : `Shipping cost`}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm font-semibold text-gray-900 ml-3 flex-shrink-0">
+                  £{handlingLineItem.total.toFixed(2)}
+                </span>
+              </div>
+            )}
+
+            {/* Invoice Total */}
             <div className="bg-gray-50 p-3 rounded-lg space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-700">Total Buy (GBP):</span>
-                <span className="font-semibold text-gray-900">£{totalBuyGBP.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-700">Total Sell (GBP):</span>
+                <span className="text-gray-700">Product total:</span>
                 <span className="font-semibold text-gray-900">£{totalSellGBP.toFixed(2)}</span>
               </div>
+              {handlingLineItem.label && handlingLineItem.total > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-700">{handlingLineItem.label}:</span>
+                  <span className="font-semibold text-gray-900">£{handlingLineItem.total.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between pt-2 border-t border-gray-300">
-                <span className="font-semibold text-gray-900">Gross Margin (GBP):</span>
+                <span className="font-semibold text-gray-900">Invoice Total:</span>
                 <span className="font-bold text-gray-900 text-base">
-                  £{grossMarginGBP.toFixed(2)}
+                  £{invoiceTotal.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -411,30 +440,19 @@ export function StepReview() {
             <span className="text-purple-700">Gross margin (GBP):</span>
             <span className="font-semibold text-purple-900">£{grossMarginGBP.toFixed(2)}</span>
           </div>
-          {deliveryCostTBC ? (
+          {handlingLineItem.label && handlingLineItem.total > 0 && (
             <div className="flex justify-between">
-              <span className="text-purple-700">Delivery:</span>
-              <span className="font-medium text-amber-600">To be confirmed</span>
+              <span className="text-purple-700">{handlingLineItem.label} (billed to client):</span>
+              <span className="font-medium text-green-700">
+                +£{handlingLineItem.total.toFixed(2)} on invoice
+              </span>
             </div>
-          ) : deliveryFree ? (
-            <div className="flex justify-between">
-              <span className="text-purple-700">Delivery:</span>
-              <span className="font-medium text-purple-900">£0.00 (free)</span>
-            </div>
-          ) : null}
+          )}
           {state.importVAT !== null && state.importVAT > 0 && (
             <div className="flex justify-between">
               <span className="text-purple-700">Import VAT (non-reclaimable):</span>
               <span className="font-medium text-purple-900">
                 −£{state.importVAT.toFixed(2)}
-              </span>
-            </div>
-          )}
-          {impliedCosts.cardFees > 0 && (
-            <div className="flex justify-between">
-              <span className="text-purple-700">Card processing fees:</span>
-              <span className="font-medium text-purple-900">
-                −£{impliedCosts.cardFees.toFixed(2)}
               </span>
             </div>
           )}
@@ -455,11 +473,10 @@ export function StepReview() {
           </div>
         </div>
         <div className="mt-3 text-xs text-purple-700 bg-white border border-purple-200 p-2 rounded">
-          This is the margin available for commission after card fees
-          {state.estimatedImportExportGBP !== null &&
-            state.estimatedImportExportGBP > 0 &&
-            " and import/export taxes"}
-          .{deliveryCostTBC && ' Delivery cost will be confirmed later.'}
+          Handling/shipping is billed to the client on the invoice. Commission is calculated on gross margin
+          {(state.importVAT ?? 0) > 0 && " minus import VAT"}
+          {(state.estimatedImportExportGBP ?? 0) > 0 && " and import/export taxes"}
+          .
         </div>
       </div>
 

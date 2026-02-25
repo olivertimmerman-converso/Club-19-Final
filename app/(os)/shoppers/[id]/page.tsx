@@ -14,6 +14,7 @@ import { sales, shoppers } from "@/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { getUserRole } from "@/lib/getUserRole";
 import { canAccess } from "@/lib/rbac";
+import { ShopperPeriodSelector } from "@/components/ui/ShopperPeriodSelector";
 
 // ORIGINAL XATA: const xata = getXataClient();
 
@@ -92,37 +93,26 @@ export default async function ShopperDetailPage({
   //   .select([...])
   //   .getAll();
 
-  // Fetch sales for this shopper (filtered by month)
-  const monthSales = await db.query.sales.findMany({
-    where: and(
-      eq(sales.shopperId, id),
-      gte(sales.saleDate, monthStart),
-      lte(sales.saleDate, monthEnd)
-    ),
-    with: {
-      buyer: true,
-    },
-  });
-
-  // ORIGINAL XATA:
-  // const ytdSales = await xata.db.Sales.filter({
-  //   "shopper.id": id,
-  //   sale_date: {
-  //     $ge: ytdStart,
-  //     $le: monthEnd,
-  //   },
-  // })
-  //   .select([...])
-  //   .getAll();
-
-  // Fetch YTD sales for this shopper
-  const ytdSales = await db.query.sales.findMany({
-    where: and(
-      eq(sales.shopperId, id),
-      gte(sales.saleDate, ytdStart),
-      lte(sales.saleDate, monthEnd)
-    ),
-  });
+  // Fetch month sales + YTD sales in parallel
+  const [monthSales, ytdSales] = await Promise.all([
+    db.query.sales.findMany({
+      where: and(
+        eq(sales.shopperId, id),
+        gte(sales.saleDate, monthStart),
+        lte(sales.saleDate, monthEnd)
+      ),
+      with: {
+        buyer: true,
+      },
+    }),
+    db.query.sales.findMany({
+      where: and(
+        eq(sales.shopperId, id),
+        gte(sales.saleDate, ytdStart),
+        lte(sales.saleDate, monthEnd)
+      ),
+    }),
+  ]);
 
   // Calculate metrics
   const thisMonthMetrics = {
@@ -210,46 +200,11 @@ export default async function ShopperDetailPage({
         </div>
 
         {/* Month Selector */}
-        <div className="bg-white rounded-lg shadow p-4 mb-8">
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-700">
-              Viewing Period:
-            </label>
-            <select
-              value={currentMonth}
-              onChange={(e) => {
-                const month = parseInt(e.target.value);
-                window.location.href = `/shoppers/${id}?month=${month}&year=${currentYear}`;
-              }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              {Array.from({ length: 12 }, (_, i) => (
-                <option key={i} value={i}>
-                  {new Date(currentYear, i).toLocaleDateString("en-GB", {
-                    month: "long",
-                  })}
-                </option>
-              ))}
-            </select>
-            <select
-              value={currentYear}
-              onChange={(e) => {
-                const year = parseInt(e.target.value);
-                window.location.href = `/shoppers/${id}?month=${currentMonth}&year=${year}`;
-              }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              {Array.from({ length: 3 }, (_, i) => {
-                const year = now.getFullYear() - i;
-                return (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-        </div>
+        <ShopperPeriodSelector
+          shopperId={id}
+          currentMonth={currentMonth}
+          currentYear={currentYear}
+        />
 
         {/* Performance Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

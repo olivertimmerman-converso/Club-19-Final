@@ -48,6 +48,9 @@ type TradeContextType = {
   // Delivery cost
   setHasDeliveryCost: (hasCost: boolean | null) => void;
 
+  // Shipping cost
+  setShippingCost: (cost: number) => void;
+
   // Items
   addItem: (item: TradeItem) => void;
   updateItem: (itemId: string, item: Partial<TradeItem>) => void;
@@ -93,6 +96,7 @@ const createInitialState = (): WizardState => ({
   directShip: null,
   landedDelivery: null,
   hasDeliveryCost: null,
+  shippingCost: 0,
   items: [],
   editingItemId: null,
   buyer: null,
@@ -267,6 +271,10 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, hasDeliveryCost: hasCost }));
   }, []);
 
+  const setShippingCost = useCallback((cost: number) => {
+    setState((prev) => ({ ...prev, shippingCost: cost }));
+  }, []);
+
   const addItem = useCallback((item: TradeItem) => {
     setState((prev) => ({
       ...prev,
@@ -364,6 +372,7 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
     setDirectShip,
     setLandedDelivery,
     setHasDeliveryCost,
+    setShippingCost,
     addItem,
     updateItem,
     removeItem,

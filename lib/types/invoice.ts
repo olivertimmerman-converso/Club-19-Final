@@ -201,6 +201,9 @@ export type WizardState = {
   // Delivery cost (Step 3 - Logistics & Tax)
   hasDeliveryCost: boolean | null; // true = cost to be confirmed, false = free delivery
 
+  // Shipping cost (entered in Step 1 - Pricing)
+  shippingCost: number; // Explicit shipping cost in GBP (0 = none)
+
   // Items (Step 1)
   items: TradeItem[];
   editingItemId: string | null; // ID of item being edited, or 'new'

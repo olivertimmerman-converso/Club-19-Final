@@ -229,6 +229,9 @@ export const sales = pgTable(
     shippingMethod: text("shipping_method"),
     shippingCostConfirmed: boolean("shipping_cost_confirmed"),
 
+    // Payment
+    paymentMethod: text("payment_method"),
+
     // Status & Metadata
     status: text("status"),
     source: text("source"),

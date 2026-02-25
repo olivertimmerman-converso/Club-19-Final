@@ -41,23 +41,16 @@ export default async function ShoppersPage() {
   //   "active",
   // ]).getAll();
 
-  // Fetch all shoppers
-  const shoppersData = await db.query.shoppers.findMany();
-
-  // ORIGINAL XATA:
-  // const allSales = await xata.db.Sales.select([
-  //   "id",
-  //   "shopper.id",
-  //   "sale_amount_inc_vat",
-  //   "gross_margin",
-  // ]).getAll();
-
-  // Fetch all sales to calculate metrics for each shopper
-  const allSales = await db.query.sales.findMany({
-    with: {
-      shopper: true,
-    },
-  });
+  // Fetch shoppers + sales in parallel
+  const [shoppersData, allSales] = await Promise.all([
+    db.query.shoppers.findMany(),
+    db.query.sales.findMany({
+      with: {
+        shopper: true,
+      },
+      limit: 2000,
+    }),
+  ]);
 
   // Calculate metrics for each shopper
   const shopperMetrics = shoppersData.map((shopper) => {

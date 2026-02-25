@@ -60,6 +60,7 @@ interface CreateInvoicePayload {
   impliedShipping?: number;
   grossMargin?: number;
   commissionableMargin?: number;
+  paymentMethod?: string;
   notes?: string;
 }
 
@@ -418,6 +419,9 @@ export async function POST(request: NextRequest) {
           buyPrice: totalBuyPrice,
           cardFees: payload.cardFees || 0,
           shippingCost: payload.shippingCost || 0,
+
+          // Payment
+          paymentMethod: payload.paymentMethod,
 
           // Notes
           internalNotes: payload.notes || "",

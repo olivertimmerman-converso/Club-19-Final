@@ -91,48 +91,6 @@ export default async function SyncPage({ searchParams }: Props) {
     or(eq(sales.dismissed, false), isNull(sales.dismissed)),
   ];
 
-  // Add date filter if specified
-  if (dateRange) {
-    unallocatedConditions.push(gte(sales.saleDate, dateRange.start));
-    unallocatedConditions.push(lte(sales.saleDate, dateRange.end));
-  }
-
-  // Fetch unallocated sales (excluding dismissed) with date filter
-  const unallocatedRaw = await db.query.sales.findMany({
-    where: and(...unallocatedConditions),
-    with: {
-      buyer: true,
-    },
-    orderBy: [desc(sales.saleDate)],
-  });
-
-  // ORIGINAL XATA:
-  // // Build base filter for dismissed sales
-  // const dismissedFilter: any = {
-  //   $all: [
-  //     { needs_allocation: true },
-  //     { deleted_at: { $is: null } },
-  //     { dismissed: true }
-  //   ]
-  // };
-  //
-  // // Add date filter if specified
-  // if (dateRange) {
-  //   dismissedFilter.$all.push({
-  //     sale_date: {
-  //       $ge: dateRange.start,
-  //       $le: dateRange.end,
-  //     }
-  //   });
-  // }
-  //
-  // // Fetch dismissed unallocated sales with date filter
-  // const dismissedRaw = await xata.db.Sales
-  //   .filter(dismissedFilter)
-  //   .select(["*", "buyer.name"])
-  //   .sort("sale_date", "desc")
-  //   .getAll();
-
   // Build conditions for dismissed sales
   const dismissedConditions: any[] = [
     eq(sales.needsAllocation, true),
@@ -142,31 +100,29 @@ export default async function SyncPage({ searchParams }: Props) {
 
   // Add date filter if specified
   if (dateRange) {
+    unallocatedConditions.push(gte(sales.saleDate, dateRange.start));
+    unallocatedConditions.push(lte(sales.saleDate, dateRange.end));
     dismissedConditions.push(gte(sales.saleDate, dateRange.start));
     dismissedConditions.push(lte(sales.saleDate, dateRange.end));
   }
 
-  // Fetch dismissed unallocated sales with date filter
-  const dismissedRaw = await db.query.sales.findMany({
-    where: and(...dismissedConditions),
-    with: {
-      buyer: true,
-    },
-    orderBy: [desc(sales.saleDate)],
-  });
-
-  // ORIGINAL XATA:
-  // // Fetch shoppers
-  // const shoppersRaw = await xata.db.Shoppers
-  //   .select(["id", "name"])
-  //   .sort("name", "asc")
-  //   .getAll();
-
-  // Fetch active shoppers
-  const shoppersRaw = await db.query.shoppers.findMany({
-    where: eq(shoppers.active, true),
-    orderBy: [asc(shoppers.name)],
-  });
+  // Run all 3 queries in parallel
+  const [unallocatedRaw, dismissedRaw, shoppersRaw] = await Promise.all([
+    db.query.sales.findMany({
+      where: and(...unallocatedConditions),
+      with: { buyer: true },
+      orderBy: [desc(sales.saleDate)],
+    }),
+    db.query.sales.findMany({
+      where: and(...dismissedConditions),
+      with: { buyer: true },
+      orderBy: [desc(sales.saleDate)],
+    }),
+    db.query.shoppers.findMany({
+      where: eq(shoppers.active, true),
+      orderBy: [asc(shoppers.name)],
+    }),
+  ]);
 
   // SERIALIZE EVERYTHING - convert to plain JSON
   const unallocatedSales = unallocatedRaw.map(sale => ({

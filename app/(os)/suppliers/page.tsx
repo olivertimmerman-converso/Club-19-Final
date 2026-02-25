@@ -30,31 +30,14 @@ export default async function SuppliersPage() {
   //   .select(['*'])
   //   .getMany({ pagination: { size: 200 } });
 
-  // Fetch suppliers - limit to 200 for performance
-  const suppliersData = await db.query.suppliers.findMany({
-    limit: 200,
-  });
-
-  // ORIGINAL XATA:
-  // const salesRaw = await xata.db.Sales
-  //   .select([
-  //     'supplier.id',
-  //     'buy_price',
-  //     'gross_margin',
-  //     'sale_date',
-  //     'invoice_status',
-  //     'deleted_at',
-  //     'source',
-  //   ])
-  //   .getMany({ pagination: { size: 1000 } });
-
-  // Fetch sales - limit to last 1000 for performance (still covers recent supplier activity)
-  const salesRaw = await db.query.sales.findMany({
-    with: {
-      supplier: true,
-    },
-    limit: 1000,
-  });
+  // Run both queries in parallel
+  const [suppliersData, salesRaw] = await Promise.all([
+    db.query.suppliers.findMany({ limit: 200 }),
+    db.query.sales.findMany({
+      with: { supplier: true },
+      limit: 1000,
+    }),
+  ]);
 
   // Filter out deleted sales in JavaScript (keeping consistent with original behavior)
   const salesData = salesRaw.filter(sale => !sale.deletedAt);

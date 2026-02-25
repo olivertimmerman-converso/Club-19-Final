@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getBrandingThemeMapping } from '@/lib/branding-theme-mappings';
 import { BRANDS, CATEGORIES } from '@/lib/constants';
 
@@ -158,6 +158,9 @@ function getVATLogicExplanation(brandingTheme: string | null, effectiveVATPercen
 
 export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unallocatedXeroImports }: SaleDetailClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
+  const backHref = returnTo ? `/sales${returnTo}` : '/sales';
   const [selectedShopperId, setSelectedShopperId] = useState(sale.shopper?.id || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -220,7 +223,33 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
   const canEdit = ['superadmin', 'admin', 'operations'].includes(userRole || '');
   // Shopper reassignment - only superadmin, founder, operations can change shopper
   const canReassignShopper = ['superadmin', 'founder', 'operations'].includes(userRole || '');
-  const [isEditMode, setIsEditMode] = useState(false);
+
+  // Per-field inline edit tracking
+  const [editingFields, setEditingFields] = useState<Set<string>>(new Set());
+  const toggleFieldEdit = (field: string) => {
+    setEditingFields(prev => {
+      const next = new Set(prev);
+      if (next.has(field)) next.delete(field); else next.add(field);
+      return next;
+    });
+  };
+
+  // Check if a field needs data (empty/unknown/zero)
+  const fieldNeedsData = (field: string): boolean => {
+    switch (field) {
+      case 'brand': return !sale.brand || sale.brand === 'Unknown';
+      case 'category': return !sale.category || sale.category === 'Unknown';
+      case 'buy_price': return !sale.buy_price || sale.buy_price === 0;
+      case 'supplier': return !sale.supplier?.id;
+      case 'description': return !sale.item_title;
+      default: return false;
+    }
+  };
+
+  // Field is editable if it needs data OR user clicked the pencil
+  const isFieldEditable = (field: string): boolean => {
+    return canEdit && (fieldNeedsData(field) || editingFields.has(field));
+  };
   const [editBrand, setEditBrand] = useState(sale.brand || '');
   const [editCategory, setEditCategory] = useState(sale.category || '');
   const [editDescription, setEditDescription] = useState(sale.item_title || '');
@@ -407,12 +436,12 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
       }
 
       setEditSuccess(true);
-      setIsEditMode(false);
+      setEditingFields(new Set());
 
-      // Refresh the page data after a short delay to show success message
+      // Navigate back to sales list with filters preserved after brief success message
       setTimeout(() => {
-        router.refresh();
-      }, 1000);
+        router.push(backHref);
+      }, 1500);
     } catch (error) {
       console.error('Error updating sale:', error);
       setEditError(error instanceof Error ? error.message : 'Failed to update sale');
@@ -429,7 +458,7 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
     setEditBuyPrice(sale.buy_price?.toString() || '0');
     setEditSupplierId(sale.supplier?.id || '');
     setEditError(null);
-    setIsEditMode(false);
+    setEditingFields(new Set());
   };
 
   // Check if edit form has changes
@@ -1040,11 +1069,11 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
   };
 
   return (
-    <div>
+    <div className={hasEditChanges ? 'pb-24' : ''}>
       {/* Back Link */}
       <div className="mb-6">
         <Link
-          href="/sales"
+          href={backHref}
           className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
         >
           <svg
@@ -1067,9 +1096,12 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900 mb-2">
-            {sale.sale_reference || `Sale #${sale.id.slice(0, 8)}`}
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-1">
+            {sale.xero_invoice_number || sale.sale_reference || 'Untitled Sale'}
           </h1>
+          {sale.buyer && (
+            <p className="text-base text-gray-600 mb-2">{sale.buyer.name}</p>
+          )}
           <div className="flex items-center gap-3 flex-wrap">
             {getStatusBadge(sale.invoice_status)}
             {saleStatus === 'ongoing' && (
@@ -1186,32 +1218,26 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Item Details Card */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Item Details</h2>
-            {canEdit && !isEditMode && (
-              <button
-                onClick={() => setIsEditMode(true)}
-                className="text-sm font-medium text-purple-600 hover:text-purple-700"
-              >
-                Edit
-              </button>
-            )}
-          </div>
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 sm:p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Item Details</h2>
 
-          {isEditMode ? (
-            /* Edit Mode */
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Invoice #</label>
-                <p className="text-sm text-gray-900">{sale.xero_invoice_number || sale.sale_reference || '—'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Brand</label>
+          <div className="space-y-4">
+            {/* Invoice # (always read-only) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">Invoice #</label>
+              <p className="text-sm text-gray-900">{sale.xero_invoice_number || sale.sale_reference || '—'}</p>
+            </div>
+
+            {/* Brand */}
+            <div className={fieldNeedsData('brand') ? 'bg-amber-50 rounded-md p-3 -mx-3' : ''}>
+              <label className="block text-sm font-medium text-gray-500 mb-1">
+                Brand {fieldNeedsData('brand') && <span className="text-red-500">*</span>}
+              </label>
+              {isFieldEditable('brand') ? (
                 <select
                   value={editBrand}
                   onChange={(e) => setEditBrand(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                  className="block w-full h-12 text-base rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
                   disabled={isSavingEdit}
                 >
                   <option value="">Select brand...</option>
@@ -1219,13 +1245,34 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                     <option key={b} value={b}>{b}</option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Category</label>
+              ) : (
+                <div className="flex items-center justify-between group">
+                  <p className="text-sm text-gray-900">{sale.brand}</p>
+                  {canEdit && (
+                    <button
+                      onClick={() => toggleFieldEdit('brand')}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-purple-600 transition-opacity"
+                      title="Edit brand"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Category */}
+            <div className={fieldNeedsData('category') ? 'bg-amber-50 rounded-md p-3 -mx-3' : ''}>
+              <label className="block text-sm font-medium text-gray-500 mb-1">
+                Category {fieldNeedsData('category') && <span className="text-red-500">*</span>}
+              </label>
+              {isFieldEditable('category') ? (
                 <select
                   value={editCategory}
                   onChange={(e) => setEditCategory(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                  className="block w-full h-12 text-base rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
                   disabled={isSavingEdit}
                 >
                   <option value="">Select category...</option>
@@ -1233,111 +1280,145 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Description</label>
+              ) : (
+                <div className="flex items-center justify-between group">
+                  <p className="text-sm text-gray-900">{sale.category}</p>
+                  {canEdit && (
+                    <button
+                      onClick={() => toggleFieldEdit('category')}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-purple-600 transition-opacity"
+                      title="Edit category"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
+            <div className={fieldNeedsData('description') ? 'bg-amber-50 rounded-md p-3 -mx-3' : ''}>
+              <label className="block text-sm font-medium text-gray-500 mb-1">Description</label>
+              {isFieldEditable('description') ? (
                 <input
                   type="text"
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                  className="block w-full h-12 text-base rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
                   placeholder="Item description"
                   disabled={isSavingEdit}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Buy Price</label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">£</span>
+              ) : (
+                <div className="flex items-center justify-between group">
+                  <p className="text-sm text-gray-900">{sale.item_title || '—'}</p>
+                  {canEdit && (
+                    <button
+                      onClick={() => toggleFieldEdit('description')}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-purple-600 transition-opacity"
+                      title="Edit description"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Buy Price */}
+            <div className={fieldNeedsData('buy_price') ? 'bg-amber-50 rounded-md p-3 -mx-3' : ''}>
+              <label className="block text-sm font-medium text-gray-500 mb-1">
+                Buy Price {fieldNeedsData('buy_price') && <span className="text-red-500">*</span>}
+              </label>
+              {isFieldEditable('buy_price') ? (
+                <div>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">£</span>
+                    <input
+                      type="number"
+                      value={editBuyPrice}
+                      onChange={(e) => setEditBuyPrice(e.target.value)}
+                      className="block w-full h-12 pl-7 text-base rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      disabled={isSavingEdit}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Margin will be recalculated automatically</p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between group">
+                  <p className="text-sm text-gray-900">£{(sale.buy_price || 0).toFixed(2)}</p>
+                  {canEdit && (
+                    <button
+                      onClick={() => toggleFieldEdit('buy_price')}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-purple-600 transition-opacity"
+                      title="Edit buy price"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Supplier */}
+            <div className={fieldNeedsData('supplier') ? 'bg-amber-50 rounded-md p-3 -mx-3' : ''}>
+              <label className="block text-sm font-medium text-gray-500 mb-1">
+                Supplier {fieldNeedsData('supplier') && <span className="text-red-500">*</span>}
+              </label>
+              {isFieldEditable('supplier') ? (
+                <div>
                   <input
-                    type="number"
-                    value={editBuyPrice}
-                    onChange={(e) => setEditBuyPrice(e.target.value)}
-                    className="block w-full pl-7 rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    placeholder="Search suppliers..."
+                    value={supplierSearch}
+                    onChange={(e) => setSupplierSearch(e.target.value)}
+                    className="block w-full h-12 text-base rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 mb-1"
                     disabled={isSavingEdit}
                   />
+                  <select
+                    value={editSupplierId}
+                    onChange={(e) => setEditSupplierId(e.target.value)}
+                    className="block w-full h-12 text-base rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                    disabled={isSavingEdit}
+                  >
+                    <option value="">Select supplier...</option>
+                    {filteredSuppliers.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Margin will be recalculated automatically</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Supplier</label>
-                <input
-                  type="text"
-                  placeholder="Search suppliers..."
-                  value={supplierSearch}
-                  onChange={(e) => setSupplierSearch(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-base sm:text-sm mb-1"
-                  disabled={isSavingEdit}
-                />
-                <select
-                  value={editSupplierId}
-                  onChange={(e) => setEditSupplierId(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
-                  disabled={isSavingEdit}
-                >
-                  <option value="">Select supplier...</option>
-                  {filteredSuppliers.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Quantity</label>
-                <p className="text-sm text-gray-900">{sale.quantity || 1}</p>
-              </div>
-
-              {/* Edit Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={isSavingEdit || !hasEditChanges}
-                  className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isSavingEdit ? 'Saving...' : 'Save Changes'}
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  disabled={isSavingEdit}
-                  className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
+              ) : (
+                <div className="flex items-center justify-between group">
+                  <p className="text-sm text-gray-900">{sale.supplier?.name || '—'}</p>
+                  {canEdit && (
+                    <button
+                      onClick={() => toggleFieldEdit('supplier')}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-purple-600 transition-opacity"
+                      title="Edit supplier"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-          ) : (
-            /* View Mode */
-            <dl className="space-y-3">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Invoice #</dt>
-                <dd className="mt-1 text-sm text-gray-900">
-                  {sale.xero_invoice_number || sale.sale_reference || '—'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Brand</dt>
-                <dd className="mt-1 text-sm text-gray-900">{sale.brand || '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Category</dt>
-                <dd className="mt-1 text-sm text-gray-900">{sale.category || '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Description</dt>
-                <dd className="mt-1 text-sm text-gray-900">{sale.item_title || '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Buy Price</dt>
-                <dd className="mt-1 text-sm text-gray-900">£{(sale.buy_price || 0).toFixed(2)}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Quantity</dt>
-                <dd className="mt-1 text-sm text-gray-900">{sale.quantity || 1}</dd>
-              </div>
-            </dl>
-          )}
+
+            {/* Quantity (always read-only) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">Quantity</label>
+              <p className="text-sm text-gray-900">{sale.quantity || 1}</p>
+            </div>
+          </div>
 
           {/* Line Items Section (for multi-item invoices) */}
           {lineItems.length > 0 && (
@@ -2913,6 +2994,31 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
           </div>
         )}
       </div>
+
+      {/* Sticky Save Bar */}
+      {hasEditChanges && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-30">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <p className="text-sm text-gray-600 hidden sm:block">You have unsaved changes</p>
+            <div className="flex gap-3 w-full sm:w-auto">
+              <button
+                onClick={handleCancelEdit}
+                disabled={isSavingEdit}
+                className="flex-1 sm:flex-none px-4 py-2 min-h-[44px] border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={isSavingEdit}
+                className="flex-1 sm:flex-none px-6 py-2 min-h-[44px] border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSavingEdit ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

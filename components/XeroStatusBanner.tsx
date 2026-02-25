@@ -52,8 +52,8 @@ export function XeroStatusBanner({ role }: XeroStatusBannerProps) {
 
     checkXeroStatus();
 
-    // Re-check every 2 minutes (cron runs every 10 mins)
-    const interval = setInterval(checkXeroStatus, 2 * 60 * 1000);
+    // Re-check every 5 minutes (cron runs every 10 mins)
+    const interval = setInterval(checkXeroStatus, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [shouldCheck]);
 

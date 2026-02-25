@@ -55,8 +55,7 @@ const SHIPPING_COSTS_GBP: Record<string, number> = {
 /**
  * Card fee configuration
  */
-const CARD_FEE_PERCENT = 0.025; // 2.5%
-const CARD_FEE_FLAT = 0.3; // £0.30
+const CARD_FEE_PERCENT = 0.024; // 2.4%
 
 /**
  * Derive shipping route key from supplier country and delivery country
@@ -109,7 +108,7 @@ export function calculateImpliedCosts(params: {
 
     // Apply card fee formula
     if (totalSellGBP > 0) {
-      cardFees = totalSellGBP * CARD_FEE_PERCENT + CARD_FEE_FLAT;
+      cardFees = totalSellGBP * CARD_FEE_PERCENT;
     }
   }
 

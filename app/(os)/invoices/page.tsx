@@ -42,12 +42,13 @@ export default async function InvoicesPage({
   //   .sort('sale_date', 'desc')
   //   .getAll();
 
-  // Fetch all sales (each sale = one invoice)
+  // Fetch sales (each sale = one invoice) — limited to 500 most recent
   const allSales = await db.query.sales.findMany({
     with: {
       buyer: true,
     },
     orderBy: [desc(sales.saleDate)],
+    limit: 500,
   });
 
   // Filter sales based on status

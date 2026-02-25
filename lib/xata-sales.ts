@@ -466,6 +466,9 @@ export interface CreateSalePayload {
   admin_override_commission_percent?: number;
   admin_override_notes?: string;
 
+  // Payment method
+  payment_method?: string;
+
   // Notes
   internal_notes?: string;
 }
@@ -669,6 +672,9 @@ export async function createSaleFromAppPayload(
       commissionLockDate: undefined,
       commissionPaidDate: undefined,
 
+      // Payment
+      paymentMethod: sanitizedPayload.payment_method || undefined,
+
       // Notes
       internalNotes: sanitizedPayload.internal_notes || "",
     })
@@ -850,6 +856,9 @@ export interface AppFormData {
   cardFees?: number;
   shippingCost?: number;
 
+  // Payment
+  paymentMethod?: string;
+
   // Notes
   internalNotes?: string;
 }
@@ -902,6 +911,9 @@ export async function syncInvoiceAndAppDataToXata(params: {
       buy_price: params.formData.buyPrice,
       card_fees: params.formData.cardFees,
       shipping_cost: params.formData.shippingCost,
+
+      // Payment
+      payment_method: params.formData.paymentMethod,
 
       // Xero metadata
       currency: params.xeroInvoice.CurrencyCode,
