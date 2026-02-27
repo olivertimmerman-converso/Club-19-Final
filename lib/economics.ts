@@ -51,7 +51,6 @@ export function getVATRateForBrandingTheme(brandingTheme: string | null | undefi
   }
 
   const vatRate = mapping.expectedVAT / 100; // Convert 0/20 to 0.0/0.2
-  console.log(`[ECONOMICS] VAT rate for "${mapping.name}": ${mapping.expectedVAT}% (${vatRate})`);
   return vatRate;
 }
 
@@ -325,13 +324,6 @@ export function calculateSaleEconomics(params: SaleEconomicsParams): SaleEconomi
   // CRITICAL: Get the correct VAT rate from branding theme
   const vatRate = getVATRateForBrandingTheme(params.branding_theme);
 
-  console.log("[ECONOMICS] calculateSaleEconomics inputs:", {
-    sale_amount_inc_vat,
-    buy_price,
-    branding_theme: params.branding_theme,
-    vatRate,
-  });
-
   // Step 1: Calculate sale amount ex VAT using the CORRECT VAT rate
   const sale_amount_ex_vat = calculateExVatWithRate(sale_amount_inc_vat, vatRate);
 
@@ -356,14 +348,6 @@ export function calculateSaleEconomics(params: SaleEconomicsParams): SaleEconomi
     commissionable_margin,
     sale_amount_ex_vat
   );
-
-  console.log("[ECONOMICS] calculateSaleEconomics result:", {
-    sale_amount_inc_vat,
-    sale_amount_ex_vat,
-    vat_amount,
-    gross_margin,
-    commissionable_margin,
-  });
 
   // SAFEGUARD: Validate zero-rated sales have zero VAT
   if (vatRate === 0 && Math.abs(vat_amount) > 0.01) {

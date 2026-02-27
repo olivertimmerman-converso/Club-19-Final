@@ -50,53 +50,23 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
 
     // Get role for filtering
     const role = await getUserRole();
-    console.log('[SalesPage] Role:', role);
+    // console.log('[SalesPage] Role:', role);
 
     // Get month and viewAs filters
     const params = await searchParams;
     const monthParam = params.month || "current";
     const viewAs = params.viewAs;
     const shopperParam = params.shopper;
-    console.log('[SalesPage] Month param:', monthParam, 'viewAs:', viewAs, 'shopper:', shopperParam);
+    // console.log('[SalesPage] Month param:', monthParam, 'viewAs:', viewAs, 'shopper:', shopperParam);
 
     const dateRange = getMonthDateRange(monthParam);
-    console.log('[SalesPage] Date range:', dateRange);
+    // console.log('[SalesPage] Date range:', dateRange);
 
     // Determine if we're in "shopper view" mode
     // Either: actual shopper role OR superadmin viewing as shopper
     const viewAsShopperName = role === 'superadmin' ? getViewAsShopperName(viewAs) : null;
     const isShopperView = role === 'shopper' || !!viewAsShopperName;
     const isCurrentMonth = monthParam === 'current';
-
-    // ORIGINAL XATA:
-    // let allSalesQuery = xata.db.Sales
-    //   .select([
-    //     'id',
-    //     'sale_reference',
-    //     'sale_date',
-    //     'brand',
-    //     'category',
-    //     'item_title',
-    //     'buy_price',
-    //     'sale_amount_inc_vat',
-    //     'gross_margin',
-    //     'xero_invoice_number',
-    //     'invoice_status',
-    //     'currency',
-    //     'source',
-    //     'buyer.name',
-    //     'shopper.id',
-    //     'shopper.name',
-    //     'supplier.id',
-    //     'deleted_at',
-    //     'is_payment_plan',
-    //     'payment_plan_instalments',
-    //     'shipping_cost_confirmed',
-    //     'has_introducer',
-    //     'introducer.id',
-    //     'introducer.name',
-    //     'introducer_commission',
-    //   ]);
 
     // Build conditions for sales query
     const conditions: any[] = [];
@@ -105,7 +75,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     // - Current month: show ALL sales (full team view for leaderboard context)
     // - Previous months: show ONLY their own sales
     if (isShopperView && !isCurrentMonth) {
-      console.log('[SalesPage] Shopper viewing previous month - filtering to own sales');
+      // console.log('[SalesPage] Shopper viewing previous month - filtering to own sales');
 
       let shopperName: string | null = null;
 
@@ -118,7 +88,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
         shopperName = currentUser?.fullName || null;
       }
 
-      console.log('[SalesPage] Shopper name:', shopperName);
+      // console.log('[SalesPage] Shopper name:', shopperName);
 
       if (shopperName) {
         // Try clerk_user_id first, then name
@@ -140,13 +110,13 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
           });
         }
 
-        console.log('[SalesPage] Found shopper:', shopper?.id);
+        // console.log('[SalesPage] Found shopper:', shopper?.id);
         if (shopper) {
           conditions.push(eq(sales.shopperId, shopper.id));
         }
       }
     } else if (isShopperView) {
-      console.log('[SalesPage] Shopper viewing current month - showing all sales');
+      // console.log('[SalesPage] Shopper viewing current month - showing all sales');
     }
 
     // If a specific shopper filter is applied (by non-shopper roles), filter server-side
@@ -156,7 +126,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
 
     // Apply date range filter if specified
     if (dateRange) {
-      console.log('[SalesPage] Applying date range filter');
+      // console.log('[SalesPage] Applying date range filter');
       conditions.push(gte(sales.saleDate, dateRange.start));
       conditions.push(lte(sales.saleDate, dateRange.end));
     }

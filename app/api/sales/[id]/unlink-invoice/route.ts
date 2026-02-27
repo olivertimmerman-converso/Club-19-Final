@@ -49,11 +49,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only superadmin can unlink invoices
+    // Only superadmin and operations can unlink invoices
     const role = await getUserRole();
-    if (role !== 'superadmin') {
+    if (!['superadmin', 'operations'].includes(role || '')) {
       return NextResponse.json(
-        { error: 'Forbidden - requires superadmin role' },
+        { error: 'Forbidden - requires superadmin or operations role' },
         { status: 403 }
       );
     }

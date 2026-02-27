@@ -214,11 +214,18 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
             href={`/sales/${sale.id}${returnToSuffix}`}
             className="block bg-white rounded-lg border border-gray-200 shadow-sm p-3 active:bg-gray-50 transition-colors"
           >
-            {/* Row 1: Invoice ref + amount */}
+            {/* Row 1: Invoice # + amount */}
             <div className="flex items-center justify-between mb-1">
-              <span className="font-semibold text-sm text-purple-600">
-                {sale.sale_reference || sale.xero_invoice_number || '—'}
-              </span>
+              <div className="flex items-center gap-2">
+                {sale.xero_invoice_number && (
+                  <span className="text-xs font-mono text-gray-500">
+                    {sale.xero_invoice_number}
+                  </span>
+                )}
+                <span className="font-semibold text-sm text-purple-600">
+                  {sale.sale_reference || '—'}
+                </span>
+              </div>
               <span className="font-semibold text-sm text-gray-900">
                 {formatCurrency(sale.sale_amount_inc_vat, sale.currency)}
               </span>
@@ -260,6 +267,12 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Invoice #
+                </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -312,12 +325,6 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  Invoice #
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
                   Status
                 </th>
                 {userRole === 'superadmin' && !isDeletedSection && (
@@ -333,6 +340,9 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
                   key={sale.id}
                   className="hover:bg-gray-50 transition-colors"
                 >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                    {sale.xero_invoice_number || '—'}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Link
@@ -388,9 +398,6 @@ export function SalesTableClient({ sales, shoppers, userRole, isDeletedSection =
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
                     {formatCurrency(sale.gross_margin, sale.currency)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {sale.xero_invoice_number || '—'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2">

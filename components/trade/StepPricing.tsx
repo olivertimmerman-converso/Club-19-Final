@@ -5,6 +5,7 @@ import { useTrade } from "@/contexts/TradeContext";
 import { TaxRegime } from "@/lib/types/invoice";
 import * as logger from '@/lib/logger';
 import { roundCurrency, subtractCurrency, multiplyCurrency, addCurrency } from '@/lib/utils/currency';
+import { toTitleCase } from '@/lib/utils/normalise';
 
 // Xata Supplier type
 interface XataSupplier {
@@ -198,7 +199,7 @@ export function StepPricing() {
 
   // Create new supplier
   const handleCreateSupplier = async (itemId: string) => {
-    const supplierName = localSuppliers[itemId]?.name?.trim();
+    const supplierName = toTitleCase(localSuppliers[itemId]?.name || '');
     if (!supplierName) return;
 
     try {
@@ -239,7 +240,7 @@ export function StepPricing() {
     if (!supplier.xataId && supplier.name.trim()) {
       updateItem(itemId, {
         supplier: {
-          name: supplier.name.trim(),
+          name: toTitleCase(supplier.name),
           country: "United Kingdom",
           taxRegime: TaxRegime.UK_VAT,
         },

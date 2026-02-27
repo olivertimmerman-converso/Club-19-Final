@@ -187,15 +187,6 @@ export default async function SyncPage({ searchParams }: Props) {
     thisMonthCount,
   };
 
-  // Log to verify serialization
-  console.log('[SyncPage] Serialized data:', {
-    period,
-    unallocatedCount: unallocatedSales.length,
-    dismissedCount: dismissedSales.length,
-    shoppersCount: shoppersData.length,
-    aggregateStats,
-  });
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">

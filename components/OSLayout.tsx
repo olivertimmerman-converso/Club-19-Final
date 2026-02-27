@@ -19,25 +19,14 @@ interface OSLayoutProps {
 }
 
 export async function OSLayout({ children }: OSLayoutProps) {
-  logger.info('UI', 'Starting SSR layout render');
-
   let role;
-  let hasError = false;
 
   try {
-    logger.info('UI', 'Calling getUserRole');
     role = await getUserRole();
-    logger.info('UI', 'Role resolved', { role });
   } catch (error) {
-    hasError = true;
     logger.error('UI', 'Failed to get user role', { error: error as any } as any);
-    logger.info('UI', 'Rendering error state');
-
-    // Render error fallback (client component with button)
     return <ErrorFallback />;
   }
-
-  logger.info('UI', 'Rendering layout with role', { role });
 
   return (
     <div className="flex h-screen bg-gray-50">

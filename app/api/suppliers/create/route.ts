@@ -14,9 +14,7 @@ import { db } from "@/db";
 import { suppliers } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import * as logger from "@/lib/logger";
-
-// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
-// ORIGINAL XATA: const xata = getXataClient();
+import { toTitleCase } from "@/lib/utils/normalise";
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,11 +41,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate by exact name match (case-insensitive)
-    const normalizedName = name.trim();
-    // ORIGINAL XATA: const existing = await xata.db.Suppliers.filter({
-    // ORIGINAL XATA:   name: { $is: normalizedName },
-    // ORIGINAL XATA: }).getFirst();
+    // Normalise to Title Case and check for duplicate
+    const normalizedName = toTitleCase(name);
     const existingResults = await db
       .select()
       .from(suppliers)
@@ -77,14 +72,6 @@ export async function POST(request: NextRequest) {
     const autoApprove = privilegedRoles.includes(userRole);
 
     // Create the supplier
-    // ORIGINAL XATA: const supplier = await xata.db.Suppliers.create({
-    // ORIGINAL XATA:   name: normalizedName,
-    // ORIGINAL XATA:   email: email?.trim() || null,
-    // ORIGINAL XATA:   pending_approval: !autoApprove,
-    // ORIGINAL XATA:   created_by: userId,
-    // ORIGINAL XATA:   approved_by: autoApprove ? userId : null,
-    // ORIGINAL XATA:   approved_at: autoApprove ? new Date() : null,
-    // ORIGINAL XATA: } as any);
     const [supplier] = await db
       .insert(suppliers)
       .values({

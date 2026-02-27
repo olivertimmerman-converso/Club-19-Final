@@ -98,16 +98,6 @@ export function calculateVAT(inputs: VATInputs): VATResult {
     }
   }
 
-  console.log("[VAT_CALC] Calculation result:", {
-    brandTheme,
-    themeName: mapping.name,
-    treatment: mapping.treatment,
-    vatRate,
-    isZeroRated,
-    saleAmountExVat,
-    vatAmount,
-    saleAmountIncVat,
-  });
 
   return {
     brandingTheme: mapping,

@@ -191,6 +191,7 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
   const [isConfirmingShipping, setIsConfirmingShipping] = useState(false);
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [shippingSuccess, setShippingSuccess] = useState(false);
+  const [isReEditingShipping, setIsReEditingShipping] = useState(false);
   const [introducerCommission, setIntroducerCommission] = useState(sale.introducer_commission?.toString() || '');
   const [showAddNew, setShowAddNew] = useState(false);
   const [newIntroducerName, setNewIntroducerName] = useState('');
@@ -954,6 +955,7 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
       }
 
       setShippingSuccess(true);
+      setIsReEditingShipping(false);
 
       // Refresh the page data after a short delay to show success message
       setTimeout(() => {
@@ -1845,23 +1847,39 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Delivery</h2>
 
           {/* Delivery Cost Confirmed */}
-          {sale.shipping_cost_confirmed && (
+          {sale.shipping_cost_confirmed && !isReEditingShipping && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-green-800">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span className="font-medium">
-                  {sale.shipping_cost === 0
-                    ? 'Free delivery'
-                    : `Delivery cost: ${formatCurrency(sale.shipping_cost)}`}
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-green-800">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium">
+                    {sale.shipping_cost === 0
+                      ? 'Free delivery'
+                      : `Delivery cost: ${formatCurrency(sale.shipping_cost)}`}
+                  </span>
+                </div>
+                {canEdit && (
+                  <button
+                    onClick={() => {
+                      setShippingCostInput(sale.shipping_cost?.toString() || '0');
+                      setIsReEditingShipping(true);
+                    }}
+                    className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors"
+                    title="Edit delivery cost"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
           )}
 
-          {/* Delivery Cost Pending Confirmation */}
-          {!sale.shipping_cost_confirmed && (
+          {/* Delivery Cost Pending Confirmation (or re-editing) */}
+          {(!sale.shipping_cost_confirmed || isReEditingShipping) && (
             <div className="space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 text-amber-800 mb-3">
@@ -1871,14 +1889,14 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                   <span className="font-medium">Delivery cost to be confirmed</span>
                 </div>
                 <p className="text-xs text-amber-700 mb-4">
-                  Commissionable margin will be recalculated after confirmation
+                  What did shipping/courier cost for this order? This is an internal cost deducted from the commissionable margin.
                 </p>
 
                 {/* Success Message */}
                 {shippingSuccess && (
                   <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
                     <p className="text-sm font-medium text-green-800">
-                      ✓ Delivery cost confirmed successfully! Refreshing...
+                      Delivery cost confirmed successfully! Refreshing...
                     </p>
                   </div>
                 )}
@@ -1891,6 +1909,9 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                 )}
 
                 {/* Input and Button */}
+                <label htmlFor="delivery-cost" className="block text-xs font-medium text-amber-800 mb-1">
+                  Actual delivery cost
+                </label>
                 <div className="flex items-center gap-3">
                   <div className="flex items-center">
                     <span className="mr-2 text-gray-700">£</span>
@@ -2710,7 +2731,7 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
         )}
 
         {/* Linked Invoices Section (when there are linked invoices OR superadmin can link) */}
-        {(sale.linked_invoices?.length > 0 || (userRole === 'superadmin' && sale.xero_invoice_id)) && (
+        {(sale.linked_invoices?.length > 0 || (['superadmin', 'operations'].includes(userRole || '') && sale.xero_invoice_id)) && (
           <div className="bg-indigo-50 rounded-lg border border-indigo-200 shadow-sm p-6 lg:col-span-2">
             <div className="flex items-start gap-3">
               <svg className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2745,7 +2766,7 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                         <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Date</th>
                         <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-indigo-700 uppercase tracking-wider">Amount</th>
                         <th scope="col" className="px-4 py-2 text-center text-xs font-medium text-indigo-700 uppercase tracking-wider">Type</th>
-                        {userRole === 'superadmin' && (
+                        {['superadmin', 'operations'].includes(userRole || '') && (
                           <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-indigo-700 uppercase tracking-wider">Actions</th>
                         )}
                       </tr>
@@ -2774,7 +2795,7 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                               Primary
                             </span>
                           </td>
-                          {userRole === 'superadmin' && (
+                          {['superadmin', 'operations'].includes(userRole || '') && (
                             <td className="px-4 py-3 text-right text-sm">
                               <span className="text-gray-400">-</span>
                             </td>
@@ -2796,7 +2817,7 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                               Linked
                             </span>
                           </td>
-                          {userRole === 'superadmin' && (
+                          {['superadmin', 'operations'].includes(userRole || '') && (
                             <td className="px-4 py-3 text-right text-sm">
                               <button
                                 onClick={() => handleUnlinkInvoice(linkedInv.xero_invoice_id)}
@@ -2817,14 +2838,14 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                         <td className="px-4 py-3 text-sm font-bold text-indigo-900 text-right">
                           {formatCurrency(sale.sale_amount_inc_vat)}
                         </td>
-                        <td colSpan={userRole === 'superadmin' ? 2 : 1}></td>
+                        <td colSpan={['superadmin', 'operations'].includes(userRole || '') ? 2 : 1}></td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
 
                 {/* Link another invoice button (superadmin only) */}
-                {userRole === 'superadmin' && unallocatedXeroImports.length > 0 && (
+                {['superadmin', 'operations'].includes(userRole || '') && unallocatedXeroImports.length > 0 && (
                   <button
                     onClick={() => {
                       setShowLinkInvoiceModal(true);
@@ -2923,8 +2944,8 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
           </div>
         )}
 
-        {/* Link to Xero Invoice (Superadmin only) */}
-        {userRole === 'superadmin' && unallocatedXeroImports.length > 0 && (
+        {/* Link to Xero Invoice (Superadmin + Operations) */}
+        {['superadmin', 'operations'].includes(userRole || '') && unallocatedXeroImports.length > 0 && (
           <div className="bg-blue-50 rounded-lg border border-blue-200 shadow-sm p-6 lg:col-span-2">
             <div className="flex items-start gap-3 mb-4">
               <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
