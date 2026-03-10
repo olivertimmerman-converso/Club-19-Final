@@ -17,7 +17,7 @@ import * as logger from '@/lib/logger';
 
 // Drizzle imports
 import { db } from "@/db";
-import { sales, buyers } from "@/db/schema";
+import { sales, buyers, lineItems } from "@/db/schema";
 import { eq, ilike } from "drizzle-orm";
 
 // ORIGINAL XATA:
@@ -379,8 +379,8 @@ export async function POST(request: Request) {
           // Create new sale record (needs allocation)
           const contactName = invoice.Contact?.Name || 'Unknown';
           const total = invoice.Total || 0;
-          const lineItems = invoice.LineItems || [];
-          const firstItem = lineItems[0] || {};
+          const invoiceLineItems = invoice.LineItems || [];
+          const firstItem = invoiceLineItems[0] || {};
 
           // Safely parse dates
           const saleDate = safeDate(invoice.Date);
@@ -457,7 +457,7 @@ export async function POST(request: Request) {
           // await xata.db.Sales.create({...});
 
           // DRIZZLE:
-          await db
+          const [createdSale] = await db
             .insert(sales)
             .values({
               xeroInvoiceId: invoice.InvoiceID,
@@ -477,7 +477,33 @@ export async function POST(request: Request) {
               buyPrice: 0, // Unknown - Operations will need to fill in
               grossMargin: 0,
               internalNotes: importNotes,
+            })
+            .returning();
+
+          // Store all line items from the Xero invoice
+          const xeroLineItems = invoice.LineItems || [];
+          if (createdSale && xeroLineItems.length > 0) {
+            for (let i = 0; i < xeroLineItems.length; i++) {
+              const li = xeroLineItems[i];
+              await db.insert(lineItems).values({
+                saleId: createdSale.id,
+                lineNumber: i + 1,
+                description: li.Description || 'Imported from Xero',
+                quantity: li.Quantity || 1,
+                sellPrice: li.UnitAmount || 0,
+                lineTotal: li.LineAmount || 0,
+                brand: 'Unknown',
+                category: 'Unknown',
+                buyPrice: 0,
+                lineMargin: 0,
+                source: 'xero_import',
+              });
+            }
+            logger.info('XERO_SYNC', 'Stored line items', {
+              invoiceNumber: invoice.InvoiceNumber,
+              lineItemCount: xeroLineItems.length,
             });
+          }
 
           newCount++;
           logger.info('XERO_SYNC', 'Created new sale', { invoiceNumber: invoice.InvoiceNumber });

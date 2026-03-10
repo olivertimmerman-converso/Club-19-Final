@@ -112,6 +112,8 @@ export default async function CompleteDataPage({
     }));
 
   // Fetch line items for this sale (for multi-supplier support)
+  // Only atelier-created line items trigger per-line-item completion;
+  // xero_import line items are reference-only (displayed on sale detail page)
   const saleLineItems = await db
     .select({
       id: lineItems.id,
@@ -124,7 +126,10 @@ export default async function CompleteDataPage({
       supplierId: lineItems.supplierId,
     })
     .from(lineItems)
-    .where(eq(lineItems.saleId, saleId))
+    .where(and(
+      eq(lineItems.saleId, saleId),
+      eq(lineItems.source, 'atelier'),
+    ))
     .orderBy(asc(lineItems.lineNumber));
 
   // Assess completeness

@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidTokens } from '@/lib/xero-auth';
 import { db } from "@/db";
-import { sales, buyers, errors } from "@/db/schema";
+import { sales, buyers, errors, lineItems } from "@/db/schema";
 import { eq, ilike, sql } from "drizzle-orm";
 import {
   calculateMargins,
@@ -352,8 +352,8 @@ export async function GET(request: NextRequest) {
         } else {
           // Create new sale
           const contactName = invoice.Contact?.Name || 'Unknown';
-          const lineItems = invoice.LineItems || [];
-          const firstItem = lineItems[0] || {};
+          const invoiceLineItems = invoice.LineItems || [];
+          const firstItem = invoiceLineItems[0] || {};
 
           if (!invoiceDate) {
             syncErrors.push({
@@ -418,7 +418,7 @@ export async function GET(request: NextRequest) {
           const dueDateNote = dueDate ? ` Due: ${safeISOString(dueDate) || 'Unknown'}` : '';
           const importNotes = `Auto-imported by cron on ${new Date().toISOString()}. Client: ${contactName}.${dueDateNote} Needs shopper allocation.`;
 
-          await db
+          const [createdSale] = await db
             .insert(sales)
             .values({
               xeroInvoiceId: invoice.InvoiceID,
@@ -438,7 +438,33 @@ export async function GET(request: NextRequest) {
               buyPrice: 0,
               grossMargin: 0,
               internalNotes: importNotes,
+            })
+            .returning();
+
+          // Store all line items from the Xero invoice
+          const xeroLineItems = invoice.LineItems || [];
+          if (createdSale && xeroLineItems.length > 0) {
+            for (let i = 0; i < xeroLineItems.length; i++) {
+              const li = xeroLineItems[i];
+              await db.insert(lineItems).values({
+                saleId: createdSale.id,
+                lineNumber: i + 1,
+                description: li.Description || 'Imported from Xero',
+                quantity: li.Quantity || 1,
+                sellPrice: li.UnitAmount || 0,
+                lineTotal: li.LineAmount || 0,
+                brand: 'Unknown',
+                category: 'Unknown',
+                buyPrice: 0,
+                lineMargin: 0,
+                source: 'xero_import',
+              });
+            }
+            logger.info('XERO_CRON_INVOICES', 'Stored line items', {
+              invoiceNumber: invoice.InvoiceNumber,
+              lineItemCount: xeroLineItems.length,
             });
+          }
 
           newCount++;
           logger.info('XERO_CRON_INVOICES', 'Created new sale', {

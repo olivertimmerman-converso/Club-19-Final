@@ -24,7 +24,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/db";
-import { sales, buyers, errors } from "@/db/schema";
+import { sales, buyers, errors, lineItems } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import {
   findSaleByInvoiceNumber,
@@ -456,6 +456,31 @@ export async function POST(req: NextRequest) {
               internalNotes: `Auto-imported via Xero webhook on ${new Date().toISOString()}. Client: ${invoice.Contact?.Name || 'Unknown'}. Needs shopper allocation and cost details.`,
             })
             .returning();
+
+          // Store all line items from the Xero invoice
+          const xeroLineItems = invoice.LineItems || [];
+          if (newSale && xeroLineItems.length > 0) {
+            for (let i = 0; i < xeroLineItems.length; i++) {
+              const li = xeroLineItems[i];
+              await db.insert(lineItems).values({
+                saleId: newSale.id,
+                lineNumber: i + 1,
+                description: li.Description || 'Imported from Xero',
+                quantity: li.Quantity || 1,
+                sellPrice: li.UnitAmount || 0,
+                lineTotal: li.LineAmount || 0,
+                brand: 'Unknown',
+                category: 'Unknown',
+                buyPrice: 0,
+                lineMargin: 0,
+                source: 'xero_import',
+              });
+            }
+            logger.info("XERO_WEBHOOKS", "Stored line items", {
+              invoiceNumber: invoice.InvoiceNumber,
+              lineItemCount: xeroLineItems.length,
+            });
+          }
 
           logger.info("XERO_WEBHOOKS", "Created unallocated sale from webhook", {
             saleId: newSale.id,

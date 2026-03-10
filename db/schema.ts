@@ -396,6 +396,7 @@ export const lineItems = pgTable(
     sellPrice: doublePrecision("sell_price"),
     lineTotal: doublePrecision("line_total"),
     lineMargin: doublePrecision("line_margin"),
+    source: text("source").default("atelier"),
     createdAt: timestamp("xata.createdAt", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("xata.updatedAt", { withTimezone: true }).defaultNow(),
   },
