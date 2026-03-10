@@ -207,7 +207,6 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
   const [showEditInstalmentModal, setShowEditInstalmentModal] = useState(false);
   const [editingInstalment, setEditingInstalment] = useState<PaymentInstalment | null>(null);
-  const [numberOfInstalments, setNumberOfInstalments] = useState(3);
   const [planInstalments, setPlanInstalments] = useState<Array<{ due_date: string; amount: string }>>([]);
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
   const [isDeletingPlan, setIsDeletingPlan] = useState(false);
@@ -727,9 +726,10 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
 
   // Payment plan handlers
   const handleCreatePaymentPlan = () => {
-    // Auto-suggest even split
-    const amountPerInstalment = sale.sale_amount_inc_vat / numberOfInstalments;
-    const suggestedInstalments = Array.from({ length: numberOfInstalments }, (_, i) => ({
+    // Auto-suggest even split across 3 instalments
+    const defaultCount = 3;
+    const amountPerInstalment = sale.sale_amount_inc_vat / defaultCount;
+    const suggestedInstalments = Array.from({ length: defaultCount }, (_, i) => ({
       due_date: '',
       amount: amountPerInstalment.toFixed(2),
     }));
@@ -2287,8 +2287,8 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                             type="button"
                             onClick={() => {
                               const updated = planInstalments.filter((_, i) => i !== idx);
-                              setPlanInstalments(updated);
-                              setNumberOfInstalments(updated.length);
+                              const amountPerInstalment = (sale.sale_amount_inc_vat / updated.length).toFixed(2);
+                              setPlanInstalments(updated.map((inst) => ({ ...inst, amount: amountPerInstalment })));
                             }}
                             className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                             title="Remove instalment"
@@ -2348,7 +2348,6 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
                         { due_date: '', amount: amountPerInstalment },
                       ];
                       setPlanInstalments(updated);
-                      setNumberOfInstalments(newCount);
                     }}
                     className="w-full mb-6 inline-flex justify-center items-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 text-sm font-medium rounded-lg text-gray-600 hover:border-purple-400 hover:text-purple-600 transition-colors"
                   >
