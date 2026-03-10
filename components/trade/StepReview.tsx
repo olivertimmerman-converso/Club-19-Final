@@ -129,7 +129,7 @@ export function StepReview() {
         lineNumber: index + 1,
         brand: item.brand,
         category: item.category,
-        description: `${item.brand} ${item.category} - ${item.description}`,
+        description: item.description,
         quantity: item.quantity,
         buyPrice: roundCurrency(item.buyPrice),
         sellPrice: roundCurrency(item.sellPrice),

@@ -321,8 +321,8 @@ export async function POST(request: NextRequest) {
     // Build invoice description from trade items
     const firstItem = trade.items[0];
     const invoiceDescription = trade.items.length === 1
-      ? `${firstItem.brand} ${firstItem.category} - ${firstItem.description}${firstItem.quantity > 1 ? ` (x${firstItem.quantity})` : ''}`
-      : `Multi-item trade: ${trade.items.map(item => `${item.brand} ${item.category}`).join(', ')}`;
+      ? `${firstItem.description}${firstItem.quantity > 1 ? ` (x${firstItem.quantity})` : ''}`
+      : `Multi-item trade: ${trade.items.map(item => item.description).join(', ')}`;
 
     // Calculate total sell price (sum of all items) - rounded to prevent floating point errors
     const totalSellPrice = roundCurrency(
