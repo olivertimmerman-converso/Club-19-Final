@@ -5,15 +5,12 @@
  */
 
 import Link from "next/link";
-// ORIGINAL XATA: import { XataClient } from "@/src/xata";
 import { db } from "@/db";
 import { sales, shoppers, buyers } from "@/db/schema";
-import { eq, and, gte, lte, desc, ilike, isNull, or } from "drizzle-orm";
+import { eq, and, gte, lte, desc, ilike, isNull, or, ne } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMonthDateRange } from "@/lib/dateUtils";
-
-// ORIGINAL XATA: const xata = new XataClient();
 
 interface ShopperDashboardProps {
   monthParam?: string;
@@ -94,36 +91,7 @@ export async function ShopperDashboard({
     );
   }
 
-  // ORIGINAL XATA:
-  // let salesQuery = xata.db.Sales
-  //   .select([
-  //     'id',
-  //     'sale_date',
-  //     'item_title',
-  //     'brand',
-  //     'sale_amount_inc_vat',
-  //     'gross_margin',
-  //     'commissionable_margin',
-  //     'commission_locked',
-  //     'commission_paid',
-  //     'buyer.name',
-  //     'source',
-  //     'deleted_at',
-  //   ])
-  //   .filter({
-  //     shopper: shopper.id
-  //   });
-  // if (dateRange) {
-  //   salesQuery = salesQuery.filter({
-  //     sale_date: {
-  //       $ge: dateRange.start,
-  //       $le: dateRange.end,
-  //     },
-  //   });
-  // }
-  // const allSalesRaw = await salesQuery.sort('sale_date', 'desc').getMany({ pagination: { size: 100 } });
-
-  // Query sales for this shopper using Drizzle
+  // Query sales for this shopper
   // Commission timing: prefer completedAt, fall back to saleDate for legacy data
   const whereConditions = dateRange
     ? and(
@@ -152,6 +120,7 @@ export async function ShopperDashboard({
         eq(sales.source, 'allocated'),
         isNull(sales.completedAt),
         isNull(sales.deletedAt),
+        ne(sales.invoiceStatus, 'VOIDED'),
         or(
           eq(sales.buyPrice, 0),
           isNull(sales.buyPrice),
@@ -174,9 +143,9 @@ export async function ShopperDashboard({
     }),
   ]);
 
-  // Filter out xero_import, deleted, and ongoing sales in JavaScript
+  // Filter out xero_import, deleted, ongoing, and VOIDED sales in JavaScript
   const salesData = allSalesRaw.filter(sale =>
-    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing'
+    sale.source !== 'xero_import' && !sale.deletedAt && sale.status !== 'ongoing' && sale.invoiceStatus !== 'VOIDED'
   );
 
   // Calculate totals

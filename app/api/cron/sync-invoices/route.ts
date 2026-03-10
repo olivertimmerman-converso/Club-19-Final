@@ -14,7 +14,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getValidTokens } from '@/lib/xero-auth';
 import { db } from "@/db";
 import { sales, buyers, errors } from "@/db/schema";
-import { eq, ilike } from "drizzle-orm";
+import { eq, ilike, sql } from "drizzle-orm";
+import {
+  calculateMargins,
+  getVATRateForBrandingTheme,
+  calculateExVatWithRate,
+  toNumber,
+} from '@/lib/economics';
+import { roundCurrency, addCurrency } from '@/lib/utils/currency';
 import * as logger from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -206,19 +213,137 @@ export async function GET(request: NextRequest) {
           .limit(1);
 
         if (existing) {
-          // Skip soft-deleted records — don't update or resurrect them
+          // Check if Xero invoice was modified since we last synced
+          const xeroUpdated = safeDate(invoice.UpdatedDateUTC);
+          const ourUpdated = existing.updatedAt;
+          const xeroIsNewer = xeroUpdated && ourUpdated
+            ? xeroUpdated.getTime() > ourUpdated.getTime()
+            : false;
+
+          // Soft-deleted records may be linked secondaries — update JSONB if amount changed
           if (existing.deletedAt) {
-            skippedCount++;
+            if (xeroIsNewer && existing.xeroInvoiceId) {
+              const existingAmount = roundCurrency(toNumber(existing.saleAmountIncVat));
+              const xeroAmount = roundCurrency(invoice.Total || 0);
+
+              if (existingAmount !== xeroAmount) {
+                // Update the soft-deleted record's amount
+                await db
+                  .update(sales)
+                  .set({
+                    saleAmountIncVat: xeroAmount,
+                    saleAmountExVat: invoice.SubTotal || (xeroAmount / 1.2),
+                    invoiceStatus: invoice.Status,
+                  })
+                  .where(eq(sales.id, existing.id));
+
+                // Find and update any primary sale referencing this invoice in linked_invoices JSONB
+                const primarySales = await db
+                  .select()
+                  .from(sales)
+                  .where(sql`${sales.linkedInvoices}::jsonb @> ${JSON.stringify([{ xero_invoice_id: existing.xeroInvoiceId }])}::jsonb`);
+
+                for (const primary of primarySales) {
+                  const linked = (primary.linkedInvoices as any[]) || [];
+                  const updatedLinked = linked.map((inv: any) =>
+                    inv.xero_invoice_id === existing.xeroInvoiceId
+                      ? { ...inv, amount_inc_vat: xeroAmount }
+                      : inv
+                  );
+
+                  // Recalculate primary sale totals
+                  const primaryOwnAmount = roundCurrency(toNumber(primary.saleAmountIncVat));
+                  // Subtract old linked total, add new linked total
+                  const oldLinkedTotal = linked.reduce((sum: number, inv: any) => addCurrency(sum, inv.amount_inc_vat), 0);
+                  const newLinkedTotal = updatedLinked.reduce((sum: number, inv: any) => addCurrency(sum, inv.amount_inc_vat), 0);
+                  // Primary's saleAmountIncVat already includes linked amounts
+                  const newTotalIncVat = addCurrency(primaryOwnAmount - oldLinkedTotal, newLinkedTotal);
+
+                  const vatRate = getVATRateForBrandingTheme(primary.brandingTheme);
+                  const newTotalExVat = calculateExVatWithRate(newTotalIncVat, vatRate);
+
+                  const margins = calculateMargins({
+                    saleAmountExVat: newTotalExVat,
+                    buyPrice: primary.buyPrice,
+                    shippingCost: primary.shippingCost,
+                    cardFees: primary.cardFees,
+                    directCosts: primary.directCosts,
+                    introducerCommission: primary.introducerCommission,
+                  });
+
+                  await db
+                    .update(sales)
+                    .set({
+                      linkedInvoices: updatedLinked,
+                      saleAmountIncVat: newTotalIncVat,
+                      saleAmountExVat: newTotalExVat,
+                      grossMargin: margins.grossMargin,
+                      commissionableMargin: margins.commissionableMargin,
+                    })
+                    .where(eq(sales.id, primary.id));
+
+                  logger.info('XERO_CRON_INVOICES', 'Updated linked invoice amount on primary sale', {
+                    primarySaleId: primary.id,
+                    linkedInvoiceId: existing.xeroInvoiceId,
+                    oldAmount: existingAmount,
+                    newAmount: xeroAmount,
+                  });
+                }
+
+                updatedCount++;
+              } else {
+                skippedCount++;
+              }
+            } else {
+              skippedCount++;
+            }
             continue;
           }
-          // Update status if changed
-          if (existing.invoiceStatus !== invoice.Status) {
+
+          // Non-deleted record: check if status or amounts changed
+          const statusChanged = existing.invoiceStatus !== invoice.Status;
+          const amountsChanged = xeroIsNewer && (
+            roundCurrency(toNumber(existing.saleAmountIncVat)) !== roundCurrency(invoice.Total || 0)
+          );
+
+          if (statusChanged || amountsChanged) {
+            const updateSet: Record<string, any> = {
+              invoiceStatus: invoice.Status,
+              invoicePaidDate: invoice.FullyPaidOnDate ? safeDate(invoice.FullyPaidOnDate) : null,
+            };
+
+            if (amountsChanged) {
+              const newIncVat = roundCurrency(invoice.Total || 0);
+              const newExVat = roundCurrency(invoice.SubTotal || (newIncVat / 1.2));
+
+              updateSet.saleAmountIncVat = newIncVat;
+              updateSet.saleAmountExVat = newExVat;
+              updateSet.xeroInvoiceNumber = invoice.InvoiceNumber;
+
+              // Recalculate margins with new amounts (keep existing buy price etc)
+              const margins = calculateMargins({
+                saleAmountExVat: newExVat,
+                buyPrice: existing.buyPrice,
+                shippingCost: existing.shippingCost,
+                cardFees: existing.cardFees,
+                directCosts: existing.directCosts,
+                introducerCommission: existing.introducerCommission,
+              });
+
+              updateSet.grossMargin = margins.grossMargin;
+              updateSet.commissionableMargin = margins.commissionableMargin;
+
+              logger.info('XERO_CRON_INVOICES', 'Refreshing amounts from Xero', {
+                invoiceNumber: invoice.InvoiceNumber,
+                oldIncVat: existing.saleAmountIncVat,
+                newIncVat,
+                grossMargin: margins.grossMargin,
+              });
+            }
+
             await db
               .update(sales)
-              .set({
-                invoiceStatus: invoice.Status,
-                invoicePaidDate: invoice.FullyPaidOnDate ? safeDate(invoice.FullyPaidOnDate) : null,
-              })
+              .set(updateSet)
               .where(eq(sales.id, existing.id));
             updatedCount++;
           } else {

@@ -9,10 +9,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { suppliers } from "@/db/schema";
 import { eq } from "drizzle-orm";
-// ORIGINAL XATA: import { getXataClient } from "@/src/xata";
 import * as logger from "@/lib/logger";
-
-// ORIGINAL XATA: const xata = getXataClient();
 
 export async function POST(
   request: NextRequest,
@@ -40,8 +37,6 @@ export async function POST(
 
     const { id } = await params;
 
-    // Get the supplier
-    // ORIGINAL XATA: const supplier = await xata.db.Suppliers.read(id);
     const supplierResults = await db
       .select()
       .from(suppliers)
@@ -53,13 +48,6 @@ export async function POST(
       return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
     }
 
-    // Update supplier to approved
-    // ORIGINAL XATA:
-    // const updated = await xata.db.Suppliers.update(id, {
-    //   pending_approval: false,
-    //   approved_by: userId,
-    //   approved_at: new Date(),
-    // } as any);
     const updatedResults = await db
       .update(suppliers)
       .set({
@@ -83,7 +71,6 @@ export async function POST(
       supplier: {
         id: updated?.id,
         name: updated?.name,
-        // ORIGINAL XATA: pending_approval: false,
         pending_approval: false,
       },
       message: "Supplier approved",

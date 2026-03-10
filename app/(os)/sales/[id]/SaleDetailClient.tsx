@@ -2739,11 +2739,16 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
               </svg>
               <div className="flex-1">
                 <h2 className="text-lg font-semibold text-indigo-900 mb-1">Linked Invoices</h2>
-                <p className="text-sm text-indigo-700 mb-4">
+                <p className="text-sm text-indigo-700 mb-2">
                   {sale.linked_invoices?.length > 0
                     ? `This sale has ${sale.linked_invoices.length + 1} linked invoice${sale.linked_invoices.length > 0 ? 's' : ''} (payment in multiple parts).`
                     : 'Link additional invoices when a client pays in multiple parts (e.g., deposit + balance).'}
                 </p>
+                {sale.linked_invoices?.length > 0 && (
+                  <p className="text-xs text-indigo-600 mb-4">
+                    Completion data (supplier, buy price, margin) is tracked on the primary sale only.
+                  </p>
+                )}
 
                 {unlinkError && (
                   <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">

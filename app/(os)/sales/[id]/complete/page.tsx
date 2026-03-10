@@ -9,8 +9,8 @@ import { redirect } from "next/navigation";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { db } from "@/db";
-import { sales, buyers, shoppers, suppliers as suppliersTable } from "@/db/schema";
-import { eq, and, isNull, desc, inArray } from "drizzle-orm";
+import { sales, buyers, shoppers, suppliers as suppliersTable, lineItems } from "@/db/schema";
+import { eq, and, isNull, desc, inArray, asc } from "drizzle-orm";
 import { assessCompleteness } from "@/lib/completeness";
 import { CompleteDataClient } from "./CompleteDataClient";
 
@@ -111,6 +111,22 @@ export default async function CompleteDataPage({
       buyerName: imp.buyer?.name || 'Unknown',
     }));
 
+  // Fetch line items for this sale (for multi-supplier support)
+  const saleLineItems = await db
+    .select({
+      id: lineItems.id,
+      lineNumber: lineItems.lineNumber,
+      brand: lineItems.brand,
+      description: lineItems.description,
+      quantity: lineItems.quantity,
+      sellPrice: lineItems.sellPrice,
+      lineTotal: lineItems.lineTotal,
+      supplierId: lineItems.supplierId,
+    })
+    .from(lineItems)
+    .where(eq(lineItems.saleId, saleId))
+    .orderBy(asc(lineItems.lineNumber));
+
   // Assess completeness
   const completeness = assessCompleteness({
     supplierId: sale.supplierId,
@@ -162,6 +178,18 @@ export default async function CompleteDataPage({
     commissionableMargin: sale.commissionableMargin || 0,
   };
 
+  // Serialize line items for client
+  const lineItemsData = saleLineItems.map(li => ({
+    id: li.id,
+    lineNumber: li.lineNumber || 0,
+    brand: li.brand || null,
+    description: li.description || null,
+    quantity: li.quantity || 1,
+    unitPrice: li.sellPrice || 0,
+    lineTotal: li.lineTotal || 0,
+    supplierId: li.supplierId || null,
+  }));
+
   return (
     <CompleteDataClient
       sale={saleData}
@@ -169,6 +197,7 @@ export default async function CompleteDataPage({
       completeness={completeness}
       userRole={role}
       unallocatedXeroImports={unallocatedXeroImports}
+      lineItems={lineItemsData}
     />
   );
 }

@@ -4,7 +4,6 @@
  * GET: Fetch single sale by ID
  * PATCH: Update sale fields (especially shopper assignment)
  *
- * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,9 +17,6 @@ import * as logger from '@/lib/logger';
 import { db } from "@/db";
 import { sales, buyers, shoppers, suppliers } from "@/db/schema";
 import { eq } from "drizzle-orm";
-
-// ORIGINAL XATA:
-// import { getXataClient } from '@/src/xata';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,15 +37,6 @@ export async function GET(
     const { id } = await params;
     logger.info('SALES_API', 'Fetching sale', { saleId: id });
 
-    // ORIGINAL XATA:
-    // const xata = getXataClient();
-    // const sale = await xata.db.Sales
-    //   .select(['*', 'buyer.*', 'shopper.*', 'supplier.*'])
-    //   .filter({ id })
-    //   .getFirst();
-
-    // DRIZZLE:
-    // Use Drizzle's relational query API to fetch sale with relations
     const sale = await db.query.sales.findFirst({
       where: eq(sales.id, id),
       with: {
@@ -99,9 +86,7 @@ export async function PATCH(
     const body = await request.json();
     logger.info('SALES_API', 'Update sale request', { saleId: id, fields: Object.keys(body) });
 
-    // ORIGINAL XATA: const xata = getXataClient();
-
-    // Build update object from allowed fields
+// Build update object from allowed fields
     const updateData: Record<string, any> = {};
 
     // Allow updating shopper and supplier (link fields)
@@ -125,6 +110,9 @@ export async function PATCH(
       'sale_amount_ex_vat': 'saleAmountExVat',
       'gross_margin': 'grossMargin',
       'internal_notes': 'internalNotes',
+      'shipping_cost': 'shippingCost',
+      'shipping_cost_confirmed': 'shippingCostConfirmed',
+      'commissionable_margin': 'commissionableMargin',
     };
 
     for (const [apiField, schemaField] of Object.entries(fieldMappings)) {
@@ -140,12 +128,8 @@ export async function PATCH(
       );
     }
 
-    // If buy_price is being updated, recalculate margins
-    if (body.buy_price !== undefined) {
-      // ORIGINAL XATA:
-      // const currentSale = await xata.db.Sales.read(id);
-
-      // DRIZZLE:
+    // Recalculate margins when buy_price or shipping_cost changes
+    if (body.buy_price !== undefined || body.shipping_cost !== undefined) {
       const [currentSale] = await db
         .select()
         .from(sales)
@@ -154,8 +138,12 @@ export async function PATCH(
 
       if (currentSale) {
         const saleAmountExVat = currentSale.saleAmountExVat || 0;
-        const newBuyPrice = roundCurrency(body.buy_price);
-        const shippingCost = currentSale.shippingCost || 0;
+        const newBuyPrice = body.buy_price !== undefined
+          ? roundCurrency(body.buy_price)
+          : (currentSale.buyPrice || 0);
+        const shippingCost = body.shipping_cost !== undefined
+          ? roundCurrency(body.shipping_cost)
+          : (currentSale.shippingCost || 0);
         const cardFees = currentSale.cardFees || 0;
         const directCosts = currentSale.directCosts || 0;
         const introducerCommission = currentSale.introducerCommission || 0;
@@ -169,14 +157,20 @@ export async function PATCH(
           introducerCommission,
         });
 
-        updateData.buyPrice = newBuyPrice;
+        if (body.buy_price !== undefined) {
+          updateData.buyPrice = newBuyPrice;
+        }
+        if (body.shipping_cost !== undefined) {
+          updateData.shippingCost = shippingCost;
+        }
         updateData.grossMargin = marginResult.grossMargin;
         updateData.commissionableMargin = marginResult.commissionableMargin;
 
         logger.info('SALES_API', 'Recalculated margins', {
           saleId: id,
           saleAmountExVat,
-          newBuyPrice,
+          buyPrice: newBuyPrice,
+          shippingCost,
           grossMargin: marginResult.grossMargin,
           commissionableMargin: marginResult.commissionableMargin,
         });
@@ -185,10 +179,6 @@ export async function PATCH(
 
     logger.info('SALES_API', 'Updating sale', { saleId: id, updateFields: Object.keys(updateData) });
 
-    // ORIGINAL XATA:
-    // const updatedSale = await xata.db.Sales.update(id, updateData);
-
-    // DRIZZLE:
     const [updatedSale] = await db
       .update(sales)
       .set(updateData)

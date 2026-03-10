@@ -65,12 +65,24 @@ interface Supplier {
   pendingApproval?: boolean;
 }
 
+interface LineItemData {
+  id: string;
+  lineNumber: number;
+  brand: string | null;
+  description: string | null;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  supplierId: string | null;
+}
+
 interface CompleteDataClientProps {
   sale: SaleData;
   suppliers: Supplier[];
   completeness: CompletenessResult;
   userRole: string | null;
   unallocatedXeroImports: XeroImport[];
+  lineItems?: LineItemData[];
 }
 
 // Branding theme options for dropdown
@@ -86,11 +98,23 @@ export function CompleteDataClient({
   completeness,
   userRole,
   unallocatedXeroImports,
+  lineItems: initialLineItems = [],
 }: CompleteDataClientProps) {
   const router = useRouter();
 
+  const hasLineItems = initialLineItems.length > 0;
+
   // Supplier list state (local so we can add new ones inline)
   const [supplierList, setSupplierList] = useState<Supplier[]>(initialSuppliers);
+
+  // Per-line-item supplier state (only used when line items exist)
+  const [lineItemSuppliers, setLineItemSuppliers] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const li of initialLineItems) {
+      initial[li.id] = li.supplierId || "";
+    }
+    return initial;
+  });
 
   // Link invoice state
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -256,7 +280,18 @@ export function CompleteDataClient({
       const payload: Record<string, unknown> = {};
 
       // Only include fields that have values
-      if (supplierId) payload.supplier = supplierId;
+      if (hasLineItems) {
+        // Use first line item's supplier as primary, send all per-line-item mappings
+        const lineItemSuppliersArray = Object.entries(lineItemSuppliers)
+          .filter(([, sid]) => sid)
+          .map(([lineItemId, sid]) => ({ lineItemId, supplierId: sid }));
+        if (lineItemSuppliersArray.length > 0) {
+          payload.supplier = lineItemSuppliersArray[0].supplierId;
+          payload.line_item_suppliers = lineItemSuppliersArray;
+        }
+      } else if (supplierId) {
+        payload.supplier = supplierId;
+      }
       if (finalBrand && finalBrand !== "Unknown") payload.brand = finalBrand;
       if (finalCategory && finalCategory !== "Unknown") payload.category = finalCategory;
       if (itemTitle) payload.item_title = itemTitle;
@@ -631,44 +666,97 @@ export function CompleteDataClient({
             {/* Supplier - Required */}
             {(missingFields.has("supplierId") || !sale.supplierId) && (
               <div>
-                <label className="block text-sm sm:text-base font-medium text-gray-700 mb-2">
-                  Supplier <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Search suppliers..."
-                  value={supplierSearch}
-                  onChange={(e) => setSupplierSearch(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 sm:px-3 sm:py-2 mb-2 text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <select
-                  value={supplierId}
-                  onChange={(e) => setSupplierId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 sm:px-3 sm:py-2 text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-                >
-                  <option value="">Select supplier...</option>
-                  {filteredSuppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-                {/* Pending approval badge for selected supplier */}
-                {supplierId && supplierList.find((s) => s.id === supplierId)?.pendingApproval && (
-                  <div className="mt-2 inline-flex items-center px-2 py-1 rounded-md bg-amber-50 border border-amber-200">
-                    <span className="text-xs font-medium text-amber-700">Pending Approval</span>
+                {hasLineItems ? (
+                  /* Multi-supplier: per-line-item supplier selectors */
+                  <div>
+                    <label className="block text-sm sm:text-base font-medium text-gray-700 mb-2">
+                      Supplier per Line Item <span className="text-red-500">*</span>
+                    </label>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Search suppliers..."
+                        value={supplierSearch}
+                        onChange={(e) => setSupplierSearch(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-3 sm:px-3 sm:py-2 text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      {initialLineItems.map((li) => (
+                        <div key={li.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              {li.description || `Line ${li.lineNumber}`}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {li.brand && `${li.brand} · `}Qty {li.quantity} · £{(li.lineTotal || 0).toLocaleString()}
+                            </div>
+                          </div>
+                          <select
+                            value={lineItemSuppliers[li.id] || ""}
+                            onChange={(e) => setLineItemSuppliers(prev => ({ ...prev, [li.id]: e.target.value }))}
+                            className="w-full sm:w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                          >
+                            <option value="">Select supplier...</option>
+                            {filteredSuppliers.map((s) => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 flex items-center gap-1">
+                      <span className="text-xs text-gray-500">Can&apos;t find your supplier?</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewSupplierModal(true)}
+                        className="text-xs font-medium text-purple-600 hover:text-purple-700 transition-colors"
+                      >
+                        + Add New Supplier
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Single supplier selector (no line items) */
+                  <div>
+                    <label className="block text-sm sm:text-base font-medium text-gray-700 mb-2">
+                      Supplier <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Search suppliers..."
+                      value={supplierSearch}
+                      onChange={(e) => setSupplierSearch(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 sm:px-3 sm:py-2 mb-2 text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <select
+                      value={supplierId}
+                      onChange={(e) => setSupplierId(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 sm:px-3 sm:py-2 text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                    >
+                      <option value="">Select supplier...</option>
+                      {filteredSuppliers.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    {/* Pending approval badge for selected supplier */}
+                    {supplierId && supplierList.find((s) => s.id === supplierId)?.pendingApproval && (
+                      <div className="mt-2 inline-flex items-center px-2 py-1 rounded-md bg-amber-50 border border-amber-200">
+                        <span className="text-xs font-medium text-amber-700">Pending Approval</span>
+                      </div>
+                    )}
+                    <div className="mt-2 flex items-center gap-1">
+                      <span className="text-xs text-gray-500">Can&apos;t find your supplier?</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewSupplierModal(true)}
+                        className="text-xs font-medium text-purple-600 hover:text-purple-700 transition-colors"
+                      >
+                        + Add New Supplier
+                      </button>
+                    </div>
                   </div>
                 )}
-                <div className="mt-2 flex items-center gap-1">
-                  <span className="text-xs text-gray-500">Can&apos;t find your supplier?</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowNewSupplierModal(true)}
-                    className="text-xs font-medium text-purple-600 hover:text-purple-700 transition-colors"
-                  >
-                    + Add New Supplier
-                  </button>
-                </div>
               </div>
             )}
 
@@ -744,6 +832,14 @@ export function CompleteDataClient({
                 <label className="block text-sm sm:text-base font-medium text-gray-700 mb-2">
                   Buy Price ({sale.currency}) <span className="text-red-500">*</span>
                 </label>
+                {sale.linkedInvoices.length > 0 && (
+                  <div className="mb-2 p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg flex items-start gap-2">
+                    <Info className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-indigo-700">
+                      Enter the <strong>total</strong> buy price for this deal across all {sale.linkedInvoices.length + 1} linked invoices. The margin will be calculated against the combined sale total of {formatCurrency(sale.saleAmountIncVat)}.
+                    </p>
+                  </div>
+                )}
                 <input
                   type="number"
                   inputMode="decimal"
@@ -782,7 +878,9 @@ export function CompleteDataClient({
                 )}
                 {!liveMargin && (
                   <p className="mt-2 text-xs text-gray-500">
-                    What did you pay for this item?
+                    {sale.linkedInvoices.length > 0
+                      ? "Enter the total cost across all linked invoices."
+                      : "What did you pay for this item?"}
                   </p>
                 )}
               </div>

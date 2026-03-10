@@ -10,7 +10,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getUserRole } from "@/lib/getUserRole";
 import { calculateSaleEconomics } from "@/lib/economics";
 import { db } from "@/db";
-import { sales, shoppers } from "@/db/schema";
+import { sales, shoppers, lineItems } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import * as logger from "@/lib/logger";
 
@@ -185,6 +185,22 @@ export async function POST(
 
     if (!updatedSale) {
       return NextResponse.json({ error: "Failed to update sale" }, { status: 500 });
+    }
+
+    // Update per-line-item suppliers if provided
+    if (body.line_item_suppliers && Array.isArray(body.line_item_suppliers)) {
+      for (const { lineItemId, supplierId: liSupplierId } of body.line_item_suppliers) {
+        if (lineItemId && liSupplierId) {
+          await db
+            .update(lineItems)
+            .set({ supplierId: liSupplierId })
+            .where(eq(lineItems.id, lineItemId));
+        }
+      }
+      logger.info("COMPLETE", "Updated line item suppliers", {
+        saleId,
+        count: body.line_item_suppliers.length,
+      });
     }
 
     logger.info("COMPLETE", "Sale data completed successfully", {

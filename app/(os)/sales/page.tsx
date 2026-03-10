@@ -148,8 +148,8 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     // Filter out xero_import records in JavaScript (keeping consistent with original)
     const nonImportedSales = allSalesRaw.filter(sale => sale.source !== 'xero_import');
 
-    // Split into active and deleted using JavaScript (reliable!)
-    const salesRaw = nonImportedSales.filter(sale => !sale.deletedAt);
+    // Split into active and deleted, exclude VOIDED invoices
+    const salesRaw = nonImportedSales.filter(sale => !sale.deletedAt && sale.invoiceStatus !== 'VOIDED');
     const deletedSalesRaw = role === 'superadmin' ? nonImportedSales.filter(sale => sale.deletedAt) : [];
 
     // Serialize data for client component

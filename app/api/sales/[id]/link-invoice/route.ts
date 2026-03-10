@@ -12,7 +12,6 @@ import { getUserRole } from '@/lib/getUserRole';
 import { db } from "@/db";
 import { sales, shoppers } from "@/db/schema";
 import { eq } from "drizzle-orm";
-// ORIGINAL XATA: import { getXataClient } from '@/src/xata';
 import {
   calculateMargins,
   getVATRateForBrandingTheme,
@@ -76,10 +75,7 @@ export async function POST(
 
     logger.info('LINK_INVOICE', 'Link invoice request', { saleId, xero_import_id, role });
 
-    // ORIGINAL XATA: const xata = getXataClient();
-
     // Fetch the target sale
-    // ORIGINAL XATA: const sale = await xata.db.Sales.read(saleId);
     const saleResults = await db
       .select()
       .from(sales)
@@ -113,7 +109,6 @@ export async function POST(
     }
 
     // Fetch the Xero import to link
-    // ORIGINAL XATA: const xeroImport = await xata.db.Sales.read(xero_import_id);
     const xeroImportResults = await db
       .select()
       .from(sales)
@@ -138,7 +133,6 @@ export async function POST(
     }
 
     // Check it's not already soft-deleted (linked elsewhere)
-    // ORIGINAL XATA: if (xeroImport.deleted_at) {
     if (xeroImport.deletedAt) {
       return NextResponse.json(
         { error: 'Invoice has already been linked or deleted' },
@@ -157,11 +151,9 @@ export async function POST(
     }
 
     // Get existing linked invoices array
-    // ORIGINAL XATA: const existingLinked: LinkedInvoice[] = (sale as any).linked_invoices || [];
     const existingLinked: LinkedInvoice[] = (sale as any).linkedInvoices || [];
 
     // Check if already linked
-    // ORIGINAL XATA: if (existingLinked.some(inv => inv.xero_invoice_id === xeroImport.xero_invoice_id)) {
     if (existingLinked.some(inv => inv.xero_invoice_id === xeroImport.xeroInvoiceId)) {
       return NextResponse.json(
         { error: 'Invoice is already linked to this sale' },
@@ -171,14 +163,10 @@ export async function POST(
 
     // Create new linked invoice entry
     const newLinkedInvoice: LinkedInvoice = {
-      // ORIGINAL XATA: xero_invoice_id: xeroImport.xero_invoice_id || '',
       xero_invoice_id: xeroImport.xeroInvoiceId || '',
-      // ORIGINAL XATA: xero_invoice_number: xeroImport.xero_invoice_number || 'Unknown',
       xero_invoice_number: xeroImport.xeroInvoiceNumber || 'Unknown',
-      // ORIGINAL XATA: amount_inc_vat: roundCurrency(toNumber(xeroImport.sale_amount_inc_vat)),
       amount_inc_vat: roundCurrency(toNumber(xeroImport.saleAmountIncVat)),
       currency: importCurrency,
-      // ORIGINAL XATA: invoice_date: xeroImport.sale_date ? xeroImport.sale_date.toISOString() : new Date().toISOString(),
       invoice_date: xeroImport.saleDate ? xeroImport.saleDate.toISOString() : new Date().toISOString(),
       linked_at: new Date().toISOString(),
       linked_by: userId,
@@ -187,38 +175,40 @@ export async function POST(
     const updatedLinked = [...existingLinked, newLinkedInvoice];
 
     // Calculate new totals
-    // ORIGINAL XATA: const primaryAmount = roundCurrency(toNumber(sale.sale_amount_inc_vat));
-    const primaryAmount = roundCurrency(toNumber(sale.saleAmountIncVat));
-    const linkedAmounts = updatedLinked.reduce(
+    // Extract the primary's ORIGINAL amount by subtracting any existing linked amounts
+    // from the current total. This prevents cumulative double-counting when linking
+    // multiple invoices sequentially (the DB value includes prior linked amounts).
+    const currentTotal = roundCurrency(toNumber(sale.saleAmountIncVat));
+    const existingLinkedTotal = existingLinked.reduce(
       (sum, inv) => addCurrency(sum, inv.amount_inc_vat),
       0
     );
-    const totalIncVat = addCurrency(primaryAmount, linkedAmounts);
+    const primaryOriginalAmount = roundCurrency(currentTotal - existingLinkedTotal);
+
+    const allLinkedAmounts = updatedLinked.reduce(
+      (sum, inv) => addCurrency(sum, inv.amount_inc_vat),
+      0
+    );
+    const totalIncVat = addCurrency(primaryOriginalAmount, allLinkedAmounts);
 
     // Recalculate ex-VAT using branding theme
-    // ORIGINAL XATA: const vatRate = getVATRateForBrandingTheme(sale.branding_theme);
     const vatRate = getVATRateForBrandingTheme(sale.brandingTheme);
     const totalExVat = calculateExVatWithRate(totalIncVat, vatRate);
 
     // Recalculate margins
     const margins = calculateMargins({
       saleAmountExVat: totalExVat,
-      // ORIGINAL XATA: buyPrice: sale.buy_price,
       buyPrice: sale.buyPrice,
-      // ORIGINAL XATA: shippingCost: sale.shipping_cost,
       shippingCost: sale.shippingCost,
-      // ORIGINAL XATA: cardFees: sale.card_fees,
       cardFees: sale.cardFees,
-      // ORIGINAL XATA: directCosts: sale.direct_costs,
       directCosts: sale.directCosts,
-      // ORIGINAL XATA: introducerCommission: (sale as any).introducer_commission,
       introducerCommission: sale.introducerCommission,
     });
 
     logger.info('LINK_INVOICE', 'Recalculated totals', {
       saleId,
-      primaryAmount,
-      linkedAmounts,
+      primaryOriginalAmount,
+      allLinkedAmounts,
       totalIncVat,
       totalExVat,
       grossMargin: margins.grossMargin,
@@ -226,14 +216,6 @@ export async function POST(
     });
 
     // Update the sale with new linked invoices and recalculated totals
-    // ORIGINAL XATA:
-    // const updatedSale = await xata.db.Sales.update(saleId, {
-    //   linked_invoices: updatedLinked,
-    //   sale_amount_inc_vat: totalIncVat,
-    //   sale_amount_ex_vat: totalExVat,
-    //   gross_margin: margins.grossMargin,
-    //   commissionable_margin: margins.commissionableMargin,
-    // } as any);
     const updatedSaleResults = await db
       .update(sales)
       .set({
@@ -248,11 +230,6 @@ export async function POST(
     const updatedSale = updatedSaleResults[0] || null;
 
     // Soft-delete the linked import
-    // ORIGINAL XATA:
-    // await xata.db.Sales.update(xero_import_id, {
-    //   deleted_at: new Date(),
-    //   needs_allocation: false,
-    // });
     await db
       .update(sales)
       .set({
