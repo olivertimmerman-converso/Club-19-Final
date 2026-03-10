@@ -19,6 +19,11 @@ import * as logger from '@/lib/logger';
 import { db } from "@/db";
 import { sales, buyers, lineItems } from "@/db/schema";
 import { eq, ilike } from "drizzle-orm";
+import {
+  calculateMargins,
+  toNumber,
+} from '@/lib/economics';
+import { roundCurrency } from '@/lib/utils/currency';
 
 // ORIGINAL XATA:
 // import { getXataClient } from '@/src/xata';
@@ -310,9 +315,19 @@ export async function POST(request: Request) {
           .limit(1);
 
         if (existing) {
-          // Update status and/or date if changed
+          // Update status, date, or amounts if changed
           const statusChanged = existing.invoiceStatus !== invoice.Status;
           const dateChanged = existing.saleDate && invoiceDate && existing.saleDate.getTime() !== invoiceDate.getTime();
+
+          // Check if amounts changed in Xero
+          const xeroUpdated = safeDate(invoice.UpdatedDateUTC);
+          const ourUpdated = existing.updatedAt;
+          const xeroIsNewer = xeroUpdated && ourUpdated
+            ? xeroUpdated.getTime() > ourUpdated.getTime()
+            : false;
+          const amountsChanged = xeroIsNewer && (
+            roundCurrency(toNumber(existing.saleAmountIncVat)) !== roundCurrency(invoice.Total || 0)
+          );
 
           // During full sync, update date even if existing date is null
           const shouldUpdateDate = fullSync && invoiceDate && (
@@ -329,11 +344,12 @@ export async function POST(request: Request) {
             xeroDate: invoiceDate?.toISOString() || 'null',
             statusChanged,
             dateChanged,
+            amountsChanged,
             shouldUpdateDate,
-            willUpdate: statusChanged || dateChanged || shouldUpdateDate
+            willUpdate: statusChanged || dateChanged || shouldUpdateDate || amountsChanged
           });
 
-          if (statusChanged || dateChanged || shouldUpdateDate) {
+          if (statusChanged || dateChanged || shouldUpdateDate || amountsChanged) {
             const updates: Record<string, any> = {};
             if (statusChanged) {
               updates.invoiceStatus = invoice.Status;
@@ -344,11 +360,40 @@ export async function POST(request: Request) {
               // Update dates during full sync to fix historical data
               updates.saleDate = invoiceDate;
             }
+            if (amountsChanged) {
+              const newIncVat = roundCurrency(invoice.Total || 0);
+              const newExVat = roundCurrency(invoice.SubTotal || (newIncVat / 1.2));
+
+              updates.saleAmountIncVat = newIncVat;
+              updates.saleAmountExVat = newExVat;
+              updates.xeroInvoiceNumber = invoice.InvoiceNumber;
+
+              // Recalculate margins with new amounts
+              const margins = calculateMargins({
+                saleAmountExVat: newExVat,
+                buyPrice: existing.buyPrice,
+                shippingCost: existing.shippingCost,
+                cardFees: existing.cardFees,
+                directCosts: existing.directCosts,
+                introducerCommission: existing.introducerCommission,
+              });
+
+              updates.grossMargin = margins.grossMargin;
+              updates.commissionableMargin = margins.commissionableMargin;
+
+              logger.info('XERO_SYNC', 'Refreshing amounts from Xero', {
+                invoiceNumber: invoice.InvoiceNumber,
+                oldIncVat: existing.saleAmountIncVat,
+                newIncVat,
+                grossMargin: margins.grossMargin,
+              });
+            }
 
             logger.info('XERO_SYNC', 'Updating invoice', {
               invoiceNumber: invoice.InvoiceNumber,
               fullSync,
               statusChanged,
+              amountsChanged,
               shouldUpdateDate,
               oldStatus: existing.invoiceStatus,
               newStatus: invoice.Status,
@@ -357,10 +402,6 @@ export async function POST(request: Request) {
               updateFields: Object.keys(updates)
             });
 
-            // ORIGINAL XATA:
-            // await xata.db.Sales.update(existing.id, updates);
-
-            // DRIZZLE:
             await db
               .update(sales)
               .set(updates)

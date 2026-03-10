@@ -140,13 +140,14 @@ export async function GET(request: NextRequest) {
     const tokens = await getValidTokens(INTEGRATION_USER_ID);
     logger.info('XERO_CRON_INVOICES', 'Got valid Xero tokens');
 
-    // Fetch invoices from last 7 days (narrower window for cron efficiency)
+    // Use If-Modified-Since header to fetch invoices modified in the last 7 days.
+    // This catches BOTH new invoices and modifications to older invoices (amount
+    // changes, description edits, etc.) regardless of the original invoice date.
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const dateFilter = `Date>=DateTime(${sevenDaysAgo.getFullYear()},${sevenDaysAgo.getMonth() + 1},${sevenDaysAgo.getDate()})`;
 
-    logger.info('XERO_CRON_INVOICES', 'Fetching recent invoices', {
-      fromDate: sevenDaysAgo.toISOString()
+    logger.info('XERO_CRON_INVOICES', 'Fetching invoices modified since', {
+      modifiedSince: sevenDaysAgo.toISOString()
     });
 
     const allInvoices: XeroInvoice[] = [];
@@ -154,13 +155,14 @@ export async function GET(request: NextRequest) {
     let hasMorePages = true;
 
     while (hasMorePages) {
-      const xeroUrl = `https://api.xero.com/api.xro/2.0/Invoices?where=${encodeURIComponent(dateFilter)}&page=${page}`;
+      const xeroUrl = `https://api.xero.com/api.xro/2.0/Invoices?page=${page}`;
 
       const xeroResponse = await fetch(xeroUrl, {
         headers: {
           'Authorization': `Bearer ${tokens.accessToken}`,
           'Xero-Tenant-Id': tokens.tenantId,
           'Accept': 'application/json',
+          'If-Modified-Since': sevenDaysAgo.toUTCString(),
         },
       });
 
