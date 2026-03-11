@@ -92,7 +92,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   //   : [];
 
   // Fetch linkable Xero-originated invoices for superadmin linking
-  const unallocatedXeroImports = (role === 'superadmin')
+  const unallocatedXeroImports = (['superadmin', 'operations'].includes(role || ''))
     ? await db.query.sales.findMany({
         where: and(
           inArray(sales.source, ['xero_import', 'allocated', 'adopted']),
