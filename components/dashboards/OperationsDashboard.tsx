@@ -244,6 +244,7 @@ export async function OperationsDashboard({
     thisMonthTrades: number;
     lastMonthSales: number;
     lastMonthMargin: number;
+    lastMonthTrades: number;
     ytdSales: number;
     ytdMargin: number;
     commissionEarned: number;
@@ -266,6 +267,7 @@ export async function OperationsDashboard({
         thisMonthTrades: 0,
         lastMonthSales: 0,
         lastMonthMargin: 0,
+        lastMonthTrades: 0,
         ytdSales: 0,
         ytdMargin: 0,
         commissionEarned: 0,
@@ -292,6 +294,7 @@ export async function OperationsDashboard({
       const perf = shopperPerformance.get(shopperId)!;
       perf.lastMonthSales += sale.saleAmountIncVat || 0;
       perf.lastMonthMargin += sale.grossMargin || 0;
+      perf.lastMonthTrades++;
     }
   });
 
@@ -455,14 +458,23 @@ export async function OperationsDashboard({
     (sum, s) => sum + (s.grossMargin || 0),
     0
   );
-  const revenueChange =
-    lastMonthRevenue > 0
-      ? ((totalRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
-      : 0;
-  const marginChange =
-    lastMonthMargin > 0
-      ? ((totalMargin - lastMonthMargin) / lastMonthMargin) * 100
-      : 0;
+  // Compute percentage change with SuperadminDashboard-style safeguards:
+  // - Returns null when baseline is zero and current is also zero
+  // - Returns "new" when baseline is zero but current > 0
+  // - Returns null when baseline is below minimum threshold
+  // - Returns 0 for changes < 0.5% (shown as "No change")
+  const getChange = (current: number, previous: number, isCurrency: boolean = false): { type: 'percent'; value: number } | { type: 'new' } | { type: 'no_change' } | null => {
+    if (previous === 0 && current === 0) return null;
+    if (previous === 0 && current > 0) return { type: 'new' };
+    const minBaseline = isCurrency ? 1000 : 5;
+    if (previous < minBaseline) return null;
+    const pct = ((current - previous) / previous) * 100;
+    if (Math.abs(pct) < 0.5) return { type: 'no_change' };
+    return { type: 'percent', value: pct };
+  };
+
+  const totalRevenueChange = getChange(totalRevenue, lastMonthRevenue, true);
+  const totalMarginChange = getChange(totalMargin, lastMonthMargin, true);
 
   return (
     <div className="p-4 space-y-6">
@@ -528,14 +540,15 @@ export async function OperationsDashboard({
           <p className="text-xl font-bold text-gray-900">
             {formatCurrency(totalRevenue)}
           </p>
-          {revenueChange !== 0 && (
-            <p
-              className={`text-xs mt-1 ${
-                revenueChange > 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {revenueChange > 0 ? "+" : ""}
-              {revenueChange.toFixed(1)}% vs last month
+          {totalRevenueChange?.type === 'new' && (
+            <p className="text-xs mt-1 text-green-600">New this month</p>
+          )}
+          {totalRevenueChange?.type === 'no_change' && (
+            <p className="text-xs mt-1 text-gray-500">No change vs last month</p>
+          )}
+          {totalRevenueChange?.type === 'percent' && (
+            <p className={`text-xs mt-1 ${totalRevenueChange.value > 0 ? "text-green-600" : "text-red-600"}`}>
+              {totalRevenueChange.value > 0 ? "+" : ""}{totalRevenueChange.value.toFixed(1)}% vs last month
             </p>
           )}
         </div>
@@ -547,14 +560,15 @@ export async function OperationsDashboard({
           <p className="text-xl font-bold text-purple-600">
             {formatCurrency(totalMargin)}
           </p>
-          {marginChange !== 0 && (
-            <p
-              className={`text-xs mt-1 ${
-                marginChange > 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {marginChange > 0 ? "+" : ""}
-              {marginChange.toFixed(1)}% vs last month
+          {totalMarginChange?.type === 'new' && (
+            <p className="text-xs mt-1 text-green-600">New this month</p>
+          )}
+          {totalMarginChange?.type === 'no_change' && (
+            <p className="text-xs mt-1 text-gray-500">No change vs last month</p>
+          )}
+          {totalMarginChange?.type === 'percent' && (
+            <p className={`text-xs mt-1 ${totalMarginChange.value > 0 ? "text-green-600" : "text-red-600"}`}>
+              {totalMarginChange.value > 0 ? "+"  : ""}{totalMarginChange.value.toFixed(1)}% vs last month
             </p>
           )}
         </div>
@@ -604,12 +618,26 @@ export async function OperationsDashboard({
               shopper.thisMonthTrades > 0
                 ? shopper.thisMonthSales / shopper.thisMonthTrades
                 : 0;
-            const salesChange =
-              shopper.lastMonthSales > 0
-                ? ((shopper.thisMonthSales - shopper.lastMonthSales) /
-                    shopper.lastMonthSales) *
-                  100
+            const lastMonthAvgDeal =
+              shopper.lastMonthTrades > 0
+                ? shopper.lastMonthSales / shopper.lastMonthTrades
                 : 0;
+
+            const salesChange = getChange(shopper.thisMonthSales, shopper.lastMonthSales, true);
+            const marginChange = getChange(shopper.thisMonthMargin, shopper.lastMonthMargin, true);
+            const tradesChange = getChange(shopper.thisMonthTrades, shopper.lastMonthTrades, false);
+            const avgDealChange = getChange(avgDealSize, lastMonthAvgDeal, true);
+
+            const renderChange = (change: ReturnType<typeof getChange>) => {
+              if (!change) return null;
+              if (change.type === 'new') return <span className="font-semibold text-green-600">New this month</span>;
+              if (change.type === 'no_change') return <span className="text-gray-500">No change</span>;
+              return (
+                <span className={`font-semibold ${change.value > 0 ? "text-green-600" : "text-red-600"}`}>
+                  {change.value > 0 ? "+" : ""}{formatPercent(change.value)}
+                </span>
+              );
+            };
 
             return (
               <div
@@ -626,35 +654,46 @@ export async function OperationsDashboard({
                       {formatCurrency(shopper.thisMonthSales)}
                     </span>
                   </div>
+                  {salesChange && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">vs Last Month:</span>
+                      {renderChange(salesChange)}
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Margin:</span>
                     <span className="font-semibold text-green-600">
                       {formatCurrency(shopper.thisMonthMargin)}
                     </span>
                   </div>
+                  {marginChange && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">vs Last Month:</span>
+                      {renderChange(marginChange)}
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Trades:</span>
                     <span className="font-semibold">
                       {shopper.thisMonthTrades}
                     </span>
                   </div>
+                  {tradesChange && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">vs Last Month:</span>
+                      {renderChange(tradesChange)}
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Avg Deal:</span>
                     <span className="font-semibold">
                       {formatCurrency(avgDealSize)}
                     </span>
                   </div>
-                  {salesChange !== 0 && (
-                    <div className="flex justify-between pt-2 border-t">
+                  {avgDealChange && (
+                    <div className="flex justify-between">
                       <span className="text-gray-600">vs Last Month:</span>
-                      <span
-                        className={`font-semibold ${
-                          salesChange > 0 ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {salesChange > 0 ? "+" : ""}
-                        {formatPercent(salesChange)}
-                      </span>
+                      {renderChange(avgDealChange)}
                     </div>
                   )}
                   <div className="flex justify-between pt-2 border-t">

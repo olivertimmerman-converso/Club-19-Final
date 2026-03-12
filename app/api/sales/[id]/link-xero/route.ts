@@ -14,7 +14,7 @@
  * Re-linking: If the Atelier sale already has a xero_invoice_id, this will update it
  * to point to the new invoice. The old invoice (if it exists in Xero) remains as a Draft.
  *
- * Superadmin only endpoint
+ * Superadmin, admin, and operations endpoint
  *
  * MIGRATION STATUS: Converted from Xata SDK to Drizzle ORM (Feb 2026)
  */
@@ -43,7 +43,7 @@ export async function POST(
   logger.info('SALES_LINK_XERO', 'Link Xero invoice request received', { saleId });
 
   try {
-    // 1. Auth check - superadmin only
+    // 1. Auth check - superadmin, admin, operations
     const { userId } = await auth();
     if (!userId) {
       logger.error('SALES_LINK_XERO', 'Unauthorized - no userId');
@@ -53,10 +53,10 @@ export async function POST(
     const role = await getUserRole();
     logger.info('SALES_LINK_XERO', 'User role check', { role });
 
-    if (role !== 'superadmin') {
+    if (!['superadmin', 'admin', 'operations'].includes(role || '')) {
       logger.error('SALES_LINK_XERO', 'Forbidden - insufficient role', { role });
       return NextResponse.json(
-        { error: 'Forbidden - requires superadmin role' },
+        { error: 'Forbidden - insufficient permissions' },
         { status: 403 }
       );
     }
