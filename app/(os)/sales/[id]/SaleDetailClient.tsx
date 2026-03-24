@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getBrandingThemeMapping } from '@/lib/branding-theme-mappings';
 import { BRANDS, CATEGORIES } from '@/lib/constants';
 import { NewSupplierModal } from '@/components/modals/NewSupplierModal';
+import { FileDown } from 'lucide-react';
 
 interface LinkedInvoice {
   xero_invoice_id: string;
@@ -344,6 +345,37 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
   const [clawbackReason, setClawbackReason] = useState('');
   const [isProcessingClawback, setIsProcessingClawback] = useState(false);
   const [clawbackError, setClawbackError] = useState<string | null>(null);
+
+  // PDF download state
+  const [isPdfDownloading, setIsPdfDownloading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  const handleDownloadPdf = async () => {
+    if (!sale.xero_invoice_id) return;
+    setIsPdfDownloading(true);
+    setPdfError(null);
+    try {
+      const response = await fetch(`/api/sales/${sale.id}/pdf`);
+      if (!response.ok) {
+        const data = await response.json();
+        setPdfError(data.error || 'Failed to download PDF');
+        return;
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = sale.xero_invoice_number
+        ? `Club19-${sale.xero_invoice_number}.pdf`
+        : `Club19-${sale.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setPdfError('Failed to download PDF — please try again');
+    } finally {
+      setIsPdfDownloading(false);
+    }
+  };
 
   // Edit mode state (for superadmin/operations/admin)
   const canEdit = ['superadmin', 'admin', 'operations'].includes(userRole || '');
@@ -1295,6 +1327,22 @@ export function SaleDetailClient({ sale, shoppers, suppliers, userRole, unalloca
               </svg>
               View in Xero
             </a>
+          )}
+          {sale.xero_invoice_id && (
+            <div className="flex flex-col items-start gap-1">
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isPdfDownloading || sale.invoice_status === 'DRAFT'}
+                title={sale.invoice_status === 'DRAFT' ? 'Invoice must be approved in Xero before downloading' : 'Download invoice PDF'}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                {isPdfDownloading ? 'Downloading…' : 'Download PDF'}
+              </button>
+              {pdfError && (
+                <p className="text-xs text-red-600">{pdfError}</p>
+              )}
+            </div>
           )}
           {userRole === 'superadmin' && (
             <button
